@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { saveGroup } from "@/app/actions/admin";
-import { FormError, FormField, SubmitButton, fieldError, useActionFeedback, type FormState } from "@/components/forms/form-kit";
+import { FormError, FormField, SubmitButton, submitWith, fieldError, useActionFeedback, type FormState } from "@/components/forms/form-kit";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ru } from "@/lib/i18n/ru";
@@ -36,7 +36,7 @@ export function GroupForm({
   openAfterCreate?: boolean;
 }) {
   const router = useRouter();
-  const [state, action] = useActionState<FormState, FormData>(saveGroup, null);
+  const [state, action, pending] = useActionState<FormState, FormData>(saveGroup, null);
   const closeDialog = useDialogClose();
   useActionFeedback(state, () => {
     (onDone ?? closeDialog)?.();
@@ -45,7 +45,7 @@ export function GroupForm({
   });
   const err = (name: string) => fieldError(state, name);
   return (
-    <form action={action} className="grid gap-4" noValidate data-testid="group-form">
+    <form onSubmit={submitWith(action)} className="grid gap-4" noValidate data-testid="group-form">
       {initial && <input type="hidden" name="id" value={initial.id} />}
       <FormField label={ru.common.group} htmlFor="g-name" error={err("name")}>
         <Input id="g-name" name="name" defaultValue={initial?.name} required aria-invalid={Boolean(err("name"))} />
@@ -78,7 +78,7 @@ export function GroupForm({
         </NativeSelect>
       </FormField>
       <FormError state={state} />
-      <SubmitButton className="w-full sm:w-auto sm:justify-self-end">{initial ? ru.common.save : ru.common.create}</SubmitButton>
+      <SubmitButton pending={pending} className="w-full sm:w-auto sm:justify-self-end">{initial ? ru.common.save : ru.common.create}</SubmitButton>
     </form>
   );
 }

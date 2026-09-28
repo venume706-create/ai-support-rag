@@ -78,6 +78,9 @@ test.describe("Администратор", () => {
     await sf.locator("#s-password").fill("secret123");
     await sf.locator("button[type=submit]").click();
     await expect(page.getByTestId("error-s-login")).toHaveText("Этот логин уже занят");
+    // Введённые данные не теряются после ошибки
+    await expect(sf.locator("#s-fullName")).toHaveValue("Дубликат Логина");
+    await expect(sf.locator("#s-login")).toHaveValue("student1");
   });
 
   test("отключённый пользователь не может войти", async ({ page, browser }, info) => {

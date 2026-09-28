@@ -8,11 +8,18 @@ export function Pagination({
   info,
   pathname,
   params,
+  pageKey = "page",
+  hash,
 }: {
   info: PageInfo;
   pathname: string;
   params: Record<string, string | number | undefined>;
+  /** Имя параметра номера страницы (несколько списков на одной странице) */
+  pageKey?: string;
+  /** Якорь, к которому вернуться после перехода */
+  hash?: string;
 }) {
+  const href = (page: number) => `${withParams(pathname, params, { [pageKey]: page })}${hash ? `#${hash}` : ""}`;
   if (info.total === 0) return null;
   const from = info.skip + 1;
   const to = Math.min(info.skip + info.take, info.total);
@@ -24,7 +31,7 @@ export function Pagination({
           <span className="hidden text-muted-foreground sm:inline">{ru.common.page(info.page, info.pages)}</span>
           {info.page > 1 ? (
             <Button asChild variant="outline" size="icon" aria-label={ru.common.prev}>
-              <Link href={withParams(pathname, params, { page: info.page - 1 })}>
+              <Link href={href(info.page - 1)} scroll={!hash}>
                 <ChevronLeft />
               </Link>
             </Button>
@@ -35,7 +42,7 @@ export function Pagination({
           )}
           {info.page < info.pages ? (
             <Button asChild variant="outline" size="icon" aria-label={ru.common.next}>
-              <Link href={withParams(pathname, params, { page: info.page + 1 })}>
+              <Link href={href(info.page + 1)} scroll={!hash}>
                 <ChevronRight />
               </Link>
             </Button>

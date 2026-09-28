@@ -21,7 +21,8 @@ export const metadata: Metadata = { title: ru.admin.profile };
 
 export default async function StudentProfile({ params, searchParams }: PageProps<"/admin/students/[id]">) {
   const { id } = await params;
-  const { period } = parseListQuery(await searchParams);
+  const sp = await searchParams;
+  const { period } = parseListQuery(sp);
   const student = await db.student.findUnique({
     where: { id },
     select: {
@@ -121,7 +122,7 @@ export default async function StudentProfile({ params, searchParams }: PageProps
           </CardContent>
         </Card>
       </div>
-      <StudentOverview studentId={student.id} period={period} hrefFor={hrefFor} />
+      <StudentOverview studentId={student.id} period={period} hrefFor={hrefFor} pathname={`/admin/students/${id}`} searchParams={sp} />
     </>
   );
 }

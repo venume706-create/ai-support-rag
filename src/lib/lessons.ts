@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import { addDays, isoDayOfWeek } from "./dates";
 
 interface SlotLike {
@@ -52,11 +52,16 @@ export async function ensureLessons(
   const have = new Set(existing.map(key));
   const missing = planned.filter((p) => !have.has(key(p)));
   for (const lesson of missing) {
-    await db.lesson.upsert({
-      where: { groupId_date_startTime: { groupId: lesson.groupId, date: lesson.date, startTime: lesson.startTime } },
-      update: {},
-      create: lesson,
-    });
+    try {
+      await db.lesson.upsert({
+        where: { groupId_date_startTime: { groupId: lesson.groupId, date: lesson.date, startTime: lesson.startTime } },
+        update: {},
+        create: lesson,
+      });
+    } catch (error) {
+      // Параллельный запрос уже создал этот урок — это нормально
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) throw error;
+    }
   }
   return missing.length;
 }

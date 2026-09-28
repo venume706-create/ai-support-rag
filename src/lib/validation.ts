@@ -136,6 +136,15 @@ export const submissionSchema = z.object({
   status: z.enum(["DONE", "PARTIAL", "NOT_DONE"]),
 });
 
+export const passwordChangeSchema = z
+  .object({
+    current: z.string().min(1, v.required).max(128, v.tooLong),
+    next: passwordField,
+    confirm: z.string().min(1, v.required),
+  })
+  .refine((d) => d.next === d.confirm, { message: ru.account.mismatch, path: ["confirm"] })
+  .refine((d) => d.next !== d.current, { message: ru.account.sameAsOld, path: ["next"] });
+
 export const idOnlySchema = z.object({ id: idSchema });
 
 export const listQuerySchema = z.object({

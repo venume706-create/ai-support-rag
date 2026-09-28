@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { CalendarClock, Pencil, Plus } from "lucide-react";
 import type { AttendanceStatus, HomeworkStatus } from "@prisma/client";
 import { DialogForm } from "@/components/admin/dialog-form";
+import { ListToolbar } from "@/components/common/list-toolbar";
+import { Pagination } from "@/components/common/pagination";
 import { RatingBadge } from "@/components/common/badges";
 import { PageHeader } from "@/components/common/page-header";
 import { PeriodSwitch } from "@/components/common/rating-card";
@@ -23,6 +25,7 @@ import { addDays, formatDate, formatWeekday, toDateOnly, today } from "@/lib/dat
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { ensureLessons } from "@/lib/lessons";
+import { pageParam, searchAndPage } from "@/lib/pagination";
 import { getStudentRatings } from "@/lib/rating-data";
 import { cn } from "@/lib/utils";
 import { parseListQuery } from "@/lib/validation";
@@ -37,7 +40,7 @@ export default async function TeacherGroupPage({ params, searchParams }: PagePro
   await requirePageUser("TEACHER");
   const { id } = await params;
   const sp = await searchParams;
-  const { period } = parseListQuery(sp);
+  const { period, q } = parseListQuery(sp);
   const tab: Tab = TABS.includes(sp.tab as Tab) ? (sp.tab as Tab) : "journal";
 
   const now = today();
@@ -89,7 +92,7 @@ export default async function TeacherGroupPage({ params, searchParams }: PagePro
         ))}
       </nav>
       {tab === "journal" && <JournalTab groupId={id} students={students} selected={typeof sp.lesson === "string" ? sp.lesson : undefined} base={base} />}
-      {tab === "students" && <StudentsTab groupId={id} students={students} period={period} base={base} />}
+      {tab === "students" && <StudentsTab groupId={id} students={students} period={period} base={base} q={q} page={pageParam(sp.sp)} />}
       {tab === "homework" && <HomeworkTab groupId={id} students={students} />}
       {tab === "schedule" && (
         <Card>
@@ -233,15 +236,20 @@ async function JournalTab({
 
 async function StudentsTab({
   groupId,
-  students,
+  students: all,
   period,
   base,
+  q,
+  page,
 }: {
   groupId: string;
   students: { id: string; name: string }[];
   period: "month" | "all";
   base: string;
+  q: string;
+  page: number;
 }) {
+  const { info, rows: students } = searchAndPage(all, q, page, (s) => s.name);
   const ratings = await getStudentRatings(students.map((s) => s.id), { period, groupIds: [groupId] });
   const hrefFor = (p: string) => (p === "all" ? `${base}?tab=students` : `${base}?tab=students&period=${p}`);
   return (
@@ -251,8 +259,11 @@ async function StudentsTab({
         <PeriodSwitch period={period} hrefFor={hrefFor} />
       </CardHeader>
       <CardContent>
+        {all.length > 0 && (
+          <ListToolbar pathname={base} q={q} hidden={{ tab: "students", ...(period === "month" ? { period } : {}) }} searchPlaceholder={ru.common.searchPlaceholder} />
+        )}
         {students.length === 0 ? (
-          <EmptyState text={ru.empty.groupStudents} />
+          <EmptyState text={q ? ru.empty.searchNothing : ru.empty.groupStudents} />
         ) : (
           <Table data-testid="teacher-group-students">
             <TableHeader>
@@ -287,6 +298,7 @@ async function StudentsTab({
             </TableBody>
           </Table>
         )}
+        <Pagination info={info} pathname={base} params={{ tab: "students", q, period: period === "month" ? period : undefined }} pageKey="sp" />
       </CardContent>
     </Card>
   );

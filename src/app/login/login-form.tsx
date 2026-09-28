@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Loader2 } from "lucide-react";
 import { loginAction, type LoginState } from "@/app/actions/auth";
+import { submitWith } from "@/components/forms/form-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import { ru } from "@/lib/i18n/ru";
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(loginAction, {});
   return (
-    <form action={action} className="grid gap-4" noValidate>
+    <form onSubmit={submitWith(action)} className="grid gap-4" noValidate>
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
       <div className="grid gap-2">
         <Label htmlFor="login">{ru.common.login}</Label>

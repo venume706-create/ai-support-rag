@@ -21,7 +21,13 @@ if (next !== schema) {
 }
 
 if (process.argv[2] === "setup") {
-  const run = (cmd) => execSync(cmd, { stdio: "inherit" });
+  const run = (cmd, env = process.env) => execSync(cmd, { stdio: "inherit", env });
   run("npx prisma generate");
-  run(provider === "sqlite" ? "npx prisma migrate deploy" : "npx prisma db push --skip-generate");
+  if (provider === "sqlite") {
+    run("npx prisma migrate deploy");
+  } else {
+    // Изменение схемы — через прямое (не пул) подключение, если хостинг его даёт (Neon, Vercel Postgres)
+    const direct = process.env.DATABASE_URL_UNPOOLED || process.env.POSTGRES_URL_NON_POOLING || process.env.DIRECT_URL || url;
+    run("npx prisma db push --skip-generate", { ...process.env, DATABASE_URL: direct });
+  }
 }

@@ -8,6 +8,8 @@ import { GroupForm } from "@/components/admin/group-form";
 import { MembershipForm } from "@/components/admin/membership-form";
 import { SlotForm } from "@/components/admin/slot-form";
 import { RatingBadge } from "@/components/common/badges";
+import { ListToolbar } from "@/components/common/list-toolbar";
+import { Pagination } from "@/components/common/pagination";
 import { PageHeader } from "@/components/common/page-header";
 import { PeriodSwitch } from "@/components/common/rating-card";
 import { EmptyState } from "@/components/common/status-views";
@@ -16,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { today } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
+import { pageParam, searchAndPage } from "@/lib/pagination";
 import { getStudentRatings } from "@/lib/rating-data";
 import { parseListQuery } from "@/lib/validation";
 
@@ -23,7 +26,8 @@ export const metadata: Metadata = { title: ru.common.group };
 
 export default async function GroupPage({ params, searchParams }: PageProps<"/admin/groups/[id]">) {
   const { id } = await params;
-  const { period } = parseListQuery(await searchParams);
+  const sp = await searchParams;
+  const { period, q } = parseListQuery(sp);
   const group = await db.group.findUnique({
     where: { id },
     select: {
@@ -52,7 +56,8 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
       select: { id: true, user: { select: { fullName: true } } },
     }),
   ]);
-  const ratings = await getStudentRatings(group.students.map((s) => s.student.id), { period, groupIds: [id] });
+  const members = searchAndPage(group.students, q, pageParam(sp.sp), (s) => `${s.student.user.fullName} ${s.student.user.login}`);
+  const ratings = await getStudentRatings(members.rows.map((s) => s.student.id), { period, groupIds: [id] });
   const hrefFor = (p: string) => (p === "all" ? `/admin/groups/${id}` : `/admin/groups/${id}?period=${p}`);
 
   return (
@@ -84,8 +89,11 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
             <PeriodSwitch period={period} hrefFor={hrefFor} />
           </CardHeader>
           <CardContent className="grid gap-4">
-            {group.students.length === 0 ? (
-              <EmptyState text={ru.empty.groupStudents} />
+            {group.students.length > 0 && (
+              <ListToolbar pathname={`/admin/groups/${id}`} q={q} hidden={period === "month" ? { period } : {}} />
+            )}
+            {members.rows.length === 0 ? (
+              <EmptyState text={q ? ru.empty.searchNothing : ru.empty.groupStudents} />
             ) : (
               <Table data-testid="group-students">
                 <TableHeader>
@@ -96,7 +104,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {group.students.map(({ student }) => (
+                  {members.rows.map(({ student }) => (
                     <TableRow key={student.id}>
                       <TableCell>
                         <Link href={`/admin/students/${student.id}`} className="font-bold hover:underline">
@@ -115,6 +123,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
                 </TableBody>
               </Table>
             )}
+            <Pagination info={members.info} pathname={`/admin/groups/${id}`} params={{ q, period: period === "month" ? period : undefined }} pageKey="sp" />
             <div>
               <p className="mb-2 text-sm font-bold">{ru.admin.addStudent}</p>
               <MembershipForm fixed={{ groupId: group.id }} options={freeStudents.map((s) => ({ id: s.id, name: s.user.fullName }))} />

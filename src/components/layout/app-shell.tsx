@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, KeyRound } from "lucide-react";
 import type { CurrentUser } from "@/lib/access";
 import { ru } from "@/lib/i18n/ru";
 import { ROLE_HOME } from "@/lib/roles";
@@ -41,7 +41,15 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
               <ThemeToggle />
             </div>
           </div>
-          <div className="text-on-wood-muted">
+          <div className="grid text-on-wood-muted">
+            <Link
+              href="/account"
+              className="flex h-10 items-center gap-3 rounded-md px-3 text-sm font-bold hover:bg-black/20 hover:text-on-wood"
+              data-testid="account-link"
+            >
+              <KeyRound className="size-4" />
+              {ru.account.link}
+            </Link>
             <LogoutButton />
           </div>
         </div>
@@ -54,6 +62,9 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
         </Link>
         <div className="flex items-center text-on-wood">
           <ThemeToggle />
+          <Link href="/account" aria-label={ru.account.link} className="flex size-10 items-center justify-center rounded-md hover:bg-black/20" data-testid="account-link">
+            <KeyRound className="size-5" />
+          </Link>
           <LogoutButton compact />
         </div>
       </header>

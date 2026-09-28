@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { startTransition, useEffect, useRef, type FormEvent } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -41,8 +41,31 @@ export function FormField({
   );
 }
 
-export function SubmitButton({ children, className, variant }: { children: React.ReactNode; className?: string; variant?: "default" | "destructive" | "outline" }) {
-  const { pending } = useFormStatus();
+/**
+ * Отправка формы в server action без автоматической очистки полей
+ * (React 19 очищает форму после `action={...}` даже при ошибке валидации).
+ */
+export function submitWith(dispatch: (formData: FormData) => void) {
+  return (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => dispatch(formData));
+  };
+}
+
+export function SubmitButton({
+  children,
+  className,
+  variant,
+  pending: pendingProp,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  variant?: "default" | "destructive" | "outline";
+  pending?: boolean;
+}) {
+  const status = useFormStatus();
+  const pending = pendingProp ?? status.pending;
   return (
     <Button type="submit" disabled={pending} className={className} variant={variant}>
       {pending && <Loader2 className="animate-spin" />}

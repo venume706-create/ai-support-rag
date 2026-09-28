@@ -14,7 +14,8 @@ export const metadata: Metadata = { title: ru.admin.profile };
 export default async function TeacherStudentPage({ params, searchParams }: PageProps<"/teacher/students/[id]">) {
   const user = await requirePageUser("TEACHER");
   const { id } = await params;
-  const { period } = parseListQuery(await searchParams);
+  const sp = await searchParams;
+  const { period } = parseListQuery(sp);
   const myGroups = await teacherGroupIds(user.teacherId);
   const student = await db.student.findUnique({
     where: { id },
@@ -47,7 +48,7 @@ export default async function TeacherStudentPage({ params, searchParams }: PageP
           </dl>
         </CardContent>
       </Card>
-      <StudentOverview studentId={student.id} groupIds={myGroups} period={period} hrefFor={hrefFor} />
+      <StudentOverview studentId={student.id} groupIds={myGroups} period={period} hrefFor={hrefFor} pathname={`/teacher/students/${id}`} searchParams={sp} />
     </>
   );
 }

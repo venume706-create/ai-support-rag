@@ -13,6 +13,7 @@ test("неверный пароль — понятная ошибка", async ({
   await page.fill("#password", "wrong-password");
   await page.click("button[type=submit]");
   await expect(page.getByTestId("login-error")).toHaveText("Неверный логин или пароль");
+  await expect(page.locator("#login")).toHaveValue("admin");
 });
 
 test("переключение тёмной темы", async ({ page }) => {

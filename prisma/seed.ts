@@ -63,7 +63,8 @@ async function main() {
   await db.user.deleteMany();
 
   const [adminHash, teacherHash, studentHash] = await Promise.all([
-    bcrypt.hash("admin123", 10),
+    // В продакшене задайте SEED_ADMIN_PASSWORD, чтобы не использовать известный демо-пароль
+    bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || "admin123", 10),
     bcrypt.hash("teacher123", 10),
     bcrypt.hash("student123", 10),
   ]);

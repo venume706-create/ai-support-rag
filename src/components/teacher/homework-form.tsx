@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { saveHomework } from "@/app/actions/teacher";
 import { useDialogClose } from "@/components/admin/dialog-form";
-import { FormError, FormField, SubmitButton, fieldError, useActionFeedback, type FormState } from "@/components/forms/form-kit";
+import { FormError, FormField, SubmitButton, submitWith, fieldError, useActionFeedback, type FormState } from "@/components/forms/form-kit";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ru } from "@/lib/i18n/ru";
@@ -17,13 +17,13 @@ export function HomeworkForm({
   initial?: { id: string; title: string; description: string; dueDate: string };
   defaultDue: string;
 }) {
-  const [state, action] = useActionState<FormState, FormData>(saveHomework, null);
+  const [state, action, pending] = useActionState<FormState, FormData>(saveHomework, null);
   const close = useDialogClose();
   useActionFeedback(state, close);
   const err = (name: string) => fieldError(state, name);
   const prefix = initial ? `hw-${initial.id}` : "hw-new";
   return (
-    <form action={action} className="grid gap-4" noValidate data-testid="homework-form">
+    <form onSubmit={submitWith(action)} className="grid gap-4" noValidate data-testid="homework-form">
       <input type="hidden" name="groupId" value={groupId} />
       {initial && <input type="hidden" name="id" value={initial.id} />}
       <FormField label={ru.teacher.homeworkTitleField} htmlFor={`${prefix}-title`} error={err("title")}>
@@ -36,7 +36,7 @@ export function HomeworkForm({
         <Input id={`${prefix}-due`} name="dueDate" type="date" defaultValue={initial?.dueDate ?? defaultDue} required aria-invalid={Boolean(err("dueDate"))} />
       </FormField>
       <FormError state={state} />
-      <SubmitButton className="w-full sm:w-auto sm:justify-self-end">{initial ? ru.common.save : ru.common.create}</SubmitButton>
+      <SubmitButton pending={pending} className="w-full sm:w-auto sm:justify-self-end">{initial ? ru.common.save : ru.common.create}</SubmitButton>
     </form>
   );
 }

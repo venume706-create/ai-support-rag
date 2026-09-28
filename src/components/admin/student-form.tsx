@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { createStudent, updateStudent } from "@/app/actions/admin";
-import { FormError, FormField, SubmitButton, fieldError, useActionFeedback, type FormState } from "@/components/forms/form-kit";
+import { FormError, FormField, SubmitButton, submitWith, fieldError, useActionFeedback, type FormState } from "@/components/forms/form-kit";
 import { Input } from "@/components/ui/input";
 import { ru } from "@/lib/i18n/ru";
 import { useDialogClose } from "./dialog-form";
@@ -23,12 +23,12 @@ export interface StudentFormValues {
 
 export function StudentForm({ groups = [], initial, onDone }: { groups?: GroupOption[]; initial?: StudentFormValues; onDone?: () => void }) {
   const editing = Boolean(initial);
-  const [state, action] = useActionState<FormState, FormData>(editing ? updateStudent : createStudent, null);
+  const [state, action, pending] = useActionState<FormState, FormData>(editing ? updateStudent : createStudent, null);
   const closeDialog = useDialogClose();
   useActionFeedback(state, onDone ?? closeDialog);
   const err = (name: string) => fieldError(state, name);
   return (
-    <form action={action} className="grid gap-4" noValidate data-testid="student-form">
+    <form onSubmit={submitWith(action)} className="grid gap-4" noValidate data-testid="student-form">
       {initial && <input type="hidden" name="id" value={initial.id} />}
       <FormField label={ru.common.fullName} htmlFor="s-fullName" error={err("fullName")}>
         <Input id="s-fullName" name="fullName" defaultValue={initial?.fullName} required aria-invalid={Boolean(err("fullName"))} />
@@ -71,7 +71,7 @@ export function StudentForm({ groups = [], initial, onDone }: { groups?: GroupOp
         </fieldset>
       )}
       <FormError state={state} />
-      <SubmitButton className="w-full sm:w-auto sm:justify-self-end">{editing ? ru.common.save : ru.common.create}</SubmitButton>
+      <SubmitButton pending={pending} className="w-full sm:w-auto sm:justify-self-end">{editing ? ru.common.save : ru.common.create}</SubmitButton>
     </form>
   );
 }

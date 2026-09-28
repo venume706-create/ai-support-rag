@@ -2,19 +2,19 @@
 
 import { useActionState } from "react";
 import { createSlot } from "@/app/actions/admin";
-import { FormError, FormField, SubmitButton, fieldError, useActionFeedback, type FormState } from "@/components/forms/form-kit";
+import { FormError, FormField, SubmitButton, submitWith, fieldError, useActionFeedback, type FormState } from "@/components/forms/form-kit";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ru } from "@/lib/i18n/ru";
 import { useDialogClose } from "./dialog-form";
 
 export function SlotForm({ groups, groupId, onDone }: { groups?: { id: string; name: string }[]; groupId?: string; onDone?: () => void }) {
-  const [state, action] = useActionState<FormState, FormData>(createSlot, null);
+  const [state, action, pending] = useActionState<FormState, FormData>(createSlot, null);
   const closeDialog = useDialogClose();
   useActionFeedback(state, onDone ?? closeDialog);
   const err = (name: string) => fieldError(state, name);
   return (
-    <form action={action} className="grid gap-4" noValidate data-testid="slot-form">
+    <form onSubmit={submitWith(action)} className="grid gap-4" noValidate data-testid="slot-form">
       {groupId ? (
         <input type="hidden" name="groupId" value={groupId} />
       ) : (
@@ -52,7 +52,7 @@ export function SlotForm({ groups, groupId, onDone }: { groups?: { id: string; n
         <Input id="sl-room" name="room" />
       </FormField>
       <FormError state={state} />
-      <SubmitButton className="w-full sm:w-auto sm:justify-self-end">{ru.common.add}</SubmitButton>
+      <SubmitButton pending={pending} className="w-full sm:w-auto sm:justify-self-end">{ru.common.add}</SubmitButton>
     </form>
   );
 }

@@ -6,6 +6,8 @@ import { DialogForm } from "@/components/admin/dialog-form";
 import { TeacherForm } from "@/components/admin/teacher-form";
 import { UserActions } from "@/components/admin/user-actions";
 import { ActiveBadge, RatingBadge } from "@/components/common/badges";
+import { ListToolbar } from "@/components/common/list-toolbar";
+import { Pagination } from "@/components/common/pagination";
 import { Gauge } from "@/components/common/gauge";
 import { PageHeader } from "@/components/common/page-header";
 import { PeriodSwitch, ratingTextClass } from "@/components/common/rating-card";
@@ -15,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatDate } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
+import { pageParam, searchAndPage } from "@/lib/pagination";
 import { getStudentRatings, getTeacherRatings } from "@/lib/rating-data";
 import { cn } from "@/lib/utils";
 import { parseListQuery } from "@/lib/validation";
@@ -23,7 +26,8 @@ export const metadata: Metadata = { title: ru.admin.profile };
 
 export default async function TeacherProfile({ params, searchParams }: PageProps<"/admin/teachers/[id]">) {
   const { id } = await params;
-  const { period } = parseListQuery(await searchParams);
+  const sp = await searchParams;
+  const { period, q } = parseListQuery(sp);
   const teacher = await db.teacher.findUnique({
     where: { id },
     select: {
@@ -48,6 +52,10 @@ export default async function TeacherProfile({ params, searchParams }: PageProps
   const groupIds = teacher.groups.map((g) => g.id);
   const students = [...new Map(teacher.groups.flatMap((g) => g.students.map((s) => [s.student.id, s.student]))).values()];
   const ratings = await getStudentRatings(students.map((s) => s.id), { period, groupIds });
+  const sorted = students
+    .map((s) => ({ ...s, rating: ratings.get(s.id)?.total ?? null }))
+    .sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+  const studentPage = searchAndPage(sorted, q, pageParam(sp.sp), (s) => s.user.fullName);
   const hrefFor = (p: string) => (p === "all" ? `/admin/teachers/${id}` : `/admin/teachers/${id}?period=${p}`);
 
   return (
@@ -149,8 +157,11 @@ export default async function TeacherProfile({ params, searchParams }: PageProps
             <CardTitle>{ru.common.students}</CardTitle>
           </CardHeader>
           <CardContent>
-            {students.length === 0 ? (
-              <EmptyState text={ru.empty.students} />
+            {students.length > 0 && (
+              <ListToolbar pathname={`/admin/teachers/${id}`} q={q} hidden={period === "month" ? { period } : {}} />
+            )}
+            {studentPage.rows.length === 0 ? (
+              <EmptyState text={q ? ru.empty.searchNothing : ru.empty.students} />
             ) : (
               <Table>
                 <TableHeader>
@@ -160,10 +171,7 @@ export default async function TeacherProfile({ params, searchParams }: PageProps
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {students
-                    .map((s) => ({ ...s, rating: ratings.get(s.id)?.total ?? null }))
-                    .sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1))
-                    .map((s) => (
+                  {studentPage.rows.map((s) => (
                       <TableRow key={s.id}>
                         <TableCell>
                           <Link href={`/admin/students/${s.id}`} className="font-bold hover:underline">
@@ -174,10 +182,11 @@ export default async function TeacherProfile({ params, searchParams }: PageProps
                           <RatingBadge value={s.rating} />
                         </TableCell>
                       </TableRow>
-                    ))}
+                  ))}
                 </TableBody>
               </Table>
             )}
+            <Pagination info={studentPage.info} pathname={`/admin/teachers/${id}`} params={{ q, period: period === "month" ? period : undefined }} pageKey="sp" />
           </CardContent>
         </Card>
       </div>
