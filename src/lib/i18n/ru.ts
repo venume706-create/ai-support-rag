@@ -29,6 +29,7 @@ export const ru = {
     no: "Нет",
     noData: "нет данных",
     dash: "—",
+    number: "№",
     loading: "Загрузка…",
     actions: "Действия",
     confirmDelete: "Удалить безвозвратно? Это действие нельзя отменить.",

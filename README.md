@@ -1,36 +1,124 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Учебный центр — платформа для математики и английского
 
-## Getting Started
+Веб-платформа учебного центра: расписание, журнал посещаемости и оценок, домашние задания и рейтинги учеников и учителей. Три роли: администратор, учитель, ученик. Интерфейс на русском, оформлен как «кабинет старого учителя»: дерево, кожа, бумага, латунь, чернильные штампы.
 
-First, run the development server:
+## Возможности
+
+- **Администратор:** дашборд (ученики, учителя, группы, посещаемость за месяц, топ-10 учеников, рейтинг учителей). Создание, изменение и удаление учителей, учеников, групп, предметов и расписания. Назначение учителей, состав групп, отключение пользователей.
+- **Учитель:** уроки на сегодня и свои группы. Журнал урока: посещаемость «штампом» в один клик с автосохранением, быстрый ввод оценок 1–5, тема урока, страница журнала за последние уроки. ДЗ на пробковой доске с отметкой выполнения, профили своих учеников, недельное расписание.
+- **Ученик:** свой рейтинг (стрелочный прибор и три шкалы), ближайшие уроки, оценки, посещаемость, ДЗ, расписание.
+- **Рейтинг ученика (100 баллов):** успеваемость 50, посещаемость 25, ДЗ 25. Период: текущий месяц или всё время. **Рейтинг учителя** — средний рейтинг учеников его групп.
+- Права проверяются на сервере: чужая группа или чужой ученик → HTTP 403.
+- Светлая и тёмная тема, адаптивная вёрстка (на телефоне — нижнее меню).
+
+## Стек
+
+Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS 4 + компоненты shadcn/ui (Radix) · Prisma 6 (SQLite / PostgreSQL) · Auth.js v5 (логин и пароль, bcrypt) · zod · Vitest · Playwright.
+
+## Установка и запуск
+
+Нужен Node.js 20.9 или новее.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env          # затем задайте AUTH_SECRET (npx auth secret)
+npm run db:setup              # применить схему (SQLite: prisma/dev.db)
+npm run db:seed               # демо-данные
+npm run dev                   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Продакшен-сборка: `npm run build && npm run start`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Переменные окружения (`.env`)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Переменная | Назначение |
+|---|---|
+| `DATABASE_URL` | `file:./dev.db` (SQLite) или `postgresql://user:pass@host:5432/db` |
+| `AUTH_SECRET` | секрет для подписи сессий (обязателен) |
+| `APP_TIMEZONE` | часовой пояс центра, по умолчанию `Asia/Tashkent` |
 
-## Learn More
+## Демо-логины
 
-To learn more about Next.js, take a look at the following resources:
+| Роль | Логин | Пароль |
+|---|---|---|
+| Администратор | `admin` | `admin123` |
+| Учителя | `teacher1`, `teacher2`, `teacher3` | `teacher123` |
+| Ученики | `student1` … `student30` | `student123` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+В сиде 3 учителя, 30 учеников, 6 групп (3 по математике, 3 по английскому), расписание, уроки за последние 30 дней с посещаемостью, оценками и ДЗ, поэтому рейтинги считаются сразу. `teacher1` ведёт две группы по математике, `teacher2` — две по английскому, `teacher3` — по одной группе каждого предмета.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+> `npm run db:seed` полностью пересоздаёт данные в базе из `DATABASE_URL`.
 
-## Deploy on Vercel
+## Команды
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Команда | Что делает |
+|---|---|
+| `npm run dev` | режим разработки |
+| `npm run build` / `npm run start` | сборка и запуск продакшена |
+| `npm run lint` | ESLint (0 предупреждений) |
+| `npm run typecheck` | проверка типов |
+| `npm run test` | юнит-тесты рейтинга (Vitest) |
+| `npm run test:e2e` | сценарии Playwright на отдельной базе `prisma/e2e.db` (сам собирает и запускает приложение на порту 3200) |
+| `npm run db:setup` | выбрать провайдера по `DATABASE_URL` и применить схему |
+| `npm run db:seed` | загрузить демо-данные |
+| `npm run db:migrate` | создать новую миграцию (разработка, SQLite) |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Для e2e нужен Chromium для Playwright: `npx playwright install chromium`, если браузер ещё не установлен.
+
+## Переход на PostgreSQL
+
+1. Создайте базу, например `createdb edu`.
+2. Укажите в `.env` `DATABASE_URL="postgresql://user:pass@localhost:5432/edu"`.
+3. Выполните:
+   ```bash
+   npm run db:setup   # переключит provider в schema.prisma на postgresql и создаст таблицы (prisma db push)
+   npm run db:seed
+   npm run build && npm run start
+   ```
+
+Скрипт `scripts/db-provider.mjs` сам определяет провайдера по адресу базы. Чтобы вернуться на SQLite, поставьте `DATABASE_URL="file:./dev.db"` и снова выполните `npm run db:setup`. Переход проверен на PostgreSQL 16.
+
+## Деплой
+
+**Vercel + управляемый PostgreSQL** (Neon, Supabase, Vercel Postgres):
+1. Отправьте репозиторий на GitHub и импортируйте его в Vercel.
+2. В настройках проекта задайте `DATABASE_URL` (PostgreSQL), `AUTH_SECRET` и `APP_TIMEZONE`.
+3. В Settings → Build & Development → Build Command укажите
+   `node scripts/db-provider.mjs && npm run build`.
+4. Один раз с компьютера, указав тот же `DATABASE_URL`, выполните `npm run db:setup` и, если нужны демо-данные, `npm run db:seed`.
+
+SQLite на Vercel не подходит: файловая система там только для чтения и не сохраняется между запусками.
+
+**Свой сервер (VPS):**
+```bash
+npm ci
+npm run db:setup && npm run db:seed   # сид — только для демо
+npm run build
+npm run start -- -p 3000              # за nginx; для постоянной работы — pm2 или systemd
+```
+На своём сервере можно оставить SQLite: база хранится в `prisma/dev.db` (делайте резервные копии). Можно и PostgreSQL.
+
+## Структура
+
+```
+prisma/            схема, миграции, сид
+scripts/           переключение провайдера БД
+src/proxy.ts       первая линия защиты маршрутов (middleware в Next 16)
+src/auth.ts        Auth.js: вход по логину и паролю
+src/lib/
+  access.ts        серверные проверки ролей и владения данными
+  rating.ts        расчёт рейтингов (чистые функции, покрыты тестами)
+  rating-data.ts   загрузка данных для рейтинга из БД
+  lessons.ts       генерация уроков из расписания
+  validation.ts    zod-схемы всех форм и API
+  i18n/ru.ts       все тексты интерфейса
+src/app/
+  admin/ teacher/ student/   кабинеты ролей
+  actions/                   server actions (admin, teacher, auth)
+  api/                       API routes с проверкой прав
+src/components/    UI (shadcn/ui), общие компоненты, формы
+tests/unit         Vitest
+tests/e2e          Playwright
+```
+
+Принятые решения по неоднозначным местам задания описаны в [DECISIONS.md](DECISIONS.md).

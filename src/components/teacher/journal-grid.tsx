@@ -32,7 +32,7 @@ export function JournalGrid({
       <table className="w-full min-w-[560px] border-collapse text-sm">
         <thead>
           <tr className="h-11">
-            <th className="sticky left-0 z-10 w-10 pl-2 text-left font-serif text-xs text-muted-foreground">№</th>
+            <th className="sticky left-0 z-10 w-10 pl-2 text-left font-serif text-xs text-muted-foreground">{ru.common.number}</th>
             <th className="min-w-40 pl-3 text-left font-serif text-xs font-bold text-muted-foreground uppercase">{ru.common.student}</th>
             {lessons.map((l) => (
               <th key={l.id} className={cn("w-12 border-l border-paper-line px-1 text-center", selectedId === l.id && "bg-brass/20")}>

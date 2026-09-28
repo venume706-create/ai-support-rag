@@ -41,7 +41,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
         <StatCard label={ru.admin.statsGroups} value={groups} icon={<UsersRound className="size-5" />} />
         <StatCard
           label={ru.admin.statsAttendance}
-          value={attendance === null ? "—" : Math.round(attendance)}
+          value={attendance === null ? ru.common.dash : Math.round(attendance)}
           suffix={attendance === null ? undefined : "%"}
           icon={<CalendarCheck className="size-5" />}
         />
@@ -59,7 +59,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
               <Table data-testid="top-students">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-8">№</TableHead>
+                    <TableHead className="w-8">{ru.common.number}</TableHead>
                     <TableHead>{ru.common.student}</TableHead>
                     <TableHead className="text-right">{ru.common.rating}</TableHead>
                   </TableRow>
