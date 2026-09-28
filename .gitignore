@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+!.env.example
+
+# база SQLite и артефакты тестов
+prisma/*.db
+prisma/*.db-journal
+/test-results
+/playwright-report
