@@ -35,7 +35,7 @@ export function ListToolbar({
 }) {
   const active = Boolean(q) || filters.some((f) => f.value);
   return (
-    <form action={pathname} method="get" className="mb-4 grid gap-2 sm:flex sm:flex-wrap sm:items-center" role="search">
+    <form action={pathname} method="get" className="paper mb-4 grid gap-2 rounded-md p-3 sm:flex sm:flex-wrap sm:items-center" role="search">
       {Object.entries(hidden).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}

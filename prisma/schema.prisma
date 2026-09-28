@@ -36,6 +36,8 @@ model User {
   passwordHash String
   role         Role
   fullName     String
+  // ФИО и логин в нижнем регистре — для регистронезависимого поиска в любой БД
+  searchKey    String   @default("")
   phone        String   @default("")
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
@@ -43,6 +45,7 @@ model User {
   student      Student?
 
   @@index([role])
+  @@index([searchKey])
 }
 
 model Teacher {

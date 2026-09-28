@@ -17,7 +17,7 @@ export function Pagination({
   const from = info.skip + 1;
   const to = Math.min(info.skip + info.take, info.total);
   return (
-    <div className="mt-4 flex items-center justify-between gap-2 text-sm" data-testid="pagination">
+    <div className="mt-4 flex items-center justify-between gap-2 border-t border-dotted border-border pt-3 text-sm" data-testid="pagination">
       <span className="text-muted-foreground">{ru.common.shown(from, to, info.total)}</span>
       {info.pages > 1 && (
         <div className="flex items-center gap-2">

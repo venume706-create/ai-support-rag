@@ -10,7 +10,7 @@ export function LogoutButton({ compact = false }: { compact?: boolean }) {
         type="submit"
         variant="ghost"
         size={compact ? "icon" : "default"}
-        className={compact ? "" : "w-full justify-start gap-3 px-3 text-muted-foreground"}
+        className={compact ? "" : "w-full justify-start gap-3 px-3"}
         aria-label={ru.nav.logout}
         data-testid="logout"
       >

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { GraduationCap } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/access";
 import { ru } from "@/lib/i18n/ru";
 import { ROLE_HOME } from "@/lib/roles";
@@ -17,30 +16,29 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const callbackUrl = typeof sp.callbackUrl === "string" && sp.callbackUrl.startsWith("/") ? sp.callbackUrl : "";
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center bg-gradient-to-br from-primary/10 via-background to-background p-4">
-      <div className="absolute top-4 right-4">
+    <div className="relative flex min-h-dvh items-center justify-center p-4">
+      <div className="absolute top-4 right-4 text-on-wood">
         <ThemeToggle />
       </div>
-      <div className="w-full max-w-sm">
-        <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <span className="flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
-            <GraduationCap className="size-7" />
-          </span>
-          <div>
-            <h1 className="text-2xl font-semibold">{ru.app.name}</h1>
-            <p className="text-sm text-muted-foreground">{ru.app.tagline}</p>
+      {/* Кожаная обложка журнала с латунной табличкой */}
+      <div className="leather stitched settle w-full max-w-md rounded-lg px-6 pt-10 pb-8 sm:px-10">
+        <div className="relative z-10 mx-auto mb-8 w-fit">
+          <div className="brass brass-plate flex items-center gap-3 px-5">
+            <span className="screw" aria-hidden />
+            <GraduationCap className="size-6 text-[#3a2710]" />
+            <div className="text-center">
+              <h1 className="engraved font-serif text-xl leading-tight font-bold">{ru.app.name}</h1>
+              <p className="engraved text-xs font-bold tracking-wide uppercase">{ru.app.tagline}</p>
+            </div>
+            <span className="screw" aria-hidden />
           </div>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>{ru.auth.title}</CardTitle>
-            <CardDescription>{ru.auth.subtitle}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <LoginForm callbackUrl={callbackUrl} />
-          </CardContent>
-        </Card>
-        <p className="mt-4 text-center text-xs text-muted-foreground">
+        <div className="paper relative z-10 rounded-md p-6">
+          <h2 className="font-serif text-xl font-bold">{ru.auth.title}</h2>
+          <p className="mb-5 text-sm text-muted-foreground">{ru.auth.subtitle}</p>
+          <LoginForm callbackUrl={callbackUrl} />
+        </div>
+        <p className="relative z-10 mt-5 text-center text-xs text-on-wood-muted">
           {ru.auth.demoTitle}: {ru.auth.demo}
         </p>
       </div>

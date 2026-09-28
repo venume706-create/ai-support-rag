@@ -145,6 +145,8 @@ export const listQuerySchema = z.object({
   teacherId: z.string().trim().max(64).optional().default(""),
   page: z.coerce.number().int().min(1).catch(1).default(1),
   period: z.enum(["month", "all"]).catch("all").default("all"),
+  sort: z.enum(["rating", "name"]).catch("rating").default("rating"),
+  status: z.enum(["", "active", "inactive"]).catch("").default(""),
 });
 
 export type ListQuery = z.infer<typeof listQuerySchema>;

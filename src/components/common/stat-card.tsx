@@ -1,15 +1,22 @@
-import { Card, CardContent } from "@/components/ui/card";
-
-export function StatCard({ label, value, icon }: { label: string; value: React.ReactNode; icon: React.ReactNode }) {
+/** Показатель дашборда — механический счётчик в латунной рамке. */
+export function StatCard({ label, value, icon, suffix }: { label: string; value: number | string; icon: React.ReactNode; suffix?: string }) {
+  const digits = String(value).split("");
   return (
-    <Card className="py-4">
-      <CardContent className="flex items-center gap-4 px-4">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</div>
-        <div className="min-w-0">
-          <p className="truncate text-xs text-muted-foreground sm:text-sm">{label}</p>
-          <p className="text-2xl font-semibold tabular-nums">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="paper flex flex-col gap-3 rounded-md p-4" data-testid="stat-card">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <span className="text-brass-dark dark:text-brass">{icon}</span>
+        <span className="text-sm font-bold">{label}</span>
+      </div>
+      <div className="flex items-end gap-1.5">
+        <span className="counter-frame brass" aria-label={`${value}${suffix ?? ""}`} role="img">
+          {digits.map((d, i) => (
+            <span key={i} className="counter-digit" aria-hidden>
+              {d}
+            </span>
+          ))}
+        </span>
+        {suffix && <span className="pb-1 font-serif text-lg font-bold">{suffix}</span>}
+      </div>
+    </div>
   );
 }

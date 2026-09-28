@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Gauge } from "@/components/common/gauge";
 import { Progress } from "@/components/ui/progress";
 import { ru } from "@/lib/i18n/ru";
 import { ratingLevel, type RatingPart, type StudentRating } from "@/lib/rating";
 import type { RatingPeriod } from "@/lib/rating-data";
 import { cn } from "@/lib/utils";
 
-const TEXT = { high: "text-emerald-600 dark:text-emerald-400", medium: "text-amber-600 dark:text-amber-400", low: "text-red-600 dark:text-red-400", none: "text-muted-foreground" };
-const BAR = { high: "bg-emerald-500", medium: "bg-amber-500", low: "bg-red-500", none: "bg-muted-foreground" };
+const TEXT = { high: "text-ink-green", medium: "text-ink-amber", low: "text-ink-red", none: "text-muted-foreground" };
+const BAR = { high: "bg-[#2e8b57]", medium: "bg-[#d4a017]", low: "bg-[#c0392b]", none: "bg-transparent" };
 
 export function ratingTextClass(value: number | null) {
   return TEXT[ratingLevel(value)];
@@ -36,7 +37,7 @@ export function PeriodSwitch({ period, hrefFor }: { period: RatingPeriod; hrefFo
     { value: "all", label: ru.rating.periodAll },
   ];
   return (
-    <div className="inline-flex rounded-lg bg-muted p-1 text-sm" role="tablist" aria-label={ru.rating.period}>
+    <div className="inset-field inline-flex rounded-md p-1 text-sm" role="tablist" aria-label={ru.rating.period}>
       {items.map((item) => (
         <Link
           key={item.value}
@@ -44,8 +45,8 @@ export function PeriodSwitch({ period, hrefFor }: { period: RatingPeriod; hrefFo
           role="tab"
           aria-selected={period === item.value}
           className={cn(
-            "rounded-md px-3 py-1.5 font-medium text-muted-foreground transition-colors",
-            period === item.value && "bg-background text-foreground shadow-sm",
+            "rounded px-3 py-1.5 font-bold text-muted-foreground transition-colors",
+            period === item.value && "brass text-[#2b1d14]",
           )}
           scroll={false}
         >
@@ -78,10 +79,11 @@ export function RatingCard({
         </div>
         <PeriodSwitch period={period} hrefFor={hrefFor} />
       </CardHeader>
-      <CardContent className="grid gap-6 md:grid-cols-[180px_1fr] md:items-center">
-        <div className="flex flex-col items-center justify-center rounded-xl bg-muted/50 py-4">
+      <CardContent className="grid gap-6 md:grid-cols-[280px_1fr] md:items-center">
+        <div className="flex flex-col items-center justify-center">
+          <Gauge value={rating.total} label={title} />
           <span
-            className={cn("text-5xl font-bold tabular-nums", ratingTextClass(rating.total), rating.total === null && "text-2xl")}
+            className={cn("-mt-1 font-serif text-4xl font-bold tabular-nums", ratingTextClass(rating.total), rating.total === null && "text-xl")}
             data-testid="rating-total"
             data-rating-level={ratingLevel(rating.total)}
           >

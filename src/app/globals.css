@@ -3,11 +3,19 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Дизайн «кабинет старого учителя» (скевоморфизм).
+ * Материалы: тёмное дерево, коричневая кожа с прострочкой, кремовая бумага,
+ * латунь, чернила. Все текстуры — CSS-градиенты и встроенный SVG-шум.
+ */
+
 @theme inline {
+  --font-sans: var(--font-pt-sans);
+  --font-serif: var(--font-pt-serif);
+  --font-hand: var(--font-caveat);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -24,63 +32,473 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-sidebar: var(--sidebar);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+
+  --color-wood: var(--wood);
+  --color-wood-dark: var(--wood-dark);
+  --color-leather: var(--leather);
+  --color-leather-dark: var(--leather-dark);
+  --color-stitch: var(--stitch);
+  --color-paper: var(--paper);
+  --color-paper-shade: var(--paper-shade);
+  --color-brass: var(--brass);
+  --color-brass-light: var(--brass-light);
+  --color-brass-dark: var(--brass-dark);
+  --color-ink: var(--ink);
+  --color-on-wood: var(--on-wood);
+  --color-on-wood-muted: var(--on-wood-muted);
+  --color-ink-red: var(--ink-red);
+  --color-ink-blue: var(--ink-blue);
+  --color-ink-green: var(--ink-green);
+  --color-ink-amber: var(--ink-amber);
+  --color-cork: var(--cork);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.985 0.002 250);
-  --foreground: oklch(0.2 0.02 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 260);
-  --primary: oklch(0.51 0.2 265);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.96 0.01 260);
-  --secondary-foreground: oklch(0.25 0.02 260);
-  --muted: oklch(0.96 0.01 260);
-  --muted-foreground: oklch(0.5 0.02 260);
-  --accent: oklch(0.95 0.015 265);
-  --accent-foreground: oklch(0.25 0.02 260);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.91 0.01 260);
-  --input: oklch(0.89 0.01 260);
-  --ring: oklch(0.6 0.15 265);
-  --sidebar: oklch(1 0 0);
+  --radius: 0.375rem;
+
+  /* Материалы */
+  --wood: #5a3a22;
+  --wood-dark: #3a2415;
+  --leather: #6e4026;
+  --leather-dark: #4a2916;
+  --stitch: #e2c48f;
+  --paper: #f5efe0;
+  --paper-shade: #ebe2cc;
+  --paper-line: #b9cbe0;
+  --paper-margin: #d0473a;
+  --brass: #b8893a;
+  --brass-light: #ecd08f;
+  --brass-dark: #7c5a1f;
+  --ink: #2b1d14;
+  --on-wood: #f5efe0;
+  --on-wood-muted: #dcc9a6;
+  --ink-red: #a8231a;
+  --ink-blue: #1f4a8a;
+  --ink-green: #1f6b3a;
+  --ink-amber: #8a5a00;
+  --cork: #b98a55;
+  --lamp: transparent;
+
+  /* Семантика (для компонентов) */
+  --background: var(--wood-dark);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--brass);
+  --primary-foreground: var(--ink);
+  --secondary: var(--paper-shade);
+  --secondary-foreground: var(--ink);
+  --muted: #e6dcc3;
+  --muted-foreground: #5e4a3a;
+  --accent: #e9dcbc;
+  --accent-foreground: var(--ink);
+  --destructive: #a8231a;
+  --border: #cdbb94;
+  --input: #bba77c;
+  --ring: #b8893a;
+
+  --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --noise-soft: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.004 .09' numOctaves='4' seed='7'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 -.25'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+  --shadow-paper: 0 1px 1px rgb(0 0 0 / 0.18), 0 6px 14px -4px rgb(0 0 0 / 0.45), 0 18px 30px -18px rgb(0 0 0 / 0.5);
 }
 
+/* Тёмная тема — «вечерний кабинет»: тёмное дерево, тёплый свет лампы, бумага в полутени */
 .dark {
-  --background: oklch(0.16 0.015 260);
-  --foreground: oklch(0.96 0.005 260);
-  --card: oklch(0.2 0.018 260);
-  --card-foreground: oklch(0.96 0.005 260);
-  --popover: oklch(0.22 0.018 260);
-  --popover-foreground: oklch(0.96 0.005 260);
-  --primary: oklch(0.68 0.16 265);
-  --primary-foreground: oklch(0.16 0.015 260);
-  --secondary: oklch(0.27 0.02 260);
-  --secondary-foreground: oklch(0.96 0.005 260);
-  --muted: oklch(0.27 0.02 260);
-  --muted-foreground: oklch(0.7 0.02 260);
-  --accent: oklch(0.28 0.03 265);
-  --accent-foreground: oklch(0.96 0.005 260);
-  --destructive: oklch(0.7 0.19 22);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.6 0.12 265);
-  --sidebar: oklch(0.19 0.017 260);
+  --wood: #3b2516;
+  --wood-dark: #1c120b;
+  --leather: #4f2c19;
+  --leather-dark: #2e190d;
+  --stitch: #c9a46a;
+  --paper: #2f251b;
+  --paper-shade: #3a2e22;
+  --paper-line: #4f4535;
+  --paper-margin: #b0473b;
+  --brass: #c99a48;
+  --brass-light: #f0d596;
+  --brass-dark: #7a581e;
+  --ink: #f2e6cb;
+  --on-wood: #f5e9cf;
+  --on-wood-muted: #d4bf98;
+  --ink-red: #f08a7e;
+  --ink-blue: #9cc0f0;
+  --ink-green: #8fd6a4;
+  --ink-amber: #f0c060;
+  --cork: #7d5a35;
+  --lamp: radial-gradient(ellipse 70% 55% at 18% 0%, rgb(255 196 110 / 0.2), transparent 70%);
+
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: #3a2e22;
+  --popover-foreground: var(--ink);
+  --primary: var(--brass);
+  --primary-foreground: #1c120b;
+  --secondary: var(--paper-shade);
+  --secondary-foreground: var(--ink);
+  --muted: #3d3125;
+  --muted-foreground: #d0bd9c;
+  --accent: #463829;
+  --accent-foreground: var(--ink);
+  --destructive: #e0685c;
+  --border: #54452f;
+  --input: #6a5738;
+  --ring: #c99a48;
+  --shadow-paper: 0 1px 1px rgb(0 0 0 / 0.5), 0 8px 18px -4px rgb(0 0 0 / 0.7), 0 0 40px -20px rgb(255 190 100 / 0.25);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    background-color: var(--wood-dark);
+  }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply min-h-dvh font-sans text-foreground antialiased;
+    /* Тёмное дерево: волокна + продольные полосы + шум + свет лампы (в тёмной теме) */
+    background-color: var(--wood);
+    background-image:
+      var(--lamp),
+      var(--grain),
+      repeating-linear-gradient(90deg, rgb(0 0 0 / 0.08) 0 2px, transparent 2px 90px),
+      linear-gradient(180deg, var(--wood) 0%, var(--wood-dark) 100%);
+    background-attachment: fixed;
+  }
+  h1, h2, h3, .font-serif {
+    font-family: var(--font-serif), Georgia, serif;
+  }
+}
+
+@layer components {
+  /* Лист бумаги */
+  .paper {
+    position: relative;
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(180deg, rgb(255 255 255 / 0.35), transparent 30%),
+      var(--noise-soft);
+    background-blend-mode: normal, multiply;
+    background-size: auto, 160px 160px;
+    box-shadow: var(--shadow-paper);
+    color: var(--ink);
+  }
+  .dark .paper {
+    background-image: linear-gradient(180deg, rgb(255 220 160 / 0.05), transparent 40%), var(--noise);
+    background-blend-mode: normal, soft-light;
+  }
+
+  /* Разлинованный лист школьного журнала: голубые линии и красное поле */
+  .ruled {
+    background-image:
+      linear-gradient(90deg, transparent 2.5rem, var(--paper-margin) 2.5rem, var(--paper-margin) calc(2.5rem + 1px), transparent calc(2.5rem + 1px), transparent calc(2.5rem + 3px), var(--paper-margin) calc(2.5rem + 3px), var(--paper-margin) calc(2.5rem + 4px), transparent calc(2.5rem + 4px)),
+      repeating-linear-gradient(180deg, transparent 0 calc(2.75rem - 1px), var(--paper-line) calc(2.75rem - 1px) 2.75rem),
+      var(--noise-soft);
+    background-color: var(--paper);
+    background-blend-mode: normal, normal, multiply;
+    background-size: auto, auto, 160px 160px;
+  }
+
+  /* Коричневая кожа с прострочкой */
+  .leather {
+    position: relative;
+    background-color: var(--leather);
+    background-image:
+      radial-gradient(ellipse at 30% 20%, rgb(255 255 255 / 0.08), transparent 60%),
+      var(--noise),
+      linear-gradient(160deg, var(--leather) 0%, var(--leather-dark) 100%);
+    background-blend-mode: normal, overlay, normal;
+    background-size: auto, 120px 120px, auto;
+    color: var(--on-wood);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.35), inset 0 2px 8px rgb(255 255 255 / 0.06), 0 10px 30px -10px rgb(0 0 0 / 0.6);
+  }
+  .stitched::after {
+    content: "";
+    position: absolute;
+    inset: 7px;
+    border: 2px dashed var(--stitch);
+    border-radius: inherit;
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  /* Латунь с металлическим бликом */
+  .brass {
+    background-image:
+      linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.45) 45%, transparent 60%),
+      linear-gradient(180deg, var(--brass-light) 0%, var(--brass) 48%, var(--brass-dark) 100%);
+    color: #2b1d14;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 -1px 0 rgb(0 0 0 / 0.25), 0 1px 2px rgb(0 0 0 / 0.4);
+  }
+  .brass-plate {
+    border-radius: 0.5rem;
+    padding: 0.65rem 1.1rem;
+    text-shadow: 0 1px 0 rgb(255 255 255 / 0.45);
+  }
+  .engraved {
+    color: #3a2710;
+    text-shadow: 0 1px 0 rgb(255 240 200 / 0.6), 0 -1px 0 rgb(0 0 0 / 0.25);
+  }
+  .screw {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle at 35% 35%, #fff5d6, var(--brass-dark) 70%);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.3);
+    position: relative;
+  }
+  .screw::after {
+    content: "";
+    position: absolute;
+    left: 15%;
+    right: 15%;
+    top: calc(50% - 0.5px);
+    height: 1px;
+    background: rgb(0 0 0 / 0.5);
+    transform: rotate(35deg);
+  }
+
+  /* Физическая клавиша: объём и «вдавливание» при нажатии */
+  .key {
+    position: relative;
+    transition: transform 80ms ease, box-shadow 80ms ease, filter 120ms ease;
+    transform: translateY(0);
+  }
+  .key:hover {
+    filter: brightness(1.05);
+  }
+  .key:active:not(:disabled) {
+    transform: translateY(2px);
+  }
+  .key-brass {
+    background-image:
+      linear-gradient(115deg, transparent 25%, rgb(255 255 255 / 0.4) 42%, transparent 58%),
+      linear-gradient(180deg, var(--brass-light) 0%, var(--brass) 55%, var(--brass-dark) 100%);
+    color: #2b1d14;
+    border: 1px solid #6b4c17;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), 0 3px 0 #5e4214, 0 5px 8px -2px rgb(0 0 0 / 0.55);
+    text-shadow: 0 1px 0 rgb(255 240 200 / 0.55);
+  }
+  .key-brass:active:not(:disabled) {
+    box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.35), 0 1px 0 #5e4214, 0 1px 2px rgb(0 0 0 / 0.4);
+  }
+  .key-paper {
+    background-image: linear-gradient(180deg, #fffaf0 0%, var(--paper-shade) 100%);
+    color: #2b1d14;
+    border: 1px solid #b9a57c;
+    box-shadow: inset 0 1px 0 #fff, 0 3px 0 #a38d62, 0 5px 8px -3px rgb(0 0 0 / 0.45);
+  }
+  .dark .key-paper {
+    background-image: linear-gradient(180deg, #4a3b2b 0%, #34281d 100%);
+    color: var(--ink);
+    border-color: #1f160e;
+    box-shadow: inset 0 1px 0 rgb(255 230 180 / 0.15), 0 3px 0 #150e08, 0 5px 8px -3px rgb(0 0 0 / 0.7);
+  }
+  .key-paper:active:not(:disabled) {
+    box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.3), 0 1px 0 #a38d62;
+  }
+  .dark .key-paper:active:not(:disabled) {
+    box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.6), 0 1px 0 #150e08;
+  }
+  .key-wax {
+    background-image: linear-gradient(180deg, #c8463a 0%, #9c2419 60%, #7a1a11 100%);
+    color: #fff4ea;
+    border: 1px solid #5c120b;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 3px 0 #5c120b, 0 5px 8px -2px rgb(0 0 0 / 0.5);
+    text-shadow: 0 -1px 0 rgb(0 0 0 / 0.35);
+  }
+  .key-wax:active:not(:disabled) {
+    box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.4), 0 1px 0 #5c120b;
+  }
+
+  /* Поле, «вдавленное» в бумагу */
+  .inset-field {
+    background-color: var(--paper-shade);
+    background-image: linear-gradient(180deg, rgb(0 0 0 / 0.06), transparent 40%);
+    border: 1px solid var(--input);
+    box-shadow: inset 0 2px 3px rgb(60 40 20 / 0.28), inset 0 -1px 0 rgb(255 255 255 / 0.5), 0 1px 0 rgb(255 255 255 / 0.55);
+    color: var(--ink);
+  }
+  .dark .inset-field {
+    background-color: #241b13;
+    box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.6), 0 1px 0 rgb(255 220 160 / 0.08);
+  }
+
+  /* Чернильный штамп */
+  .stamp {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    font-family: var(--font-serif), Georgia, serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 2px solid currentColor;
+    border-radius: 0.3rem;
+    padding: 0.1rem 0.45rem;
+    line-height: 1.2;
+    font-size: 0.72rem;
+    transform: rotate(-2.5deg);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, currentColor 35%, transparent);
+    background-color: color-mix(in oklab, currentColor 7%, transparent);
+  }
+  .stamp-red { color: var(--ink-red); }
+  .stamp-blue { color: var(--ink-blue); }
+  .stamp-green { color: var(--ink-green); }
+  .stamp-amber { color: var(--ink-amber); }
+  .stamp-muted { color: var(--muted-foreground); }
+
+  /* Штамп как кнопка отметки посещаемости */
+  .stamp-button {
+    transition: transform 120ms ease, opacity 120ms ease, background-color 120ms ease;
+    opacity: 0.45;
+    transform: rotate(0deg);
+    background: transparent;
+    box-shadow: none;
+    border-style: dashed;
+  }
+  .stamp-button:hover {
+    opacity: 0.8;
+  }
+  .stamp-button[aria-pressed="true"] {
+    opacity: 1;
+    border-style: solid;
+    transform: rotate(-4deg) scale(1.04);
+    background-color: color-mix(in oklab, currentColor 12%, transparent);
+    animation: stamp-in 180ms ease-out;
+  }
+
+  /* Рукописная оценка */
+  .handwritten {
+    font-family: var(--font-hand), "Comic Sans MS", cursive;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /* Пробковая доска */
+  .cork {
+    background-color: var(--cork);
+    background-image:
+      radial-gradient(circle at 20% 30%, rgb(0 0 0 / 0.18) 0 1px, transparent 2px),
+      radial-gradient(circle at 70% 60%, rgb(255 255 255 / 0.12) 0 1px, transparent 2px),
+      radial-gradient(circle at 40% 80%, rgb(0 0 0 / 0.15) 0 1.5px, transparent 2.5px),
+      var(--noise);
+    background-size: 9px 11px, 13px 7px, 17px 15px, 160px 160px;
+    background-blend-mode: normal, normal, normal, multiply;
+    box-shadow: inset 0 0 0 6px #5a3a22, inset 0 0 0 8px #3a2415, inset 0 6px 16px rgb(0 0 0 / 0.45);
+  }
+  .note {
+    transform: rotate(var(--tilt, -1deg));
+    transition: transform 150ms ease;
+  }
+  .note:hover {
+    transform: rotate(0deg) translateY(-2px);
+  }
+  .pin {
+    position: absolute;
+    top: -0.45rem;
+    left: 50%;
+    width: 1rem;
+    height: 1rem;
+    margin-left: -0.5rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle at 35% 30%, #ffe9b0, var(--brass) 45%, var(--brass-dark) 100%);
+    box-shadow: 0 3px 4px rgb(0 0 0 / 0.45);
+  }
+
+  /* Ежедневник на кольцах */
+  .planner-page {
+    position: relative;
+    padding-left: 2.25rem;
+  }
+  .planner-page::before {
+    content: "";
+    position: absolute;
+    left: 0.7rem;
+    top: 0.75rem;
+    bottom: 0.75rem;
+    width: 0.8rem;
+    background:
+      radial-gradient(circle at 50% 50%, #1a110a 0 0.28rem, transparent 0.32rem) 0 0 / 0.8rem 2.2rem repeat-y;
+    opacity: 0.85;
+  }
+  .planner-rings {
+    position: absolute;
+    left: -0.35rem;
+    top: 0.75rem;
+    bottom: 0.75rem;
+    width: 1.6rem;
+    background:
+      linear-gradient(90deg, transparent 0 0.25rem, var(--brass-dark) 0.25rem, var(--brass-light) 0.6rem, var(--brass) 0.9rem, var(--brass-dark) 1.2rem, transparent 1.2rem) 0 0.55rem / 1.6rem 2.2rem repeat-y;
+    -webkit-mask: linear-gradient(#000 0 0.35rem, transparent 0.35rem) 0 0.55rem / 100% 2.2rem repeat-y;
+    mask: linear-gradient(#000 0 0.35rem, transparent 0.35rem) 0 0.55rem / 100% 2.2rem repeat-y;
+    pointer-events: none;
+  }
+
+  /* Механический счётчик */
+  .counter-digit {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.6rem;
+    height: 2.3rem;
+    padding: 0 0.2rem;
+    font-family: var(--font-serif), Georgia, serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: #f7efdc;
+    background: linear-gradient(180deg, #1c130c 0%, #3a2a1c 48%, #140d08 52%, #2a1e14 100%);
+    border-radius: 0.2rem;
+    box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.8), inset 0 -1px 0 rgb(255 255 255 / 0.1);
+    font-variant-numeric: tabular-nums;
+  }
+  .counter-digit::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: rgb(0 0 0 / 0.7);
+  }
+  .counter-frame {
+    display: inline-flex;
+    gap: 0.2rem;
+    padding: 0.3rem;
+    border-radius: 0.35rem;
+  }
+
+  /* Лёгкое появление контента */
+  .settle {
+    animation: settle 260ms ease-out both;
+  }
+}
+
+@keyframes stamp-in {
+  0% { transform: rotate(-8deg) scale(1.35); opacity: 0.2; }
+  100% { transform: rotate(-4deg) scale(1.04); opacity: 1; }
+}
+@keyframes settle {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

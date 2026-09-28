@@ -22,7 +22,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
         <Input id="password" name="password" type="password" autoComplete="current-password" required aria-invalid={Boolean(state.error)} />
       </div>
       {state.error && (
-        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" data-testid="login-error">
+        <p role="alert" className="stamp stamp-red w-full justify-start py-2 text-sm normal-case" data-testid="login-error">
           {state.error}
         </p>
       )}

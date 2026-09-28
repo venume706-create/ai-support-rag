@@ -36,8 +36,8 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
-              active && "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+              "flex items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-bold text-on-wood-muted transition-colors hover:bg-black/20 hover:text-on-wood",
+              active && "brass brass-plate py-2.5 text-[#2b1d14] hover:bg-transparent hover:text-[#2b1d14]",
             )}
           >
             <Icon className="size-4" />
@@ -54,7 +54,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
   const root = items[0]?.href ?? "/";
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="leather fixed inset-x-0 bottom-0 z-40 border-t-2 border-dashed border-stitch/60 pb-[env(safe-area-inset-bottom)] md:hidden"
       aria-label="mobile"
     >
       <ul className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
@@ -67,11 +67,13 @@ export function BottomNav({ items }: { items: NavItem[] }) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground",
-                  active && "text-primary",
+                  "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-bold text-on-wood-muted",
+                  active && "text-brass-light",
                 )}
               >
-                <Icon className="size-5" />
+                <span className={cn("flex h-7 w-11 items-center justify-center rounded-full", active && "brass text-[#2b1d14]")}>
+                  <Icon className="size-5" />
+                </span>
                 <span className="max-w-full truncate px-1">{item.shortLabel ?? item.label}</span>
               </Link>
             </li>

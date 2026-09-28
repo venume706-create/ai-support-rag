@@ -7,6 +7,7 @@ import { PrismaClient, type AttendanceStatus, type HomeworkStatus } from "@prism
 import bcrypt from "bcryptjs";
 import { addDays, today } from "../src/lib/dates";
 import { ensureLessons } from "../src/lib/lessons";
+import { userSearchKey } from "../src/lib/utils";
 
 const db = new PrismaClient();
 
@@ -71,7 +72,14 @@ async function main() {
   const english = await db.subject.create({ data: { name: "Английский язык" } });
 
   await db.user.create({
-    data: { login: "admin", passwordHash: adminHash, role: "ADMIN", fullName: "Администратор Центра", phone: "+998 90 000-00-00" },
+    data: {
+      login: "admin",
+      passwordHash: adminHash,
+      role: "ADMIN",
+      fullName: "Администратор Центра",
+      searchKey: userSearchKey("Администратор Центра", "admin"),
+      phone: "+998 90 000-00-00",
+    },
   });
 
   const teacherSpecs = [
@@ -87,6 +95,7 @@ async function main() {
         passwordHash: teacherHash,
         role: "TEACHER",
         fullName: spec.fullName,
+        searchKey: userSearchKey(spec.fullName, spec.login),
         phone: spec.phone,
         teacher: { create: { subjects: { connect: spec.subjects.map((id) => ({ id })) } } },
       },
@@ -103,6 +112,7 @@ async function main() {
         passwordHash: studentHash,
         role: "STUDENT",
         fullName: `${FIRST_NAMES[i - 1]} ${LAST_NAMES[i - 1]}`,
+        searchKey: userSearchKey(`${FIRST_NAMES[i - 1]} ${LAST_NAMES[i - 1]}`, `student${i}`),
         phone: `+998 91 ${String(100 + i).padStart(3, "0")}-${String(10 + i).padStart(2, "0")}-${String(20 + i).padStart(2, "0")}`,
         student: {
           create: {
