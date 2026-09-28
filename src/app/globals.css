@@ -173,6 +173,10 @@
       linear-gradient(180deg, var(--wood) 0%, var(--wood-dark) 100%);
     background-attachment: fixed;
   }
+  /* Элементы сетки не растягивают страницу шире экрана (длинные строки, таблицы) */
+  .grid > * {
+    min-width: 0;
+  }
   h1, h2, h3, .font-serif {
     font-family: var(--font-serif), Georgia, serif;
   }
