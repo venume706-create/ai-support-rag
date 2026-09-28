@@ -363,21 +363,22 @@
 
   /* Штамп как кнопка отметки посещаемости */
   .stamp-button {
-    transition: transform 120ms ease, opacity 120ms ease, background-color 120ms ease;
-    opacity: 0.62;
+    transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease;
     transform: rotate(0deg);
     background: transparent;
     box-shadow: none;
     border-style: dashed;
+    border-color: color-mix(in oklab, currentColor 45%, transparent);
   }
   .stamp-button:hover {
-    opacity: 0.8;
+    background-color: color-mix(in oklab, currentColor 8%, transparent);
   }
   .stamp-button[aria-pressed="true"] {
-    opacity: 1;
     border-style: solid;
+    border-color: currentColor;
     transform: rotate(-4deg) scale(1.04);
-    background-color: color-mix(in oklab, currentColor 12%, transparent);
+    background-color: color-mix(in oklab, currentColor 14%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, currentColor 40%, transparent), 0 0 0 1px color-mix(in oklab, currentColor 20%, transparent);
     animation: stamp-in 180ms ease-out;
   }
 
@@ -489,8 +490,8 @@
 }
 
 @keyframes stamp-in {
-  0% { transform: rotate(-8deg) scale(1.35); opacity: 0.2; }
-  100% { transform: rotate(-4deg) scale(1.04); opacity: 1; }
+  0% { transform: rotate(-8deg) scale(1.35); }
+  100% { transform: rotate(-4deg) scale(1.04); }
 }
 @keyframes settle {
   from { opacity: 0; transform: translateY(4px); }
