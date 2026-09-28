@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    // forbidden() → настоящий ответ 403 со страницей app/forbidden.tsx
+    authInterrupts: true,
+  },
 };
 
 export default nextConfig;

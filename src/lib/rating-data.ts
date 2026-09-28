@@ -1,0 +1,143 @@
+import type { AttendanceStatus, HomeworkStatus } from "@prisma/client";
+import { db } from "@/lib/db";
+import { startOfMonth, startOfNextMonth, today } from "@/lib/dates";
+import {
+  calculateStudentRating,
+  calculateTeacherRating,
+  type RatingInput,
+  type StudentRating,
+} from "@/lib/rating";
+
+export type RatingPeriod = "month" | "all";
+
+interface RatingScope {
+  period: RatingPeriod;
+  /** Ограничить расчёт этими группами (например, группами учителя) */
+  groupIds?: string[];
+}
+
+function periodRange(period: RatingPeriod) {
+  if (period === "all") return null;
+  const now = today();
+  return { gte: startOfMonth(now), lt: startOfNextMonth(now) };
+}
+
+/**
+ * Загружает данные для расчёта рейтинга сразу для многих учеников.
+ * ДЗ: учитываются задания групп ученика со сроком до сегодняшнего дня
+ * (без отметки = «не выполнено»), а также уже отмеченные задания с будущим сроком.
+ */
+export async function loadRatingInputs(studentIds: string[], scope: RatingScope): Promise<Map<string, RatingInput>> {
+  const result = new Map<string, RatingInput>(studentIds.map((id) => [id, { grades: [], attendance: [], homework: [] }]));
+  if (studentIds.length === 0) return result;
+  const range = periodRange(scope.period);
+  const groupFilter = scope.groupIds ? { in: scope.groupIds } : undefined;
+
+  const [grades, attendance, memberships] = await Promise.all([
+    db.grade.findMany({
+      where: { studentId: { in: studentIds }, groupId: groupFilter, date: range ?? undefined },
+      select: { studentId: true, value: true },
+    }),
+    db.attendance.findMany({
+      where: {
+        studentId: { in: studentIds },
+        lesson: { groupId: groupFilter, date: range ?? undefined },
+      },
+      select: { studentId: true, status: true },
+    }),
+    db.groupStudent.findMany({
+      where: { studentId: { in: studentIds }, groupId: groupFilter },
+      select: { studentId: true, groupId: true },
+    }),
+  ]);
+
+  for (const g of grades) result.get(g.studentId)!.grades.push(g.value);
+  for (const a of attendance) result.get(a.studentId)!.attendance.push(a.status as AttendanceStatus);
+
+  const groupIds = [...new Set(memberships.map((m) => m.groupId))];
+  if (groupIds.length) {
+    const now = today();
+    const homework = await db.homework.findMany({
+      where: { groupId: { in: groupIds }, dueDate: range ?? undefined },
+      select: {
+        id: true,
+        groupId: true,
+        dueDate: true,
+        submissions: { where: { studentId: { in: studentIds } }, select: { studentId: true, status: true } },
+      },
+    });
+    const membersByGroup = new Map<string, string[]>();
+    for (const m of memberships) membersByGroup.set(m.groupId, [...(membersByGroup.get(m.groupId) ?? []), m.studentId]);
+    for (const hw of homework) {
+      const statusByStudent = new Map(hw.submissions.map((s) => [s.studentId, s.status as HomeworkStatus]));
+      for (const studentId of membersByGroup.get(hw.groupId) ?? []) {
+        const status = statusByStudent.get(studentId);
+        if (status) result.get(studentId)!.homework.push(status);
+        else if (hw.dueDate < now) result.get(studentId)!.homework.push("NOT_DONE");
+      }
+    }
+  }
+  return result;
+}
+
+export async function getStudentRatings(studentIds: string[], scope: RatingScope): Promise<Map<string, StudentRating>> {
+  const inputs = await loadRatingInputs(studentIds, scope);
+  return new Map([...inputs].map(([id, input]) => [id, calculateStudentRating(input)]));
+}
+
+export async function getStudentRating(studentId: string, scope: RatingScope): Promise<StudentRating> {
+  return (await getStudentRatings([studentId], scope)).get(studentId)!;
+}
+
+export interface TeacherRatingRow {
+  teacherId: string;
+  fullName: string;
+  isActive: boolean;
+  groups: number;
+  students: number;
+  rating: number | null;
+  studentsCounted: number;
+}
+
+/** Рейтинг учителей: средний рейтинг учеников, посчитанный по группам этого учителя. */
+export async function getTeacherRatings(period: RatingPeriod, teacherIds?: string[]): Promise<TeacherRatingRow[]> {
+  const teachers = await db.teacher.findMany({
+    where: teacherIds ? { id: { in: teacherIds } } : undefined,
+    select: {
+      id: true,
+      user: { select: { fullName: true, isActive: true } },
+      groups: { select: { id: true, students: { select: { studentId: true } } } },
+    },
+  });
+  const rows: TeacherRatingRow[] = [];
+  for (const t of teachers) {
+    const groupIds = t.groups.map((g) => g.id);
+    const studentIds = [...new Set(t.groups.flatMap((g) => g.students.map((s) => s.studentId)))];
+    const ratings = await getStudentRatings(studentIds, { period, groupIds });
+    const { rating, studentsCounted } = calculateTeacherRating([...ratings.values()].map((r) => r.total));
+    rows.push({
+      teacherId: t.id,
+      fullName: t.user.fullName,
+      isActive: t.user.isActive,
+      groups: groupIds.length,
+      students: studentIds.length,
+      rating,
+      studentsCounted,
+    });
+  }
+  return rows.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+}
+
+/** Средняя посещаемость (в процентах) по отметкам за текущий месяц. */
+export async function monthAttendancePercent(groupIds?: string[]): Promise<number | null> {
+  const range = periodRange("month")!;
+  const rows = await db.attendance.groupBy({
+    by: ["status"],
+    where: { lesson: { date: range, groupId: groupIds ? { in: groupIds } : undefined } },
+    _count: { _all: true },
+  });
+  const count = (s: AttendanceStatus) => rows.find((r) => r.status === s)?._count._all ?? 0;
+  const counted = count("PRESENT") + count("LATE") + count("ABSENT");
+  if (counted === 0) return null;
+  return Math.round(((count("PRESENT") + count("LATE") * 0.5) / counted) * 1000) / 10;
+}

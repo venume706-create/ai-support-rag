@@ -82,6 +82,7 @@ export const ru = {
     grades: "Оценки",
     attendance: "Посещаемость",
     homework: "ДЗ",
+    attendanceShort: "Посещ.",
     homeworkFull: "Домашние задания",
     logout: "Выйти",
     menu: "Меню",
