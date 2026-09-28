@@ -40,6 +40,7 @@
   --color-stitch: var(--stitch);
   --color-paper: var(--paper);
   --color-paper-shade: var(--paper-shade);
+  --color-paper-line: var(--paper-line);
   --color-brass: var(--brass);
   --color-brass-light: var(--brass-light);
   --color-brass-dark: var(--brass-dark);
@@ -359,7 +360,7 @@
   /* Штамп как кнопка отметки посещаемости */
   .stamp-button {
     transition: transform 120ms ease, opacity 120ms ease, background-color 120ms ease;
-    opacity: 0.45;
+    opacity: 0.62;
     transform: rotate(0deg);
     background: transparent;
     box-shadow: none;
