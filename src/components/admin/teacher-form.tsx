@@ -15,7 +15,8 @@ interface Subject {
 export interface TeacherFormValues {
   id: string;
   login: string;
-  fullName: string;
+  firstName: string;
+  lastName: string;
   phone: string;
   subjectIds: string[];
 }
@@ -29,18 +30,23 @@ export function TeacherForm({ subjects, initial, onDone }: { subjects: Subject[]
   return (
     <form onSubmit={submitWith(action)} className="grid gap-4" noValidate data-testid="teacher-form">
       {initial && <input type="hidden" name="id" value={initial.id} />}
-      <FormField label={ru.common.fullName} htmlFor="t-fullName" error={err("fullName")}>
-        <Input id="t-fullName" name="fullName" defaultValue={initial?.fullName} required aria-invalid={Boolean(err("fullName"))} />
-      </FormField>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField label={ru.common.firstName} htmlFor="t-firstName" error={err("firstName")}>
+          <Input id="t-firstName" name="firstName" defaultValue={initial?.firstName} autoComplete="off" required aria-invalid={Boolean(err("firstName"))} />
+        </FormField>
+        <FormField label={ru.common.lastName} htmlFor="t-lastName" error={err("lastName")}>
+          <Input id="t-lastName" name="lastName" defaultValue={initial?.lastName} autoComplete="off" required aria-invalid={Boolean(err("lastName"))} />
+        </FormField>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label={ru.common.login} htmlFor="t-login" error={err("login")}>
           <Input id="t-login" name="login" defaultValue={initial?.login} autoCapitalize="none" required aria-invalid={Boolean(err("login"))} />
         </FormField>
         <FormField
-          label={editing ? ru.common.newPassword : ru.common.password}
+          label={editing ? ru.common.newPassword : ru.common.tempPassword}
           htmlFor="t-password"
           error={err("password")}
-          hint={editing ? ru.common.passwordHint : undefined}
+          hint={editing ? ru.common.passwordHint : ru.common.tempPasswordHint}
         >
           <Input id="t-password" name="password" type="password" autoComplete="new-password" aria-invalid={Boolean(err("password"))} />
         </FormField>

@@ -28,8 +28,7 @@ export default async function StudentProfile({ params, searchParams }: PageProps
     select: {
       id: true,
       parentPhone: true,
-      birthDate: true,
-      user: { select: { id: true, login: true, fullName: true, phone: true, isActive: true, createdAt: true } },
+      user: { select: { id: true, login: true, firstName: true, lastName: true, fullName: true, birthDate: true, phone: true, isActive: true, createdAt: true } },
       groups: {
         orderBy: { group: { name: "asc" } },
         select: {
@@ -59,10 +58,11 @@ export default async function StudentProfile({ params, searchParams }: PageProps
                                     initial={{
                     id: student.id,
                     login: student.user.login,
-                    fullName: student.user.fullName,
+                    firstName: student.user.firstName,
+                    lastName: student.user.lastName,
                     phone: student.user.phone,
                     parentPhone: student.parentPhone,
-                    birthDate: student.birthDate ? toDateOnly(student.birthDate) : "",
+                    birthDate: student.user.birthDate ? toDateOnly(student.user.birthDate) : "",
                   }}
                 />
             </DialogForm>
@@ -84,7 +84,7 @@ export default async function StudentProfile({ params, searchParams }: PageProps
               <dt className="text-muted-foreground">{ru.common.parentPhone}</dt>
               <dd>{student.parentPhone || ru.common.dash}</dd>
               <dt className="text-muted-foreground">{ru.common.birthDate}</dt>
-              <dd>{student.birthDate ? formatDate(student.birthDate) : ru.common.dash}</dd>
+              <dd>{student.user.birthDate ? formatDate(student.user.birthDate) : ru.common.dash}</dd>
               <dt className="text-muted-foreground">{ru.common.status}</dt>
               <dd>
                 <ActiveBadge active={student.user.isActive} />

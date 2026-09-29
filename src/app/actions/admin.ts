@@ -9,7 +9,7 @@ import { addDays, parseDateOnly, today } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { ensureLessons } from "@/lib/lessons";
-import { userSearchKey } from "@/lib/utils";
+import { fullNameOf, userSearchKey } from "@/lib/profile";
 import {
   fieldErrors,
   groupSchema,
@@ -75,9 +75,12 @@ export async function createTeacher(_prev: State, formData: FormData): Promise<A
         login: data.login,
         passwordHash: await bcrypt.hash(data.password, 10),
         role: "TEACHER",
-        fullName: data.fullName,
-        searchKey: userSearchKey(data.fullName, data.login),
+        firstName: data.firstName,
+        lastName: data.lastName,
+        fullName: fullNameOf(data.firstName, data.lastName),
+        searchKey: userSearchKey(data),
         phone: data.phone,
+        mustChangePassword: true,
         teacher: { create: { subjects: { connect: data.subjectIds.map((id) => ({ id })) } } },
       },
       select: { teacher: { select: { id: true } } },
@@ -91,7 +94,7 @@ export async function updateTeacher(_prev: State, formData: FormData): Promise<A
   return runAction(async () => {
     await requireActionUser("ADMIN");
     const data = parse(teacherUpdateSchema, formToObject(formData, ["subjectIds"]));
-    const teacher = await db.teacher.findUnique({ where: { id: data.id }, select: { userId: true } });
+    const teacher = await db.teacher.findUnique({ where: { id: data.id }, select: { userId: true, user: { select: { nickname: true } } } });
     if (!teacher) throw new ActionError(ru.errors.notFound);
     await assertLoginFree(data.login, teacher.userId);
     await assertSubjectsExist(data.subjectIds);
@@ -99,8 +102,10 @@ export async function updateTeacher(_prev: State, formData: FormData): Promise<A
       where: { id: teacher.userId },
       data: {
         login: data.login,
-        fullName: data.fullName,
-        searchKey: userSearchKey(data.fullName, data.login),
+        firstName: data.firstName,
+        lastName: data.lastName,
+        fullName: fullNameOf(data.firstName, data.lastName),
+        searchKey: userSearchKey({ ...data, nickname: teacher.user.nickname }),
         phone: data.phone,
         ...(data.password ? { passwordHash: await bcrypt.hash(data.password, 10) } : {}),
         teacher: { update: { subjects: { set: data.subjectIds.map((id) => ({ id })) } } },
@@ -138,13 +143,16 @@ export async function createStudent(_prev: State, formData: FormData): Promise<A
         login: data.login,
         passwordHash: await bcrypt.hash(data.password, 10),
         role: "STUDENT",
-        fullName: data.fullName,
-        searchKey: userSearchKey(data.fullName, data.login),
+        firstName: data.firstName,
+        lastName: data.lastName,
+        fullName: fullNameOf(data.firstName, data.lastName),
+        searchKey: userSearchKey(data),
         phone: data.phone,
+        birthDate: data.birthDate ? parseDateOnly(data.birthDate) : null,
+        mustChangePassword: true,
         student: {
           create: {
             parentPhone: data.parentPhone,
-            birthDate: data.birthDate ? parseDateOnly(data.birthDate) : null,
             groups: { create: [...new Set(data.groupIds)].map((groupId) => ({ groupId })) },
           },
         },
@@ -160,19 +168,22 @@ export async function updateStudent(_prev: State, formData: FormData): Promise<A
   return runAction(async () => {
     await requireActionUser("ADMIN");
     const data = parse(studentUpdateSchema, formToObject(formData));
-    const student = await db.student.findUnique({ where: { id: data.id }, select: { userId: true } });
+    const student = await db.student.findUnique({ where: { id: data.id }, select: { userId: true, user: { select: { nickname: true } } } });
     if (!student) throw new ActionError(ru.errors.notFound);
     await assertLoginFree(data.login, student.userId);
     await db.user.update({
       where: { id: student.userId },
       data: {
         login: data.login,
-        fullName: data.fullName,
-        searchKey: userSearchKey(data.fullName, data.login),
+        firstName: data.firstName,
+        lastName: data.lastName,
+        fullName: fullNameOf(data.firstName, data.lastName),
+        searchKey: userSearchKey({ ...data, nickname: student.user.nickname }),
         phone: data.phone,
+        birthDate: data.birthDate ? parseDateOnly(data.birthDate) : null,
         ...(data.password ? { passwordHash: await bcrypt.hash(data.password, 10) } : {}),
         student: {
-          update: { parentPhone: data.parentPhone, birthDate: data.birthDate ? parseDateOnly(data.birthDate) : null },
+          update: { parentPhone: data.parentPhone },
         },
       },
     });

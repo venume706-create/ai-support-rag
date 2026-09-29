@@ -15,7 +15,8 @@ interface GroupOption {
 export interface StudentFormValues {
   id: string;
   login: string;
-  fullName: string;
+  firstName: string;
+  lastName: string;
   phone: string;
   parentPhone: string;
   birthDate: string;
@@ -30,18 +31,23 @@ export function StudentForm({ groups = [], initial, onDone }: { groups?: GroupOp
   return (
     <form onSubmit={submitWith(action)} className="grid gap-4" noValidate data-testid="student-form">
       {initial && <input type="hidden" name="id" value={initial.id} />}
-      <FormField label={ru.common.fullName} htmlFor="s-fullName" error={err("fullName")}>
-        <Input id="s-fullName" name="fullName" defaultValue={initial?.fullName} required aria-invalid={Boolean(err("fullName"))} />
-      </FormField>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField label={ru.common.firstName} htmlFor="s-firstName" error={err("firstName")}>
+          <Input id="s-firstName" name="firstName" defaultValue={initial?.firstName} autoComplete="off" required aria-invalid={Boolean(err("firstName"))} />
+        </FormField>
+        <FormField label={ru.common.lastName} htmlFor="s-lastName" error={err("lastName")}>
+          <Input id="s-lastName" name="lastName" defaultValue={initial?.lastName} autoComplete="off" required aria-invalid={Boolean(err("lastName"))} />
+        </FormField>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label={ru.common.login} htmlFor="s-login" error={err("login")}>
           <Input id="s-login" name="login" defaultValue={initial?.login} autoCapitalize="none" required aria-invalid={Boolean(err("login"))} />
         </FormField>
         <FormField
-          label={editing ? ru.common.newPassword : ru.common.password}
+          label={editing ? ru.common.newPassword : ru.common.tempPassword}
           htmlFor="s-password"
           error={err("password")}
-          hint={editing ? ru.common.passwordHint : undefined}
+          hint={editing ? ru.common.passwordHint : ru.common.tempPasswordHint}
         >
           <Input id="s-password" name="password" type="password" autoComplete="new-password" aria-invalid={Boolean(err("password"))} />
         </FormField>

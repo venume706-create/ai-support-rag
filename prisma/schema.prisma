@@ -31,41 +31,69 @@ enum HomeworkStatus {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  login        String   @unique
-  passwordHash String
-  role         Role
-  fullName     String
-  // ФИО и логин в нижнем регистре — для регистронезависимого поиска в любой БД
-  searchKey    String   @default("")
-  phone        String   @default("")
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  teacher      Teacher?
-  student      Student?
+  id                 String         @id @default(cuid())
+  /// Логин для входа (задаёт администратор, человек его не меняет)
+  login              String         @unique
+  passwordHash       String
+  role               Role
+  firstName          String         @default("")
+  lastName           String         @default("")
+  /// «Имя Фамилия» — производное поле для поиска и сортировки
+  fullName           String
+  /// Ник — главное имя во всём интерфейсе; пусто, пока человек не прошёл мастер первого входа
+  nickname           String?
+  /// Ник в нижнем регистре (ё → е): уникальность без учёта регистра
+  nicknameKey        String?        @unique
+  // Ключ поиска: ник, имя, фамилия и логин в нижнем регистре — для регистронезависимого поиска в любой БД
+  searchKey          String         @default("")
+  phone              String         @default("")
+  email              String         @default("")
+  bio                String         @default("")
+  /// Видна только самому пользователю и администратору
+  birthDate          DateTime?
+  /// Ключ файла аватара в хранилище (StorageProvider)
+  avatarKey          String?
+  /// Растёт при каждой смене фото — сбрасывает кэш браузера
+  avatarVersion      Int            @default(0)
+  avatarFrame        String         @default("none")
+  cardColor          String         @default("cream")
+  /// false = аккаунт заблокирован (вручную администратором), вход запрещён
+  isActive           Boolean        @default(true)
+  /// true у только что созданных аккаунтов и после сброса пароля: человек должен задать свой пароль
+  mustChangePassword Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+  teacher            Teacher?
+  student            Student?
+  notifications      Notification[]
 
   @@index([role])
   @@index([searchKey])
 }
 
 model Teacher {
-  id       String    @id @default(cuid())
-  userId   String    @unique
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  userId   String        @unique
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   subjects Subject[]
   groups   Group[]
+  notes    TeacherNote[]
 }
 
 model Student {
-  id          String               @id @default(cuid())
-  userId      String               @unique
-  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parentPhone String               @default("")
-  birthDate   DateTime?
-  groups      GroupStudent[]
-  attendance  Attendance[]
-  grades      Grade[]
-  submissions HomeworkSubmission[]
+  id                String               @id @default(cuid())
+  userId            String               @unique
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentPhone       String               @default("")
+  /// Показывать ник и баллы в доске почёта группы (решает сам ученик)
+  showInLeaderboard Boolean              @default(true)
+  /// Индекс ранга, который ученик уже видел (для конфетти при новом ранге); null — ещё не открывал
+  seenRank          Int?
+  groups            GroupStudent[]
+  attendance        Attendance[]
+  grades            Grade[]
+  submissions       HomeworkSubmission[]
+  achievements      StudentAchievement[]
+  notes             TeacherNote[]
 }
 
 model Subject {
@@ -188,4 +216,108 @@ model HomeworkSubmission {
 
   @@unique([homeworkId, studentId])
   @@index([studentId])
+}
+
+/// Заметка учителя об ученике: видна только автору и администратору
+model TeacherNote {
+  id        String   @id @default(cuid())
+  teacherId String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([studentId, teacherId])
+}
+
+/// Достижение ученика. Выдаётся автоматически (lib/achievements.ts)
+model StudentAchievement {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  code      String
+  earnedAt  DateTime @default(now())
+  /// false, пока ученик не увидел достижение (тогда показываем конфетти)
+  seen      Boolean  @default(false)
+
+  @@unique([studentId, code])
+}
+
+/// Журнал действий администраторов и важных событий
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?
+  /// Ник исполнителя на момент действия (сохраняется, даже если аккаунт потом удалят)
+  actorLabel  String
+  action      String
+  targetType  String   @default("")
+  targetId    String   @default("")
+  targetLabel String   @default("")
+  details     String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+}
+
+/// Попытки входа (успешные и нет): основа уведомлений безопасности. Блокировок по ним НЕТ.
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  login     String
+  userId    String?
+  success   Boolean
+  device    String   @default("")
+  ip        String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([login, createdAt])
+}
+
+enum AlertStatus {
+  OPEN
+  RESOLVED
+}
+
+enum AlertResolution {
+  OK
+  PASSWORD_RESET
+  BLOCKED
+}
+
+/// Уведомление безопасности: 5 неудачных входов подряд на один аккаунт
+model SecurityAlert {
+  id           String           @id @default(cuid())
+  userId       String
+  /// Логин и ник на момент срабатывания
+  login        String
+  attempts     Int
+  firstAt      DateTime
+  lastAt       DateTime
+  device       String           @default("")
+  ip           String           @default("")
+  status       AlertStatus      @default(OPEN)
+  resolution   AlertResolution?
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+/// Уведомление для «колокольчика» (сейчас — администраторам о безопасности)
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String    @default("")
+  link      String    @default("")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
 }

@@ -7,7 +7,7 @@ import { PrismaClient, type AttendanceStatus, type HomeworkStatus } from "@prism
 import bcrypt from "bcryptjs";
 import { addDays, today } from "../src/lib/dates";
 import { ensureLessons } from "../src/lib/lessons";
-import { userSearchKey } from "../src/lib/utils";
+import { fullNameOf, nicknameKey, userSearchKey } from "../src/lib/profile";
 
 const db = new PrismaClient();
 
@@ -36,6 +36,13 @@ const LAST_NAMES = [
   "Лебедева", "Бакиров", "Абдуллаева", "Новиков", "Шарипова", "Фёдоров", "Кадырова", "Раджабов", "Орлова", "Саидов",
 ];
 
+// Ники учеников (3–20 символов, уникальны)
+const STUDENT_NICKS = [
+  "Лисичка", "Тимурчик", "Мадо", "Азиз_Про", "Камилка", "Русс", "Дилли", "Артёмка", "Сева", "Жасик",
+  "Полли", "Бекс", "Лоло", "Даня", "Нига", "Ваня", "Мали", "Шах", "Аннушка", "Санни",
+  "Ева_Ева", "Оти", "Зари", "Макс", "Гуля", "Лёша", "Шахи", "Фарик", "Маша", "Илдар",
+];
+
 const MATH_TOPICS = [
   "Дроби и действия с ними", "Линейные уравнения", "Проценты", "Квадратные уравнения", "Системы уравнений",
   "Степени и корни", "Функции и графики", "Геометрия: треугольники", "Площади фигур", "Неравенства",
@@ -49,6 +56,12 @@ const ENGLISH_TOPICS = [
 
 async function main() {
   // Очистка (порядок важен из-за внешних ключей)
+  await db.notification.deleteMany();
+  await db.securityAlert.deleteMany();
+  await db.loginAttempt.deleteMany();
+  await db.auditLog.deleteMany();
+  await db.teacherNote.deleteMany();
+  await db.studentAchievement.deleteMany();
   await db.homeworkSubmission.deleteMany();
   await db.homework.deleteMany();
   await db.grade.deleteMany();
@@ -77,16 +90,22 @@ async function main() {
       login: "admin",
       passwordHash: adminHash,
       role: "ADMIN",
-      fullName: "Администратор Центра",
-      searchKey: userSearchKey("Администратор Центра", "admin"),
+      firstName: "Светлана",
+      lastName: "Петрова",
+      fullName: "Светлана Петрова",
+      nickname: "Директор",
+      nicknameKey: nicknameKey("Директор"),
+      searchKey: userSearchKey({ nickname: "Директор", firstName: "Светлана", lastName: "Петрова", login: "admin" }),
+      email: "admin@example.com",
+      bio: "Директор центра. Пишите, если что-то не работает.",
       phone: "+998 90 000-00-00",
     },
   });
 
   const teacherSpecs = [
-    { login: "teacher1", fullName: "Ольга Петровна Иванова", phone: "+998 90 111-11-11", subjects: [math.id] },
-    { login: "teacher2", fullName: "Дилшод Анварович Каримов", phone: "+998 90 222-22-22", subjects: [english.id] },
-    { login: "teacher3", fullName: "Екатерина Сергеевна Ким", phone: "+998 90 333-33-33", subjects: [math.id, english.id] },
+    { login: "teacher1", firstName: "Ольга", lastName: "Иванова", nickname: "Ольга_П", bio: "Преподаю математику 12 лет. Люблю задачи с подвохом.", phone: "+998 90 111-11-11", subjects: [math.id] },
+    { login: "teacher2", firstName: "Дилшод", lastName: "Каримов", nickname: "Дилшод_К", bio: "Английский для школьников: разговорная практика и грамматика.", phone: "+998 90 222-22-22", subjects: [english.id] },
+    { login: "teacher3", firstName: "Екатерина", lastName: "Ким", nickname: "Катя_Ким", bio: "Математика и английский для сильных учеников.", phone: "+998 90 333-33-33", subjects: [math.id, english.id] },
   ];
   const teachers = [];
   for (const spec of teacherSpecs) {
@@ -95,8 +114,14 @@ async function main() {
         login: spec.login,
         passwordHash: teacherHash,
         role: "TEACHER",
-        fullName: spec.fullName,
-        searchKey: userSearchKey(spec.fullName, spec.login),
+        firstName: spec.firstName,
+        lastName: spec.lastName,
+        fullName: fullNameOf(spec.firstName, spec.lastName),
+        nickname: spec.nickname,
+        nicknameKey: nicknameKey(spec.nickname),
+        searchKey: userSearchKey({ ...spec }),
+        bio: spec.bio,
+        email: `${spec.login}@example.com`,
         phone: spec.phone,
         teacher: { create: { subjects: { connect: spec.subjects.map((id) => ({ id })) } } },
       },
@@ -112,13 +137,19 @@ async function main() {
         login: `student${i}`,
         passwordHash: studentHash,
         role: "STUDENT",
-        fullName: `${FIRST_NAMES[i - 1]} ${LAST_NAMES[i - 1]}`,
-        searchKey: userSearchKey(`${FIRST_NAMES[i - 1]} ${LAST_NAMES[i - 1]}`, `student${i}`),
+        firstName: FIRST_NAMES[i - 1],
+        lastName: LAST_NAMES[i - 1],
+        fullName: fullNameOf(FIRST_NAMES[i - 1], LAST_NAMES[i - 1]),
+        nickname: STUDENT_NICKS[i - 1],
+        nicknameKey: nicknameKey(STUDENT_NICKS[i - 1]),
+        searchKey: userSearchKey({ nickname: STUDENT_NICKS[i - 1], firstName: FIRST_NAMES[i - 1], lastName: LAST_NAMES[i - 1], login: `student${i}` }),
+        birthDate: new Date(Date.UTC(2008 + (i % 6), i % 12, 1 + (i % 27))),
+        bio: i % 3 === 0 ? "Люблю математику и футбол." : "",
         phone: `+998 91 ${String(100 + i).padStart(3, "0")}-${String(10 + i).padStart(2, "0")}-${String(20 + i).padStart(2, "0")}`,
         student: {
           create: {
             parentPhone: `+998 93 ${String(200 + i).padStart(3, "0")}-${String(30 + i).padStart(2, "0")}-${String(40 + i).padStart(2, "0")}`,
-            birthDate: new Date(Date.UTC(2008 + (i % 6), i % 12, 1 + (i % 27))),
+            showInLeaderboard: i !== 30,
           },
         },
       },

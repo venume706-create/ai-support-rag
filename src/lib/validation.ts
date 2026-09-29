@@ -34,12 +34,13 @@ const optionalPassword = z
   .union([z.literal(""), passwordField])
   .optional()
   .transform((s) => (s ? s : null));
-const fullName = trimmed(120).pipe(z.string().min(2, v.nameMin));
+const nameField = trimmed(60).pipe(z.string().min(2, v.nameMin));
 
 export const teacherCreateSchema = z.object({
   login: loginField,
   password: passwordField,
-  fullName,
+  firstName: nameField,
+  lastName: nameField,
   phone,
   subjectIds: z.array(idSchema).min(1, v.subjectRequired),
 });
@@ -48,7 +49,8 @@ export const teacherUpdateSchema = z.object({
   id: idSchema,
   login: loginField,
   password: optionalPassword,
-  fullName,
+  firstName: nameField,
+  lastName: nameField,
   phone,
   subjectIds: z.array(idSchema).min(1, v.subjectRequired),
 });
@@ -56,7 +58,8 @@ export const teacherUpdateSchema = z.object({
 export const studentCreateSchema = z.object({
   login: loginField,
   password: passwordField,
-  fullName,
+  firstName: nameField,
+  lastName: nameField,
   phone,
   parentPhone: phone,
   birthDate: optionalDate,
@@ -67,7 +70,8 @@ export const studentUpdateSchema = z.object({
   id: idSchema,
   login: loginField,
   password: optionalPassword,
-  fullName,
+  firstName: nameField,
+  lastName: nameField,
   phone,
   parentPhone: phone,
   birthDate: optionalDate,

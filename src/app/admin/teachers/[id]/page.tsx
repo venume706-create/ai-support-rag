@@ -32,7 +32,7 @@ export default async function TeacherProfile({ params, searchParams }: PageProps
     where: { id },
     select: {
       id: true,
-      user: { select: { id: true, login: true, fullName: true, phone: true, isActive: true, createdAt: true } },
+      user: { select: { id: true, login: true, firstName: true, lastName: true, fullName: true, birthDate: true, phone: true, isActive: true, createdAt: true } },
       subjects: { select: { id: true, name: true } },
       groups: {
         orderBy: { name: "asc" },
@@ -73,7 +73,8 @@ export default async function TeacherProfile({ params, searchParams }: PageProps
                                     initial={{
                     id: teacher.id,
                     login: teacher.user.login,
-                    fullName: teacher.user.fullName,
+                    firstName: teacher.user.firstName,
+                    lastName: teacher.user.lastName,
                     phone: teacher.user.phone,
                     subjectIds: teacher.subjects.map((s) => s.id),
                   }}

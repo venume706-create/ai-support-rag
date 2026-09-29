@@ -5,8 +5,12 @@ test.describe("Администратор", () => {
   test("создаёт учителя, группу и ученика и видит их в списках", async ({ page }, info) => {
     const teacherLogin = uid("teach", info.project.name);
     const studentLogin = uid("stud", info.project.name);
-    const teacherName = `Учитель ${teacherLogin}`;
-    const studentName = `Ученик ${studentLogin}`;
+    const teacherFirst = "Тест";
+    const teacherLast = `Учитель${teacherLogin.slice(-4)}`;
+    const teacherName = `${teacherFirst} ${teacherLast}`;
+    const studentFirst = "Тест";
+    const studentLast = `Ученик${studentLogin.slice(-4)}`;
+    const studentName = `${studentFirst} ${studentLast}`;
     const groupName = `Группа ${teacherLogin}`;
 
     await login(page, "admin", "admin123");
@@ -17,7 +21,8 @@ test.describe("Администратор", () => {
     await page.goto("/admin/teachers");
     await page.getByTestId("new-teacher").click();
     const tf = page.getByTestId("teacher-form");
-    await tf.locator("#t-fullName").fill(teacherName);
+    await tf.locator("#t-firstName").fill(teacherFirst);
+    await tf.locator("#t-lastName").fill(teacherLast);
     await tf.locator("#t-login").fill(teacherLogin);
     await tf.locator("#t-password").fill("secret123");
     await tf.getByLabel("Математика").check();
@@ -45,7 +50,8 @@ test.describe("Администратор", () => {
     await page.goto("/admin/students");
     await page.getByTestId("new-student").click();
     const sf = page.getByTestId("student-form");
-    await sf.locator("#s-fullName").fill(studentName);
+    await sf.locator("#s-firstName").fill(studentFirst);
+    await sf.locator("#s-lastName").fill(studentLast);
     await sf.locator("#s-login").fill(studentLogin);
     await sf.locator("#s-password").fill("secret123");
     await sf.locator("#s-parentPhone").fill("+998 90 123-45-67");
@@ -73,13 +79,15 @@ test.describe("Администратор", () => {
     await page.goto("/admin/students");
     await page.getByTestId("new-student").click();
     const sf = page.getByTestId("student-form");
-    await sf.locator("#s-fullName").fill("Дубликат Логина");
+    await sf.locator("#s-firstName").fill("Дубликат");
+    await sf.locator("#s-lastName").fill("Логина");
     await sf.locator("#s-login").fill("student1");
     await sf.locator("#s-password").fill("secret123");
     await sf.locator("button[type=submit]").click();
     await expect(page.getByTestId("error-s-login")).toHaveText("Этот логин уже занят");
     // Введённые данные не теряются после ошибки
-    await expect(sf.locator("#s-fullName")).toHaveValue("Дубликат Логина");
+    await expect(sf.locator("#s-firstName")).toHaveValue("Дубликат");
+    await expect(sf.locator("#s-lastName")).toHaveValue("Логина");
     await expect(sf.locator("#s-login")).toHaveValue("student1");
   });
 

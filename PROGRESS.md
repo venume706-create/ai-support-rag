@@ -25,3 +25,12 @@
 - [ ] Хранилище файлов (StorageProvider).
 
 ### Сломанного в существующем коде не найдено.
+
+## Этап 1. Схема БД, миграции, сид — выполнен
+- [x] `User`: `firstName`, `lastName`, `nickname` + `nicknameKey` (уникальный, без учёта регистра и ё/е), `email`, `bio`, `birthDate` (перенесена из `Student`), `avatarKey/avatarVersion`, `avatarFrame`, `cardColor`, `mustChangePassword`.
+- [x] `Student`: `showInLeaderboard`, `seenRank`. Новые модели: `TeacherNote`, `StudentAchievement`, `AuditLog`, `LoginAttempt`, `SecurityAlert`, `Notification`.
+- [x] Миграция `20260929090000_profiles_security` со сохранением данных: имя/фамилия разбиты из `fullName`, дата рождения скопирована из `Student` (проверено сравнением с копией базы до миграции: 34 пользователя, 0 расхождений, 30 дат).
+- [x] Сид: ники, имена и фамилии, e-mail, «о себе», у `student30` скрыта доска почёта.
+- [x] Формы создания/правки учителя и ученика админом: отдельные «Имя» и «Фамилия», «Временный пароль», у новых аккаунтов `mustChangePassword = true`.
+- [x] `src/lib/profile.ts` + 9 юнит-тестов (формат ника, границы, кириллица, уникальность).
+- Проверено: build, lint, 31 unit-тест, 28 e2e — зелёные.
