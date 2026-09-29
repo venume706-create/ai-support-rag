@@ -1,0 +1,2854 @@
+<!doctype html>
+<html lang="uz-Cyrl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Газ тармоғи гидравлик модели</title>
+<style>
+:root{--bg:#f4f6f9;--panel:#ffffff;--ink:#17202b;--muted:#5b6675;--line:#d7dde5;--accent:#1f5fa8;--accent-ink:#ffffff;--soft:#eaf1fa;
+  --ok:#1f7a45;--warn:#9a6a00;--bad:#c0262d;--warn-bg:#fff6dc;--bad-bg:#fdecec;--tip-bg:#eaf3fb;--input:#ffffff;--shadow:0 1px 3px rgba(0,0,0,.08)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#11161d;--panel:#1a212b;--ink:#e6ebf1;--muted:#9aa6b4;--line:#2d3744;--accent:#5b9be0;--accent-ink:#0d1520;
+  --soft:#1f2a38;--ok:#5cc58a;--warn:#e7b43a;--bad:#ff7a7f;--warn-bg:#3a3014;--bad-bg:#3b1b1d;--tip-bg:#182a3d;--input:#121820;--shadow:none}}
+:root[data-theme="dark"]{--bg:#11161d;--panel:#1a212b;--ink:#e6ebf1;--muted:#9aa6b4;--line:#2d3744;--accent:#5b9be0;--accent-ink:#0d1520;
+  --soft:#1f2a38;--ok:#5cc58a;--warn:#e7b43a;--bad:#ff7a7f;--warn-bg:#3a3014;--bad-bg:#3b1b1d;--tip-bg:#182a3d;--input:#121820;--shadow:none}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+body{overflow-x:hidden}
+.wrap{max-width:1280px;margin:0 auto;padding:0 16px 40px}
+header.top{background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+header.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-top:10px;padding-bottom:10px}
+header.top h1{font-size:18px;margin:0;flex:1 1 220px;line-height:1.2}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+button,.btn{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+.banner{padding:9px 12px;border-radius:8px;margin:12px 0 0;font-size:13.5px}
+.banner.red{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+.banner.yellow{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+.banner.info{background:var(--tip-bg);border:1px solid var(--line)}
+section.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px;box-shadow:var(--shadow)}
+section.card>h2,details>summary{font-size:15px;margin:0 0 8px;font-weight:650}
+details>summary{cursor:pointer;margin:0}
+details[open]>summary{margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px 12px}
+label.f{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted);gap:3px;min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:6px;padding:5px 7px;min-width:0;width:100%}
+input[type=checkbox]{width:auto}
+.scen{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.scen button{font-size:13px}
+.scen button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--soft);min-width:0}
+.kpi .l{font-size:12px;color:var(--muted)}.kpi .v{font-size:18px;font-weight:700;overflow-wrap:anywhere}.kpi .s{font-size:12px;color:var(--muted)}
+.kpi.bad{border-color:var(--bad)}.kpi.bad .v{color:var(--bad)}.kpi.good .v{color:var(--ok)}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin-top:14px;scrollbar-width:thin}
+.tabs button{border:none;border-bottom:3px solid transparent;border-radius:0;background:none;padding:8px 10px;color:var(--muted)}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:650}
+.tabs .cnt{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;margin-left:4px}
+.panel{background:var(--panel);border:1px solid var(--line);border-top:none;border-radius:0 0 12px 12px;padding:12px 14px;min-height:200px}
+.tw{overflow-x:auto;max-width:100%;border:1px solid var(--line);border-radius:8px}
+table.t{border-collapse:collapse;font-size:12.5px;min-width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:3px 5px;text-align:left;white-space:nowrap}
+table.t th{background:var(--soft);position:sticky;top:0;font-weight:600;font-size:12px}
+table.t td input,table.t td select{padding:2px 4px;border-radius:4px;font-size:12.5px}
+table.t td.r{text-align:right;font-variant-numeric:tabular-nums}
+table.t td input.w1{width:70px}table.t td input.w2{width:110px}table.t td input.w3{width:160px}table.t td input.w0{width:58px}
+.res{background:color-mix(in srgb,var(--soft) 60%,transparent)}
+.st{display:inline-block;padding:0 6px;border-radius:8px;font-size:11.5px;font-weight:600}
+.st.ok{color:var(--ok)}.st.warn{color:var(--warn);background:var(--warn-bg)}.st.bad,.st.dead,.st.fast,.st.lowin,.st.over{color:var(--bad);background:var(--bad-bg)}.st.nosrc,.st.off{color:var(--muted)}
+.row-actions{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.drop{display:block;border:2px dashed var(--accent);border-radius:12px;padding:22px 14px;text-align:center;cursor:pointer;background:var(--soft)}
+.drop.over{background:var(--tip-bg)}
+.drop b{font-size:15px}
+.status{margin:12px 0;font-size:15px;font-weight:650}
+.status.bad{color:var(--bad)}.status.good{color:var(--ok)}.status.warn{color:var(--warn)}
+.chk{border:1px solid var(--line);border-left:5px solid var(--line);border-radius:8px;padding:8px 11px;margin:8px 0;background:var(--panel)}
+.chk.crit{border-left-color:var(--bad)}.chk.warn{border-left-color:var(--warn)}.chk.tip{border-left-color:var(--accent)}
+.chk h4{margin:0 0 4px;font-size:14px}.chk .lv{font-size:11px;text-transform:uppercase;letter-spacing:.4px;margin-right:6px}
+.chk.crit .lv{color:var(--bad)}.chk.warn .lv{color:var(--warn)}.chk.tip .lv{color:var(--accent)}
+.chk dl{display:grid;grid-template-columns:minmax(90px,150px) 1fr;gap:2px 10px;margin:4px 0 0;font-size:13px}
+.chk dt{color:var(--muted)}.chk dd{margin:0;overflow-wrap:anywhere}
+.sch{position:relative}
+.sch-tools{display:flex;gap:6px;margin-bottom:6px}
+.sch-view{border:1px solid var(--line);border-radius:8px;height:62vh;min-height:320px;overflow:hidden;touch-action:none;background:var(--panel);color:var(--ink);cursor:grab}
+.sch-view svg{width:100%;height:100%;display:block}
+.sch-tip{position:absolute;z-index:5;max-width:240px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none}
+.sch-tip h4{margin:0 0 3px;font-size:12.5px}.sch-tip div{display:flex;justify-content:space-between;gap:10px}.sch-tip span{color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);margin:8px 0}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{display:inline-block}.legend .ln{width:18px;height:4px;border-radius:2px}.legend .dot{width:10px;height:10px;border-radius:50%}
+.legend .sq{width:10px;height:10px;background:#111;border:1px solid var(--muted)}.legend .sq2{width:10px;height:10px;border:2px solid var(--ink)}
+.legend .dash{width:18px;border-top:2px dashed var(--muted)}
+.method h3{font-size:14.5px;margin:14px 0 4px}.method .formula{font-family:'Times New Roman',serif;font-size:15px;margin:4px 0 4px 12px}
+.prof svg{display:block;max-width:100%;height:auto;margin:0 0 6px;color:var(--ink)}
+.panel{position:relative}
+.muted{color:var(--muted)}.small{font-size:12px}.hide{display:none!important}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;z-index:50;max-width:92vw;font-size:13.5px}
+@media (max-width:560px){header.top{position:static}header.top h1{font-size:16px}.btns button{padding:5px 8px;font-size:12.5px}.kpi .v{font-size:16px}.panel{padding:10px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <h1>Газ тармоғи гидравлик модели</h1>
+  <div class="btns">
+    <button type="button" class="primary" data-act="pdf">PDF ҳисобот</button>
+    <button type="button" data-act="xlsxres">Натижалар (Excel)</button>
+    <button type="button" data-act="template">Excel андоза</button>
+    <button type="button" data-act="save">Лойиҳани сақлаш</button>
+    <button type="button" data-act="open">Лойиҳани очиш</button>
+    <button type="button" data-act="theme" aria-label="Мавзу">◐</button>
+    <input type="file" id="fileJson" accept=".json,application/json" hidden>
+  </div>
+</div></header>
+<main class="wrap">
+  <div id="frameBanner" class="banner red hide">Файл дастур ичидаги кўриш ойнасида очилган — бу ерда юклаб олиш ишламаслиги мумкин. Файлни телефон ёки компьютерда Chrome орқали очинг.</div>
+  <div id="libBanner" class="banner red hide">Excel ва PDF кутубхоналари юкланмади — интернет алоқасини текширинг. Ҳисоб ва схема ишлайди.</div>
+  <div id="sampleBanner" class="banner yellow hide">Намуна маълумотлар. Ўз тармоғингиз Excel файлини «Ёрдамчи» бўлимида юкланг.</div>
+
+  <section class="card"><h2>Лойиҳа ҳақида</h2><div class="grid" id="meta"></div></section>
+  <section class="card"><details id="paramsBox"><summary>Ҳисоб параметрлари</summary><div class="grid" id="params"></div></details></section>
+
+  <section class="card"><h2>Режим ва натижалар</h2><div class="scen" id="scenBtns"></div><div class="kpis" id="kpis"></div><div id="errs"></div></section>
+
+  <nav class="tabs" id="tabs"></nav>
+  <div class="panel" id="panel"></div>
+</main>
+<div id="toast" class="toast hide"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+'use strict';
+// ===== engine.js =====
+const __m_engine_js = (() => {
+// Газ тармоғи гидравлик модели — ҳисоб ядроси.
+// Тоза функциялар: DOM йўқ, Node'да ишлайди (test/engine.test.mjs).
+// Формулалар: СП 42-101-2003; меъёрлар: ШНҚ 2.04.08-22, ҚР 05.02-23.
+
+const P0 = 0.101325;                 // атмосфера босими, МПа
+const STAGES = ['high1', 'high2', 'mid', 'low'];
+const STAGE_NAME = { low: 'паст', mid: 'ўрта', high2: 'юқори II', high1: 'юқори I' };
+const STAGE_COLOR = { high1: '#8e2c5a', high2: '#c0447a', mid: '#2f6db3', low: '#d9a100', none: '#9a9a9a' };
+const APPL = { p4: 1.2, p2: 0.6, boil: 2.5, col: 2.2 };   // асбоблар сарфи, м³/соат
+
+function defaultParams() {
+  return {
+    rho: 0.73, nu: 14.3, loc: 10, ka: 0.85, kb: -0.28, rhoAir: 1.293, nk: 1, regChar: 'prop',
+    norms: { low: { exc: 2.0, sat: 1.2 }, mid: { min: 50 }, high2: { min: 150 }, high1: { min: 300 } },
+    vmax: { low: 7, mid: 15, high2: 25, high1: 25 },
+  };
+}
+
+function defaultScenarios() {
+  return [
+    { name: 'Амалдаги максимал қишки режим', src: 'norm', dem: 1, growth: 0, closed: '', variant: false },
+    { name: 'Минимал кириш босими режими', src: 'min', dem: 1, growth: 0, closed: '', variant: false },
+    { name: 'Ёзги минимал сарф режими', src: 'norm', dem: 0.3, growth: 0, closed: '', variant: false },
+    { name: 'Авария / N-1 режими', src: 'norm', dem: 1, growth: 0, closed: '', variant: false },
+    { name: 'Истиқболли юклама', src: 'norm', dem: 1, growth: 20, closed: '', variant: false },
+    { name: 'Таклиф этилаётган ечимлар', src: 'norm', dem: 1, growth: 0, closed: '', variant: true },
+  ];
+}
+
+function emptyModel() {
+  return {
+    meta: { obj: '', dist: '', org: '', exec: '', check: '', date: '', chainOk: false },
+    params: defaultParams(), nodes: [], pipes: [], regs: [], scen: defaultScenarios(), monthly: [],
+  };
+}
+
+// ---------- ёрдамчи парсерлар ----------
+
+/** Сон: "1 234,5" → 1234.5; бўш ёки "?" → NaN. */
+function num(v) {
+  if (v === null || v === undefined) return NaN;
+  if (typeof v === 'number') return v;
+  if (typeof v === 'boolean') return NaN;
+  const s = String(v).trim().replace(/[\s ]/g, '').replace(',', '.').replace(/^−/, '-');
+  if (s === '' || s === '?') return NaN;
+  const x = Number(s);
+  return Number.isFinite(x) ? x : NaN;
+}
+const n0 = v => { const x = num(v); return Number.isFinite(x) ? x : 0; };
+const isNum = v => Number.isFinite(num(v));
+const blank = v => v === null || v === undefined || String(v).trim() === '' || String(v).trim() === '?';
+
+function lowerKey(s) { return String(s ?? '').toLowerCase().replace(/[’ʼ‘`']/g, '').replace(/\s+/g, ' ').trim(); }
+
+/** Босим поғонаси: паст / ўрта / юқори II / юқори I (кирилл, лотин, low/mid/high). */
+function normStage(v) {
+  if (v === null || v === undefined) return '';
+  const raw = String(v).trim();
+  if (STAGES.includes(raw)) return raw;
+  const s = lowerKey(raw);
+  if (!s) return '';
+  if (/^(паст|past|low|низ|н\.?д\.?|нд)/.test(s)) return 'low';
+  if (/^(ўрта|урта|орта|o[‘’ʼ']?rta|orta|mid|сред|с\.?д\.?|сд)/.test(s)) return 'mid';
+  if (/(юқори|юкори|yuqori|high|выс|в\.?д\.?|вд)/.test(s) || /^(i|ii|1|2)$/.test(s)) {
+    if (/(ii|2|іі|ⅱ)\s*$/.test(s) || /\b(ii|2)\b/.test(s)) return 'high2';
+    return 'high1';
+  }
+  return '';
+}
+
+function normType(v) {
+  const s = lowerKey(v);
+  if (/^(гтс|грс|gts|grs|манба|source|src)/.test(s)) return 'ГТС';
+  if (/^(истеъмол|истемол|iste|consumer|потреб)/.test(s)) return 'истеъмолчи';
+  return 'тугун';
+}
+
+function normStatus(v) {
+  const s = lowerKey(v);
+  if (/^(ёпиқ|ёпик|епик|yopiq|closed|закр|off)/.test(s)) return 'ёпиқ';
+  if (/^(таклиф|taklif|proposed|предл|new|янги)/.test(s)) return 'таклиф';
+  return 'очиқ';
+}
+
+function isPE(mat) { return /(пэ|pe|полиэт|poliet)/i.test(String(mat ?? '')); }
+
+function splitIds(s) {
+  return String(s ?? '').split(/[,;\s]+/).map(x => x.trim()).filter(Boolean);
+}
+
+// ---------- 4.1 ҳисобий сарф ----------
+
+function Kbir(N, ka = 0.85, kb = -0.28) {
+  N = n0(N);
+  if (N <= 0) return 0;
+  return Math.min(1, ka * Math.pow(N, kb));
+}
+
+function Qnom(n) {
+  return APPL.p4 * n0(n.p4) + APPL.p2 * n0(n.p2) + APPL.boil * n0(n.boil) + APPL.col * n0(n.col);
+}
+
+/** Тугуннинг ҳисобий сарфи (режим коэффициентисиз), м³/соат. */
+function nodeLoad(n, P) {
+  if (normType(n.type) === 'ГТС') return 0;
+  return Kbir(n.N, P.ka, P.kb) * Qnom(n) + Math.max(0, n0(n.q));
+}
+
+// ---------- 4.2 ишқаланиш коэффициенти ----------
+
+const RE_X = Math.pow(25600, 1 / 1.333);   // 64/Re = 0.0025·Re^0.333 кесишган нуқта (≈2019.6)
+
+/** λ(Re). 2000…2020 оралиғида 64/Re ва ўтиш формуласининг каттаси — λ узлуксиз бўлиши учун. */
+function lambdaRe(Re, nd) {
+  if (!(Re > 0)) return 0;
+  if (Re < 2000) return 64 / Re;
+  if (Re < 4000) return Math.max(64 / Re, 0.0025 * Math.pow(Re, 0.333));
+  return 0.11 * Math.pow(nd + 68 / Re, 0.25);
+}
+
+function reynolds(Q, dmm, nu = 14.3) { return 0.0354 * Math.abs(Q) / ((dmm / 10) * nu * 1e-6); }
+
+function lambdaQ(Q, dmm, mat, nu = 14.3) {
+  const dcm = dmm / 10;
+  return lambdaRe(reynolds(Q, dmm, nu), (isPE(mat) ? 0.0007 : 0.01) / dcm);
+}
+
+// ---------- 4.3 қувур: Δφ = r·Q·|Q| ----------
+
+/** Қувурнинг гидравлик доимийлари. stage — компонента поғонаси. */
+function pipeHyd(Lm, dmm, mat, stage, P) {
+  const dcm = dmm / 10;
+  const Lp = Lm * (1 + P.loc / 100);
+  const C = stage === 'low' ? 626.1 : 1.2687e-4;
+  const K = C * P.rho * Lp / Math.pow(dcm, 5);
+  const beta = 0.0354 / (dcm * P.nu * 1e-6);
+  const nk = isNum(P.nk) && num(P.nk) > 0 ? num(P.nk) : 1;   // §13.4: ғадир-будурлик калибровка коэффициенти
+  const nd = (isPE(mat) ? 0.0007 : 0.01) * nk / dcm;
+  const h = { K, beta, nd, dmm, stage };
+  h.QX = RE_X / beta;                       // ламинар чегараси
+  h.hX = K * 64 * h.QX / beta;
+  h.Q4 = 4000 / beta;
+  h.hT4 = K * 0.0025 * Math.pow(4000, 0.333) * h.Q4 * h.Q4;
+  h.hU4 = K * 0.11 * Math.pow(nd + 68 / 4000, 0.25) * h.Q4 * h.Q4;
+  h.cT = K * 0.0025 * Math.pow(beta, 0.333);
+  return h;
+}
+
+/** Δφ(Q) = K·λ(Q)·Q·|Q|. */
+function dphiOfQ(h, Q) {
+  const a = Math.abs(Q);
+  return Math.sign(Q) * h.K * lambdaRe(h.beta * a, h.nd) * a * a;
+}
+
+/**
+ * Берилган Δφ бўйича сарф: h(Q)=K·λ(Q)·Q² тескари функцияси, аниқ ечим.
+ * h монотон ўсувчи, Re=4000 да сакраш бор — у ерда Q=Q4 (Q(Δφ) узлуксиз).
+ * Қайтаради [Q, dQ/dΔφ].
+ */
+function qOfDphi(h, dphi, Qguess) {
+  const a = Math.abs(dphi), sg = dphi < 0 ? -1 : 1;
+  if (a === 0) return [0, h.beta / (64 * h.K)];
+  if (a <= h.hX) {                                  // ламинар
+    const g = h.beta / (64 * h.K);
+    return [sg * a * g, g];
+  }
+  if (a < h.hT4) {                                  // ўтиш зонаси
+    const Q = Math.pow(a / h.cT, 1 / 2.333);
+    return [sg * Q, Q / (2.333 * a)];
+  }
+  if (a <= h.hU4) return [sg * h.Q4, h.Q4 / (2 * a)]; // Re=4000 сакраши
+  // турбулент: Q = √(a/(K·λ(Q))), қисқарувчи итерация
+  let Q = Qguess && Math.abs(Qguess) > h.Q4 ? Math.abs(Qguess) : Math.sqrt(a / (h.K * 0.11 * Math.pow(h.nd, 0.25)));
+  for (let k = 0; k < 60; k++) {
+    const lam = 0.11 * Math.pow(h.nd + 68 / (h.beta * Q), 0.25);
+    const Qn = Math.sqrt(a / (h.K * lam));
+    const done = Math.abs(Qn - Q) <= 1e-14 * Qn;
+    Q = Qn;
+    if (done) break;
+  }
+  const x = h.nd + 68 / (h.beta * Q);
+  const lam = 0.11 * Math.pow(x, 0.25);
+  const dh = h.K * (2 * lam * Q - 0.0275 * Math.pow(x, -0.75) * 68 / h.beta);
+  return [sg * Q, 1 / Math.max(dh, 1e-300)];
+}
+
+// потенциал φ ↔ босим (кПа, ортиқча)
+function phiOfP(Pk, stage) { return stage === 'low' ? Pk * 1000 : Math.pow(Pk / 1000 + P0, 2); }
+function pOfPhi(phi, stage) { return stage === 'low' ? phi / 1000 : (Math.sqrt(Math.max(phi, 0)) - P0) * 1000; }
+
+// ---------- 4.4 босимга боғлиқ истеъмол ----------
+
+const EPS = 0.01, SQE = Math.sqrt(EPS), DEN = Math.sqrt(1 + EPS) - Math.sqrt(EPS);
+
+function demandFactor(s) {
+  if (s >= 1) return 1;
+  if (s <= 0) return 0;
+  return (Math.sqrt(s + EPS) - SQE) / DEN;
+}
+
+/** [q, dq/dφ] — тугун олган сарф ва унинг ҳосиласи. */
+function demand(qr, Pt, stage, phi) {
+  if (!(qr > 0)) return [0, 0];
+  let P, dPdphi;
+  if (stage === 'low') { P = phi / 1000; dPdphi = 1 / 1000; } else {
+    if (phi <= 0) return [0, 0];
+    const sp = Math.sqrt(phi);
+    P = (sp - P0) * 1000; dPdphi = 1000 / (2 * sp);
+  }
+  const s = P / Pt;
+  if (s >= 1) return [qr, 0];
+  if (s <= 0) return [0, 0];
+  const r = Math.sqrt(s + EPS);
+  return [qr * (r - SQE) / DEN, qr / (DEN * 2 * r) / Pt * dPdphi];
+}
+
+// ---------- 4.5 битта поғона: Ньютон + CG ----------
+
+/**
+ * comp: { n (тугунлар сони), pipes:[{i,j,h,Q}], fixed: Float64Array|NaN (φ), qr[], Pt[], extra[], stage,
+ *         xfn: [[k, φ => [q, dq/dφ]]] — босимга боғлиқ қўшимча юклар (ГРП кириши) }
+ * phi0 — илиқ бошланғич (ихтиёрий). Қайтаради {phi, Q, conv, iters, maxF}.
+ */
+function solveComponent(comp, phi0) {
+  const { n, pipes, fixed, qr, Pt, extra, stage } = comp;
+  const off = comp.off || null;                 // баландлик тузатмаси: φ_ҳақиқий = ψ + off (фақат паст)
+  const xf = Array.from({ length: n }, () => null);
+  for (const [k, fn] of comp.xfn || []) (xf[k] ||= []).push(fn);
+  const free = [], loc = new Int32Array(n).fill(-1);
+  let minFix = Infinity;
+  for (let k = 0; k < n; k++) {
+    if (Number.isFinite(fixed[k])) minFix = Math.min(minFix, fixed[k]);
+    else { loc[k] = free.length; free.push(k); }
+  }
+  const phi = new Float64Array(n);
+  for (let k = 0; k < n; k++) {
+    if (Number.isFinite(fixed[k])) phi[k] = fixed[k];
+    else if (phi0 && Number.isFinite(phi0[k])) phi[k] = phi0[k];
+    else phi[k] = 0.99 * minFix;
+  }
+  const m = free.length;
+  const Qp = new Float64Array(pipes.length);
+  for (let e = 0; e < pipes.length; e++) Qp[e] = pipes[e].Q || 0;
+  let sumQ = 0;
+  for (let k = 0; k < n; k++) sumQ += (qr[k] || 0) + Math.abs(extra[k] || 0);
+  for (const [, fn] of comp.xfn || []) sumQ += Math.abs(fn(Infinity)[0]);
+  const tol = Math.max(1e-6, 1e-7 * sumQ);
+  const F = new Float64Array(m), dq = new Float64Array(m), g = new Float64Array(pipes.length);
+  const Ftry = new Float64Array(m), Qtry = new Float64Array(pipes.length);
+  const trial = new Float64Array(n);
+  if (m === 0 || !Number.isFinite(minFix)) {
+    evaluate(phi, true);
+    return { phi, Q: Qp, conv: true, iters: 0, maxF: 0 };
+  }
+
+  // Невязка F_i = Σ оқим кириши − q_i(φ_i) − extra_i (фақат эркин тугунлар учун)
+  function evaluate(ph, store, Fout = F, Qout = Qp, withJac = true) {
+    Fout.fill(0);
+    for (let e = 0; e < pipes.length; e++) {
+      const p = pipes[e];
+      const [Q, dQ] = qOfDphi(p.h, ph[p.i] - ph[p.j], Qout[e]);
+      Qout[e] = Q;
+      if (withJac) g[e] = dQ;
+      const a = loc[p.i], b = loc[p.j];
+      if (a >= 0) Fout[a] -= Q;
+      if (b >= 0) Fout[b] += Q;
+    }
+    for (let f = 0; f < m; f++) {
+      const k = free[f];
+      const pt = off ? ph[k] + off[k] : ph[k];
+      let [q, d] = demand(qr[k], Pt[k], stage, pt);
+      if (xf[k]) for (const fn of xf[k]) { const [q2, d2] = fn(pt); q += q2; d += d2; }
+      Fout[f] -= q + (extra[k] || 0);
+      if (withJac) dq[f] = d;
+    }
+    let mx = 0;
+    for (let f = 0; f < m; f++) mx = Math.max(mx, Math.abs(Fout[f]));
+    return mx;
+  }
+
+  const diag = new Float64Array(m);
+  function applyA(x, y) {
+    for (let f = 0; f < m; f++) y[f] = dq[f] * x[f];
+    for (let e = 0; e < pipes.length; e++) {
+      const a = loc[pipes[e].i], b = loc[pipes[e].j], w = g[e];
+      const xa = a >= 0 ? x[a] : 0, xb = b >= 0 ? x[b] : 0;
+      if (a >= 0) y[a] += w * (xa - xb);
+      if (b >= 0) y[b] += w * (xb - xa);
+    }
+  }
+  const r = new Float64Array(m), z = new Float64Array(m), pv = new Float64Array(m), Ap = new Float64Array(m), dx = new Float64Array(m);
+  function pcg(b) {
+    diag.set(dq);
+    for (let e = 0; e < pipes.length; e++) {
+      const a = loc[pipes[e].i], c = loc[pipes[e].j];
+      if (a >= 0) diag[a] += g[e];
+      if (c >= 0) diag[c] += g[e];
+    }
+    for (let f = 0; f < m; f++) if (!(diag[f] > 0)) diag[f] = 1e-300;
+    dx.fill(0); r.set(b);
+    let bn = 0; for (let f = 0; f < m; f++) bn += b[f] * b[f];
+    bn = Math.sqrt(bn);
+    if (bn === 0) return;
+    for (let f = 0; f < m; f++) z[f] = r[f] / diag[f];
+    pv.set(z);
+    let rz = 0; for (let f = 0; f < m; f++) rz += r[f] * z[f];
+    const maxit = 2 * m + 50;
+    for (let it = 0; it < maxit; it++) {
+      applyA(pv, Ap);
+      let pAp = 0; for (let f = 0; f < m; f++) pAp += pv[f] * Ap[f];
+      if (!(pAp > 0)) break;
+      const al = rz / pAp;
+      let rn = 0;
+      for (let f = 0; f < m; f++) { dx[f] += al * pv[f]; r[f] -= al * Ap[f]; rn += r[f] * r[f]; }
+      if (Math.sqrt(rn) <= 1e-11 * bn) break;
+      for (let f = 0; f < m; f++) z[f] = r[f] / diag[f];
+      let rz2 = 0; for (let f = 0; f < m; f++) rz2 += r[f] * z[f];
+      const be = rz2 / rz; rz = rz2;
+      for (let f = 0; f < m; f++) pv[f] = z[f] + be * pv[f];
+    }
+  }
+
+  // Йўналиш бўйича ҳосила: d(t) = −F(φ+tδ)·δ (қавариқ энергиянинг ҳосиласи, t бўйича монотон)
+  function dirDeriv(t) {
+    trial.set(phi);
+    for (let f = 0; f < m; f++) trial[free[f]] += t * dx[f];
+    Qtry.set(Qp);
+    evaluate(trial, false, Ftry, Qtry, false);
+    let d = 0; for (let f = 0; f < m; f++) d -= Ftry[f] * dx[f];
+    return d;
+  }
+
+  let maxF = evaluate(phi, true), it = 0, conv = false, polish = 0;
+  for (it = 0; it < 300; it++) {
+    if (maxF < tol) { conv = true; if (++polish > 2) break; }
+    pcg(F);
+    let d0 = 0; for (let f = 0; f < m; f++) d0 -= F[f] * dx[f];
+    if (!(d0 < 0)) {           // CG ишонсиз — предобуславливателли градиент қадами
+      for (let f = 0; f < m; f++) dx[f] = F[f] / diag[f];
+      d0 = 0; for (let f = 0; f < m; f++) d0 -= F[f] * dx[f];
+      if (!(d0 < 0)) break;
+    }
+    let t = 1, d1 = dirDeriv(1);
+    if (d1 > 0.5 * -d0) {       // тўлиқ қадам минимумдан ўтиб кетди — регула фальси (Иллинойс)
+      let tl = 0, dl = d0, th = 1, dh = d1, side = 0;
+      for (let k = 0; k < 40; k++) {
+        t = tl - dl * (th - tl) / (dh - dl);
+        if (!(t > tl && t < th)) t = 0.5 * (tl + th);
+        const dt = dirDeriv(t);
+        if (Math.abs(dt) <= 0.1 * -d0) break;
+        if (dt < 0) { tl = t; dl = dt; if (side === -1) dh *= 0.5; side = -1; }
+        else { th = t; dh = dt; if (side === 1) dl *= 0.5; side = 1; }
+        if (th - tl < 1e-14) break;
+      }
+    }
+    for (let f = 0; f < m; f++) phi[free[f]] += t * dx[f];
+    const prev = maxF;
+    maxF = evaluate(phi, true);
+    if (conv && maxF >= prev) break;
+  }
+  if (maxF < tol) conv = true;
+  return { phi, Q: Qp, conv, iters: it, maxF };
+}
+
+// ---------- 4.6 поғоналар, ГРП/ШРП, режим ----------
+
+function scenLoadFactor(sc) {
+  const dem = isNum(sc.dem) ? num(sc.dem) : 1;
+  const gr = isNum(sc.growth) ? num(sc.growth) : 0;
+  return dem * (1 + gr / 100);
+}
+
+/** Топология: фаол қувурлар, компоненталар, поғоналар, регуляторлар тартиби. */
+function buildTopology(M, sc = {}) {
+  const P = M.params || defaultParams();
+  const closed = new Set(splitIds(sc.closed));
+  const idx = new Map();
+  M.nodes.forEach((n, k) => { const id = String(n.id ?? '').trim(); if (id && !idx.has(id)) idx.set(id, k); });
+  const N = M.nodes.length;
+  const topo = [];                               // топология хатолари (crit)
+  const pipes = M.pipes.map((p, e) => {
+    const st = normStatus(p.status);
+    const i = idx.get(String(p.from ?? '').trim()), j = idx.get(String(p.to ?? '').trim());
+    const useProp = sc.variant && isNum(p.dProp) && num(p.dProp) > 0;
+    const d = useProp ? num(p.dProp) : num(p.d);
+    const L = num(p.L);
+    const valid = i !== undefined && j !== undefined && i !== j && L > 0 && d > 0;
+    let active = valid && st !== 'ёпиқ' && !closed.has(String(p.id ?? '').trim());
+    if (st === 'таклиф' && !sc.variant) active = false;
+    return { e, i, j, d, L, valid, active, cat: normStage(p.cat), mat: p.mat };
+  });
+  // union-find
+  const par = Array.from({ length: N }, (_, k) => k);
+  const find = x => { while (par[x] !== x) { par[x] = par[par[x]]; x = par[x]; } return x; };
+  for (const p of pipes) if (p.active) { const a = find(p.i), b = find(p.j); if (a !== b) par[a] = b; }
+  const compOf = new Int32Array(N);
+  const roots = new Map(), comps = [];
+  for (let k = 0; k < N; k++) {
+    const r = find(k);
+    if (!roots.has(r)) { roots.set(r, comps.length); comps.push({ id: comps.length, nodes: [], pipes: [], len: {}, stage: 'low' }); }
+    compOf[k] = roots.get(r);
+    comps[compOf[k]].nodes.push(k);
+  }
+  for (const p of pipes) if (p.active) {
+    const c = comps[compOf[p.i]];
+    c.pipes.push(p.e);
+    const cat = p.cat || '?';
+    c.len[cat] = (c.len[cat] || 0) + p.L;
+  }
+  for (const c of comps) {
+    let best = '', bl = -1;
+    for (const s of STAGES) if ((c.len[s] || 0) > bl && (c.len[s] || 0) > 0) { bl = c.len[s]; best = s; }
+    if (!best) {                                  // қувур поғонаси йўқ — тугунлар поғонаси бўйича
+      const cnt = {};
+      for (const k of c.nodes) { const s = normStage(M.nodes[k].cat); if (s) cnt[s] = (cnt[s] || 0) + 1; }
+      for (const s of STAGES) if ((cnt[s] || 0) > bl && cnt[s] > 0) { bl = cnt[s]; best = s; }
+    }
+    c.stage = best || 'low';
+  }
+  // регуляторлар
+  const regs = (M.regs || []).map((g, r) => {
+    const i = idx.get(String(g.in ?? '').trim()), o = idx.get(String(g.out ?? '').trim());
+    const Pset = num(g.Pset);
+    let active = i !== undefined && o !== undefined && Pset > 0 && !closed.has(String(g.id ?? '').trim());
+    if (active && compOf[i] === compOf[o]) {
+      topo.push(`${g.id}: кириш (${g.in}) ва чиқиш (${g.out}) тугунлари бир тармоқ қисмида — ГРП айланиб ўтилган`);
+      active = false;
+    }
+    const PinMin = isNum(g.PinMin) && num(g.PinMin) > 0 ? num(g.PinMin) : 0;
+    return { r, i, o, Pset, PinMin, cap: num(g.cap), active, cin: i !== undefined ? compOf[i] : -1, cout: o !== undefined ? compOf[o] : -1 };
+  });
+  // компоненталар тартиби (Kahn)
+  const C = comps.length, indeg = new Int32Array(C), adj = Array.from({ length: C }, () => []);
+  for (const g of regs) if (g.active) { adj[g.cin].push(g.cout); indeg[g.cout]++; }
+  const order = [], q = [];
+  for (let c = 0; c < C; c++) if (!indeg[c]) q.push(c);
+  while (q.length) { const c = q.shift(); order.push(c); for (const d of adj[c]) if (--indeg[d] === 0) q.push(d); }
+  if (order.length < C) {
+    const inCycle = new Set();
+    for (let c = 0; c < C; c++) if (indeg[c] > 0) { inCycle.add(c); order.push(c); }
+    const ids = regs.filter(g => g.active && inCycle.has(g.cin) && inCycle.has(g.cout)).map(g => M.regs[g.r].id);
+    topo.push(`ГРП/ШРП лар ёпиқ айлана ҳосил қилган: ${ids.join(', ')}`);
+    for (const g of regs) if (g.active && inCycle.has(g.cin) && inCycle.has(g.cout)) g.active = false;
+  }
+  // манба ва таъминланган қисмлар
+  const srcP = new Float64Array(N).fill(NaN);
+  for (let k = 0; k < N; k++) {
+    const n = M.nodes[k];
+    if (normType(n.type) !== 'ГТС') continue;
+    const pn = num(n.Pnorm), pm = num(n.Pmin);
+    const p = sc.src === 'min' ? (Number.isFinite(pm) ? pm : pn) : pn;
+    if (Number.isFinite(p) && p > 0) srcP[k] = p;
+  }
+  const powered = new Uint8Array(C);
+  for (let k = 0; k < N; k++) if (Number.isFinite(srcP[k])) powered[compOf[k]] = 1;
+  for (const c of order) if (powered[c]) for (const g of regs) if (g.active && g.cin === c) powered[g.cout] = 1;
+  return { P, idx, pipes, comps, compOf, regs, order, topo, srcP, powered };
+}
+
+/** Кичик зич система: Гаусс усули (танлаш билан). */
+function gauss(A, b) {
+  const n = b.length, M = A.map((row, i) => [...row, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    if (!(Math.abs(M[p][c]) > 0)) return null;
+    [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++) { const k = M[r][c] / M[c][c]; for (let j = c; j <= n; j++) M[r][j] -= k * M[c][j]; }
+  }
+  const x = new Array(n).fill(0);
+  for (let r = n - 1; r >= 0; r--) { let s = M[r][n]; for (let j = r + 1; j < n; j++) s -= M[r][j] * x[j]; x[r] = s / M[r][r]; }
+  return x.every(Number.isFinite) ? x : null;
+}
+
+/** Битта режим ҳисоби. */
+function solveScenario(M, sc = {}) {
+  const T = buildTopology(M, sc);
+  const { P, pipes, comps, compOf, regs, order, srcP, powered } = T;
+  const N = M.nodes.length;
+  const fac = scenLoadFactor(sc);
+  const qr = new Float64Array(N), Pt = new Float64Array(N);
+  for (let k = 0; k < N; k++) {
+    qr[k] = nodeLoad(M.nodes[k], P) * fac;
+    const st = comps[compOf[k]].stage;
+    Pt[k] = st === 'low' ? P.norms.low.sat : P.norms[st].min;
+  }
+  const hyd = pipes.map(p => p.active ? pipeHyd(p.L, p.d, p.mat, comps[compOf[p.i]].stage, P) : null);
+  // §13.1: паст босимда баландлик фарқи — ΔP_h = g·(ρ_ҳаво − ρ_газ)·Δz (газ ҳаводан енгил: юқорида босим ортади)
+  const offN = new Float64Array(N);
+  const hz = 9.81 * ((isNum(P.rhoAir) ? num(P.rhoAir) : 1.293) - P.rho);
+  for (let k = 0; k < N; k++) if (comps[compOf[k]].stage === 'low' && isNum(M.nodes[k].z)) offN[k] = hz * num(M.nodes[k].z);
+  const hasZ = offN.some(v => v !== 0);
+  const pk = (k, stage) => pOfPhi(phi[k] + offN[k], stage);      // тугуннинг ҳақиқий босими, кПа
+  const phi = new Float64Array(N).fill(NaN), Qe = new Float64Array(pipes.length);
+  const Pout = regs.map(g => g.active && powered[g.cin] ? g.Pset : 0);
+  const Qreg = regs.map(() => 0);          // регулятор сарфи (чиқиш тугунига етказилган)
+  let backClosed = regs.map(() => false);
+  const errors = [...T.topo];
+  let conv = true, outerIters = 0, outerConv = false;
+  const compConv = new Uint8Array(comps.length).fill(1);
+  const PinEff = g => g.PinMin > 0 ? g.PinMin : g.Pset;   // PinMin йўқ бўлса: Pout ≤ Pin
+  const lawProp = (g, Pin) => !(Pin > 0) ? 0 : Pin < PinEff(g) ? g.Pset * Pin / PinEff(g) : g.Pset;
+  // §13.3: регулятор тавсифномаси — тўлиқ очиқ клапан орқали сарф Q = K·f(p1, p2),
+  // f = √((p1 − p2)·p2) (p2 ≥ p1/2), f = p1/2 (критик). K — паспорт сарфи (PinMin, Pset) бўйича.
+  const useChar = String(P.regChar || '') === 'char';
+  const fOr = (p1, p2) => p2 >= p1 / 2 ? Math.sqrt(Math.max(0, (p1 - p2) * p2)) : p1 / 2;
+  regs.forEach(g => { g.K = useChar && g.cap > 0 ? g.cap / fOr(PinEff(g) / 1000 + P0, g.Pset / 1000 + P0) : 0; });
+  const lawChar = (g, Pin, Q) => {
+    if (!(Pin > 0)) return 0;
+    const p1 = Pin / 1000 + P0, pt = Math.min(g.Pset, Pin) / 1000 + P0, q = Math.max(0, Q) / g.K;
+    if (q <= fOr(p1, pt)) return (pt - P0) * 1000;
+    const p2 = q >= p1 / 2 ? (p1 / 2) * (p1 / 2) / q : (p1 + Math.sqrt(Math.max(0, p1 * p1 - 4 * q * q))) / 2;
+    return Math.max(0, Math.min(pt, p2) - P0) * 1000;
+  };
+  const law = (g, Pin, Q) => g.K > 0 ? lawChar(g, Pin, Q) : lawProp(g, Pin);
+
+  // Пастки тармоқ жавоби модели D_r(Pout): жорий нуқта ва кичик оғиш бўйича (уринма).
+  // Юқори тармоқда ГРП кириши юки = D_r(law(Pin)) — Pin га монотон ва узлуксиз, масала қавариқ қолади.
+  const samples = regs.map(() => []), Qup = regs.map(() => 0), Dcap = regs.map(() => Infinity);
+  function model(r) {
+    const S = [...samples[r]].sort((u, v) => u[0] - v[0]);
+    if (!S.length) return () => [0, 0];
+    const [pb, Db] = S[S.length - 1];
+    if (!(pb > 0)) return () => [Db, 0];
+    if (S.length === 1) return p => !(p > 0) ? [0, 0] : p >= pb ? [Db, 0] : [Db * p / pb, Db / pb];
+    const [pa, Da] = S[0];
+    const sl = Math.max(0, (Db - Da) / (pb - pa)), cap = Math.max(Db, Dcap[r]);
+    const lin = p => Db + sl * (p - pb), p1 = pb / 2, l1 = lin(p1);
+    // юқорига экстраполяция ишонч оралиғи билан чекланган (D(p) тўйинади — уринма ортиқча баҳолайди)
+    const pTop = pb + Math.max(pb, 0.05 * regs[r].Pset), top = Math.min(cap, lin(pTop));
+    return p => {
+      if (!(p > 0)) return [0, 0];
+      if (p < p1 && l1 > 0) return [l1 * p / p1, l1 / p1];
+      const v = lin(p);
+      if (p > pb && v >= top) return [top, 0];
+      return v <= 0 ? [0, 0] : v >= cap ? [cap, 0] : [v, sl];
+    };
+  }
+  function regLoadFn(r, stage) {
+    const g = regs[r], D = model(r), pe = PinEff(g);
+    return ph => {
+      if (ph === Infinity) return [D(g.Pset)[0], 0];
+      let Pin, dPin;
+      if (stage === 'low') { Pin = ph / 1000; dPin = 1 / 1000; } else {
+        if (!(ph > 0)) return [0, 0];
+        const sp = Math.sqrt(ph); Pin = (sp - P0) * 1000; dPin = 1000 / (2 * sp);
+      }
+      if (!(Pin > 0)) return [0, 0];
+      if (g.K > 0) {                          // тавсифнома: сарф жорий қиймати билан (кечиккан), ҳосила — айирма
+        const Ql = Qreg[r], h = Math.max(1e-6, 1e-6 * Pin);
+        const [q] = D(lawChar(g, Pin, Ql)), [q2] = D(lawChar(g, Pin + h, Ql));
+        return [q, (q2 - q) / h * dPin];
+      }
+      if (Pin >= pe) return [D(g.Pset)[0], 0];
+      const [q, dq] = D(g.Pset * Pin / pe);
+      return [q, dq * g.Pset / pe * dPin];
+    };
+  }
+
+  function solveComp(c, useModel = false) {
+    const cp = comps[c];
+    const loc = new Map(cp.nodes.map((k, a) => [k, a]));
+    const n = cp.nodes.length;
+    if (!powered[c]) { for (const k of cp.nodes) phi[k] = NaN; for (const e of cp.pipes) Qe[e] = 0; return; }
+    // ГРП кириш тугунига унинг сарфи қўшилади (пастки поғона аввал ҳисобланган)
+    const extra = new Float64Array(n), xfn = [];
+    for (let r = 0; r < regs.length; r++) {
+      const g = regs[r];
+      if (!g.active || g.cin !== c) continue;
+      if (useModel) xfn.push([loc.get(g.i), regLoadFn(r, cp.stage), r]);
+      else extra[loc.get(g.i)] += Qreg[r];
+    }
+    const loadAt = (a, ph) => { let t = extra[a]; for (const [b, fn] of xfn) if (b === a) t += fn(ph)[0]; return t; };
+    const cPipes = cp.pipes.map(e => ({ i: loc.get(pipes[e].i), j: loc.get(pipes[e].j), h: hyd[e], Q: Qe[e] }));
+    const qrc = cp.nodes.map(k => qr[k]), Ptc = cp.nodes.map(k => Pt[k]);
+    for (let round = 0; round <= regs.length; round++) {
+      const fixed = new Float64Array(n).fill(NaN);
+      for (const k of cp.nodes) if (Number.isFinite(srcP[k])) fixed[loc.get(k)] = phiOfP(srcP[k], cp.stage) - offN[k];
+      const feeders = [];
+      for (let r = 0; r < regs.length; r++) {
+        const g = regs[r];
+        if (!g.active || g.cout !== c || !powered[g.cin] || backClosed[r]) continue;
+        if (!Number.isFinite(srcP[g.o])) fixed[loc.get(g.o)] = phiOfP(Math.max(0, Pout[r]), cp.stage) - offN[g.o];
+        feeders.push(r);
+      }
+      const phi0 = new Float64Array(n);
+      cp.nodes.forEach((k, a) => { phi0[a] = phi[k]; });
+      const res = solveComponent({ n, pipes: cPipes, fixed, qr: qrc, Pt: Ptc, extra, stage: cp.stage, xfn, off: hasZ ? cp.nodes.map(k => offN[k]) : null }, phi0);
+      compConv[c] = res.conv ? 1 : 0;
+      cp.nodes.forEach((k, a) => { phi[k] = res.phi[a]; });
+      cp.pipes.forEach((e, t) => { Qe[e] = res.Q[t]; cPipes[t].Q = res.Q[t]; });
+      // регулятор сарфи = чиқиш тугунига етказилган газ (қувурлар оқими + тугуннинг ўз юки).
+      // Иккита ГРП бир тармоқни таъминласа, сарф ечим бўйича бўлинади — икки марта ҳисобланмайди.
+      const supply = new Map();
+      for (const r of feeders) supply.set(regs[r].o, 0);
+      for (const o of supply.keys()) {
+        let s = 0;
+        cp.pipes.forEach((e, t) => { if (pipes[e].i === o) s += res.Q[t]; else if (pipes[e].j === o) s -= res.Q[t]; });
+        s += demand(qr[o], Pt[o], cp.stage, phi[o] + offN[o])[0] + loadAt(loc.get(o), phi[o] + offN[o]);
+        supply.set(o, s);
+      }
+      const byOut = new Map();
+      for (const r of feeders) { const o = regs[r].o; byOut.set(o, (byOut.get(o) || 0) + 1); }
+      for (const r of feeders) {
+        const o = regs[r].o;
+        Qreg[r] = Number.isFinite(srcP[o]) ? 0 : supply.get(o) / byOut.get(o);
+      }
+      // тескари оқим: регулятор ёпилади (фақат бошқа манба қолса)
+      const fixedCount = feeders.filter(r => !Number.isFinite(srcP[regs[r].o])).length + cp.nodes.filter(k => Number.isFinite(srcP[k])).length;
+      let worst = -1, wq = -1e-6 * (1 + Math.abs(res.maxF));
+      for (const r of feeders) if (Qreg[r] < wq) { wq = Qreg[r]; worst = r; }
+      if (worst >= 0 && fixedCount > 1) { backClosed[worst] = true; Qreg[worst] = 0; continue; }
+      break;
+    }
+    for (let r = 0; r < regs.length; r++) if (regs[r].cout === c && backClosed[r]) Qreg[r] = 0;
+    for (const [a, fn, r] of xfn) Qup[r] = fn(phi[cp.nodes[a]] + offN[cp.nodes[a]])[0];
+  }
+
+  // Бир ўтиш: берилган Pout да пастдан юқорига ҳисоб; натижа G_r = law(Pin_r) − Pout_r.
+  // Ҳар бир ўтиш масса баланси бўйича мос: юқори поғона юки = пастки поғона олган газ.
+  const bottomUp = [...order].reverse();
+  const act = regs.map((g, r) => r).filter(r => regs[r].active && powered[regs[r].cin]);
+  function pass(p) {
+    outerIters++;
+    for (const r of act) Pout[r] = p[r];
+    backClosed = regs.map(() => false);
+    for (const c of bottomUp) solveComp(c);
+    const G = regs.map(() => 0);
+    for (const r of act) G[r] = law(regs[r], pk(regs[r].i, comps[regs[r].cin].stage), Qreg[r]) - p[r];
+    return G;
+  }
+  const gnorm = G => act.reduce((m, r) => Math.max(m, Math.abs(G[r]) / regs[r].Pset), 0);
+
+  // Ташқи Ньютон: номаълумлар — фақат «очлик»даги регуляторлар (Pout < Pset ёки Pin < PinMin).
+  // Якобиан чекли айирмалар билан, қадам ярмига бўлиш билан (line search).
+  {
+    const need = comps.map(c => c.nodes.reduce((t, k) => t + qr[k], 0));
+    for (const c of bottomUp) for (const g of regs) if (g.active && g.cin === c) need[c] += need[g.cout];
+    regs.forEach((g, r) => { if (g.active) Dcap[r] = need[g.cout] * 1.0001 + 1e-9; });
+  }
+  // Моделли ўтиш: пастдан юқорига, ҳар бир таъминланувчи қисм учун D(Pout) уринмаси ўлчанади,
+  // юқори қисмда ГРП юки шу модель билан; сўнг юқоридан пастга Pout = law(Pin).
+  function modelPass(p) {
+    outerIters++;
+    for (const r of act) Pout[r] = p[r];
+    backClosed = regs.map(() => false);
+    for (const c of bottomUp) {
+      const feed = act.filter(r => regs[r].cout === c);
+      const pert = [];
+      for (const r of feed) {
+        const p0 = Pout[r], Ps = regs[r].Pset;
+        if (!(p0 < Ps * (1 - 1e-9)) || !(p0 > 0)) continue;
+        const dp = Math.min(p0 * 0.5, Math.max(1e-4 * Ps, 2e-3 * p0));
+        Pout[r] = p0 - dp; solveComp(c, true); pert.push([r, Pout[r], Qreg[r]]); Pout[r] = p0;
+      }
+      solveComp(c, true);
+      for (const r of feed) samples[r] = [[Pout[r], Math.max(0, Qreg[r])]];
+      for (const [r, pp, D] of pert) samples[r].push([pp, Math.max(0, D)]);
+      // тескари оқим билан ёпилган регулятор: чиқиш тугунидаги босимгача 0, ундан юқорида —
+      // очиқ қўшнисининг қиялиги билан (акс ҳолда қўшнилар навбатма-навбат ёпилиб тебранади)
+      let sref = 0;
+      for (const r of feed) {
+        if (backClosed[r] || samples[r].length < 2) continue;
+        const [[p1, d1], [p2, d2]] = samples[r];
+        sref = Math.max(sref, Math.abs((d1 - d2) / (p1 - p2)) || 0);
+      }
+      for (const r of feed) {
+        if (!backClosed[r]) continue;
+        const Pf = pk(regs[r].o, comps[c].stage), Ps = regs[r].Pset;
+        const s0 = sref > 0 ? sref : Dcap[r] / (0.05 * Ps);
+        const dpp = Math.max(1e-4 * Ps, 1e-3 * Math.max(Pf, 0));
+        samples[r] = [[Math.max(Pf, 1e-9), 0], [Math.max(Pf, 1e-9) + dpp, s0 * dpp]];
+      }
+    }
+    const pn = p.slice();
+    let dmax = 0, qerr = 0;
+    for (const r of act) {
+      pn[r] = law(regs[r], pk(regs[r].i, comps[regs[r].cin].stage), Qreg[r]);
+      dmax = Math.max(dmax, Math.abs(pn[r] - p[r]) / regs[r].Pset);
+      qerr = Math.max(qerr, Math.abs(Qup[r] - Qreg[r]) / Math.max(1, Dcap[r]));
+    }
+    return [pn, Math.max(dmax, qerr)];
+  }
+  const g2 = G => act.reduce((m, r) => m + (G[r] / regs[r].Pset) ** 2, 0);
+  // Левенберг–Марквардт аниқ акслантиришда (чекли айирмали Якобиан)
+  function lm(p, G, maxIt) {
+    let gn = gnorm(G), mu = 1e-4;
+    for (let it = 0; it < maxIt; it++) {
+      if (gn <= 1e-8) break;
+      const S = act.filter(r => p[r] < regs[r].Pset * (1 - 1e-12) || G[r] < 0);
+      // Базис: битта қисмни таъминловчи «қўшни» регуляторлар учун умумий (1,1,…) ва фарқ (e1−ek) йўналишлари —
+      // қаттиқ боғланган тармоқда Якобианнинг умумий модаси аниқ ҳисобланади.
+      const n = S.length, idxOf = new Map(S.map((r, t) => [r, t])), V = [];
+      const groups = new Map();
+      for (const r of S) { const k = regs[r].cout; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); }
+      for (const grp of groups.values()) {
+        const one = new Float64Array(n); for (const r of grp) one[idxOf.get(r)] = 1; V.push(one);
+        for (let k = 1; k < grp.length; k++) { const v = new Float64Array(n); v[idxOf.get(grp[0])] = 1; v[idxOf.get(grp[k])] = -1; V.push(v); }
+      }
+      const closedNow = backClosed.slice();
+      const J = S.map(() => new Float64Array(n));          // J[row][col] — V базисида
+      V.forEach((v, col) => {
+        let h = 1e-5 * Math.max(1e-2, ...S.map((r, t) => v[t] ? p[r] / regs[r].Pset : 0));
+        const up = S.some((r, t) => v[t] > 0 && closedNow[r]);
+        if (!up) h = -h;
+        let ps = p.slice();
+        S.forEach((r, t) => { if (v[t]) ps[r] = p[r] + h * v[t] * regs[r].Pset; });
+        if (S.some((r, t) => v[t] && (ps[r] < 0 || ps[r] > regs[r].Pset))) {
+          h = -h; ps = p.slice();
+          S.forEach((r, t) => { if (v[t]) ps[r] = Math.min(regs[r].Pset, Math.max(0, p[r] + h * v[t] * regs[r].Pset)); });
+        }
+        const Gs = pass(ps);
+        S.forEach((r, row) => { J[row][col] = (Gs[r] - G[r]) / regs[r].Pset / h; });
+      });
+      const f = S.map(r => G[r] / regs[r].Pset), m0 = g2(G);
+      const JtJ = S.map((_, a) => Float64Array.from(S.map((__, b) => { let t = 0; for (let k = 0; k < n; k++) t += J[k][a] * J[k][b]; return t; })));
+      const Jtf = S.map((_, a) => { let t = 0; for (let k = 0; k < n; k++) t += J[k][a] * f[k]; return -t; });
+      let ok = false;
+      for (let k = 0; k < 10; k++) {
+        const A = JtJ.map((row, a) => { const rr = Float64Array.from(row); rr[a] += mu * (1 + row[a]); return rr; });
+        const d = gauss(A, Jtf);
+        if (d) {
+          const pn = p.slice();
+          S.forEach((r, t) => { let y = 0; V.forEach((v, c) => { y += v[t] * d[c]; }); pn[r] = Math.min(regs[r].Pset, Math.max(0, p[r] + y * regs[r].Pset)); });
+          const Gn = pass(pn);
+          if (g2(Gn) < m0) { p = pn; G = Gn; gn = gnorm(G); mu = Math.max(1e-10, mu / 5); ok = true; break; }
+        }
+        mu *= 6;
+      }
+      if (!ok) break;
+    }
+    return [p, G, gn];
+  }
+
+  let p = Pout.slice();
+  let G = pass(p), gn = gnorm(G);
+  for (let round = 0; round < 3 && act.length && gn > 1e-8; round++) {
+    // 1) моделли ўтишлар (глобал яқинлашиш), 2) LM (аниқ ечим)
+    let prev = Infinity, slow = 0;
+    const om = regs.map(() => 1), last = regs.map(() => 0);
+    for (let k = 0; k < 30; k++) {
+      const [pt, dd] = modelPass(p);
+      // тебраниш (ишора алмашиши) — сўндириш; бир томонга ҳаракат — тезлаштириш
+      const pn = p.slice();
+      for (const r of act) {
+        const st = pt[r] - p[r];
+        if (st * last[r] < 0) om[r] = Math.max(0.1, om[r] * 0.5); else om[r] = Math.min(1, om[r] * 1.5);
+        pn[r] = p[r] + om[r] * st; last[r] = st;
+      }
+      p = pn;
+      if (dd < 1e-6) break;
+      slow = dd > 0.6 * prev ? slow + 1 : 0;
+      prev = dd;
+      if (slow >= 3 && k >= 5) break;
+    }
+    G = pass(p); gn = gnorm(G);
+    [p, G, gn] = lm(p, G, 30);
+  }
+  if (outerIters > 1) { G = pass(p); gn = gnorm(G); }   // якуний ҳолат p га мос бўлсин
+  outerConv = !act.length || gn <= 1e-5;   // |Pout − law(Pin)| ≤ 10⁻⁵·Pset
+  for (let c = 0; c < comps.length; c++) if (powered[c] && !compConv[c]) conv = false;
+  if (!outerConv) conv = false;
+
+  // ---- натижалар ----
+  const nodesR = M.nodes.map((n, k) => {
+    const c = comps[compOf[k]], stage = c.stage;
+    const isFixed = Number.isFinite(srcP[k]) || regs.some((g, r) => g.active && g.o === k && powered[g.cin] && !backClosed[r]);
+    if (!powered[compOf[k]]) return { P: 0, Praw: NaN, qReq: qr[k], qGot: 0, st: 'nosrc', stage, comp: c.id, fixed: false };
+    const Praw = pk(k, stage);
+    const Pk = Math.max(0, Praw);
+    const qGot = demand(qr[k], Pt[k], stage, phi[k] + offN[k])[0];
+    let st;
+    if (stage === 'low') st = Pk >= P.norms.low.exc ? 'ok' : Pk >= P.norms.low.sat ? 'warn' : 'bad';
+    else st = Pk >= P.norms[stage].min ? 'ok' : 'bad';
+    if (Pk < 1e-3 || (qr[k] > 0 && qGot < 0.05 * qr[k])) st = 'dead';
+    return { P: Pk, Praw, qReq: qr[k], qGot, st, stage, comp: c.id, fixed: isFixed };
+  });
+  const pipesR = pipes.map((p, e) => {
+    if (!p.active) return { active: false, Q: 0, v: 0, dP: 0, st: p.valid ? 'off' : 'invalid', stage: p.i !== undefined ? comps[compOf[p.i]].stage : '', lam: 0, Re: 0 };
+    const c = comps[compOf[p.i]], stage = c.stage;
+    if (!powered[c.id]) return { active: true, Q: 0, v: 0, dP: 0, st: 'nosrc', stage, lam: 0, Re: 0 };
+    const Q = Qe[e], Pa = nodesR[p.i].P, Pb = nodesR[p.j].P;
+    let v = Math.abs(Q) / 3600 / (Math.PI * Math.pow(p.d / 1000, 2) / 4);
+    if (stage !== 'low') v *= P0 / ((Pa + Pb) / 2000 + P0);
+    const Re = reynolds(Q, p.d, P.nu);
+    let st = 'ok';
+    if (v > (P.vmax[stage] ?? 99)) st = 'fast';
+    if (Pa < 1e-3 && Pb < 1e-3) st = 'dead';
+    return { active: true, Q, v, dP: Pa - Pb, st, stage, lam: lambdaRe(Re, hyd[e].nd), Re };
+  });
+  const regsR = regs.map((g, r) => {
+    const base = { Pin: 0, Pout: 0, Q: 0, load: 0, st: 'off', lowin: false, over: false, dead: false };
+    if (!g.active) return base;
+    if (!powered[g.cin]) return { ...base, st: 'nosrc' };
+    const Pin = nodesR[g.i].P;
+    const Po = backClosed[r] ? nodesR[g.o].P : Math.max(0, Pout[r]);
+    const Q = Math.max(0, Qreg[r]);
+    const cap = g.cap;
+    const load = cap > 0 ? Q / cap * 100 : 0;
+    const limited = g.K > 0 && !backClosed[r] && Po < Math.min(g.Pset, Pin) * (1 - 1e-4);   // §13.3: ўтказиш қобилияти етмади
+    const dead = !(Pin > 1e-3), lowin = !dead && g.PinMin > 0 && Pin < g.PinMin, over = (cap > 0 && Q > cap) || limited;
+    const st = dead ? 'dead' : lowin ? 'lowin' : over ? 'over' : 'ok';
+    return { Pin, Pout: Po, Q, load, st, lowin, over, dead, limited, closedBack: backClosed[r] };
+  });
+  let tot = 0, deliv = 0, risk = 0, riskN = 0, minLow = Infinity, supply = 0;
+  M.nodes.forEach((n, k) => {
+    const r = nodesR[k];
+    tot += r.qReq; deliv += r.qGot;
+    if (r.qReq > 0 && ['bad', 'dead', 'nosrc'].includes(r.st)) { risk += r.qReq; riskN++; }
+    if (r.stage === 'low' && !r.fixed && r.st !== 'nosrc') minLow = Math.min(minLow, r.P);
+    if (Number.isFinite(srcP[k]) && powered[compOf[k]]) {
+      pipes.forEach((p, e) => { if (!p.active) return; if (p.i === k) supply += Qe[e]; else if (p.j === k) supply -= Qe[e]; });
+      supply += r.qGot;
+      regs.forEach((g, t) => { if (g.active && g.i === k) supply += Qreg[t]; });
+    }
+  });
+  const unpowered = comps.filter(c => !powered[c.id]);
+  const unpNodes = unpowered.reduce((s, c) => s + c.nodes.length, 0);
+  if (unpNodes && M.nodes.length) {
+    const ids = unpowered.flatMap(c => c.nodes.map(k => M.nodes[k].id)).slice(0, 12);
+    errors.push(`Манбага уланмаган қисм: ${unpNodes} та тугун (${ids.join(', ')}${unpNodes > 12 ? ', …' : ''})`);
+  }
+  if (!conv) errors.push('ҳисоб яқинлашмади — натижа ишончсиз');
+  return {
+    scen: sc, conv, outerIters, errors, topo: T.topo,
+    nodes: nodesR, pipes: pipesR, regs: regsR, comps: comps.map(c => ({ id: c.id, stage: c.stage, powered: !!powered[c.id], nodes: c.nodes, len: c.len })),
+    tot, deliv, short: Math.max(0, tot - deliv), risk, riskN, minLow: Number.isFinite(minLow) ? minLow : null, supply,
+  };
+}
+
+function solveAll(M) {
+  return (M.scen || []).map(sc => solveScenario(M, sc));
+}
+
+// ---------- §13.7 манбадан тугунгача йўл ----------
+
+/**
+ * Тугундан манбага қараб юқорига йўл: ҳар қадамда энг катта кирувчи оқимли қувур,
+ * ГРП/ШРП чиқишида — унинг киришига ўтилади. Қайтаради манбадан тугунгача қадамлар:
+ * [{ k (тугун), e (келган қувур|null), r (келган регулятор|null), x (масофа, м) }].
+ */
+function tracePath(M, R, k0) {
+  const idx = new Map(M.nodes.map((n, k) => [String(n.id ?? '').trim(), k]));
+  const inc = M.nodes.map(() => []);
+  M.pipes.forEach((p, e) => {
+    const i = idx.get(String(p.from ?? '').trim()), j = idx.get(String(p.to ?? '').trim());
+    if (i === undefined || j === undefined || !R.pipes[e]?.active) return;
+    inc[i].push([e, j, -1]); inc[j].push([e, i, 1]);        // [қувур, қўшни, ишора: +1 — қўшнидан бизга]
+  });
+  const regOut = new Map();
+  (M.regs || []).forEach((g, r) => {
+    const o = idx.get(String(g.out ?? '').trim()), i = idx.get(String(g.in ?? '').trim());
+    if (o !== undefined && i !== undefined && R.regs[r] && R.regs[r].st !== 'off' && R.regs[r].st !== 'nosrc' && !R.regs[r].closedBack) regOut.set(o, [r, i]);
+  });
+  // мақсаддан манбага: ҳар тугун учун у юқори қўшнисига қайси элемент орқали уланган
+  const up = [], seen = new Set();
+  let k = k0;
+  while (k !== undefined && !seen.has(k)) {
+    seen.add(k);
+    const step = { k, e: null, r: null };
+    up.push(step);
+    if (normType(M.nodes[k].type) === 'ГТС') break;
+    if (R.nodes[k].fixed && regOut.has(k)) { const [r, i] = regOut.get(k); step.r = r; k = i; continue; }
+    let best = null;
+    for (const [e, j, sg] of inc[k]) { const q = sg * R.pipes[e].Q; if (q > 1e-9 && (!best || q > best[2])) best = [e, j, q]; }
+    if (!best) break;
+    step.e = best[0]; k = best[1];
+  }
+  // манбадан мақсадга; path[t].e / .r — path[t−1] дан path[t] га келган элемент
+  const path = [];
+  let x = 0;
+  for (let t = up.length - 1; t >= 0; t--) {
+    const s = up[t];
+    if (s.e !== null) x += num(M.pipes[s.e].L) || 0;
+    path.push({ k: s.k, e: s.e, r: s.r, x });
+  }
+  if (path.length) { path[0].e = null; path[0].r = null; path[0].x = 0; }
+  // масофа: биринчи элемент манбанинг ўзида ҳисобланмайди
+  x = 0;
+  for (let t = 1; t < path.length; t++) { if (path[t].e !== null) x += num(M.pipes[path[t].e].L) || 0; path[t].x = x; }
+  return path;
+}
+
+// ---------- §13.4 ўлчовлар бўйича автокалибровка ----------
+
+/**
+ * Ғадир-будурлик коэффициенти nk (n·nk) ни энг кичик квадратлар усулида танлаш:
+ * min Σ (P_ҳисоб − P_ўлчанган)², nk ∈ [0,1; 30], олтин кесим (log шкала). Модел ўзгармайди.
+ */
+function calibrate(M, { scenIndex = 0, lo = 0.1, hi = 30 } = {}) {
+  const W = JSON.parse(JSON.stringify(M));
+  const sc = W.scen[scenIndex] || { src: 'norm', dem: 1, growth: 0 };
+  const meas = W.nodes.map((n, k) => [k, num(n.Pmeas)]).filter(([, v]) => Number.isFinite(v));
+  const nk0 = isNum(W.params.nk) && num(W.params.nk) > 0 ? num(W.params.nk) : 1;
+  const run = nk => {
+    W.params.nk = nk;
+    const R = solveScenario(W, sc);
+    const used = meas.filter(([k]) => R.nodes[k].st !== 'nosrc');
+    const sse = used.reduce((t, [k, v]) => t + (R.nodes[k].P - v) ** 2, 0);
+    return { sse, n: used.length, R };
+  };
+  if (!meas.length) return { ok: false, reason: 'Ўлчанган босимлар йўқ', n: 0 };
+  const r0 = run(nk0);
+  if (!r0.n) return { ok: false, reason: 'Ўлчов нуқталари манбага уланмаган', n: 0 };
+  let a = Math.log(lo), b = Math.log(hi);
+  const gr = (Math.sqrt(5) - 1) / 2;
+  let c = b - gr * (b - a), d = a + gr * (b - a), fc = run(Math.exp(c)).sse, fd = run(Math.exp(d)).sse, evals = 3;
+  while (b - a > 1e-3 && evals < 60) {
+    if (fc < fd) { b = d; d = c; fd = fc; c = b - gr * (b - a); fc = run(Math.exp(c)).sse; }
+    else { a = c; c = d; fc = fd; d = a + gr * (b - a); fd = run(Math.exp(d)).sse; }
+    evals++;
+  }
+  const nk = Math.exp((a + b) / 2), r1 = run(nk);
+  const rms = x => Math.sqrt(x.sse / x.n);
+  const rows = meas.map(([k, v]) => ({ id: W.nodes[k].id, meas: v, before: r0.R.nodes[k].P, after: r1.R.nodes[k].P }));
+  const atBound = nk < lo * 1.05 || nk > hi / 1.05;
+  return { ok: true, nk, nk0, n: r1.n, rmsBefore: rms(r0), rmsAfter: rms(r1), rows, atBound, evals };
+}
+
+// ---------- §13.2 ойлик сарф бўйича етказиб берилмаган газ ҳажми ----------
+
+const MONTH_NAMES = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+/** Маиший истеъмолнинг соатбай типик улуши (энг катта соат = 1): тун паст, эрталаб ва кечқурун чўққи. */
+const HOURLY = [0.45, 0.42, 0.42, 0.42, 0.45, 0.55, 0.75, 0.95, 1.0, 0.9, 0.8, 0.75, 0.75, 0.72, 0.7, 0.72, 0.78, 0.88, 0.98, 1.0, 0.97, 0.9, 0.75, 0.58];
+
+/**
+ * Ойлик қабул қилинган газ (м³) — мавсумий шакл: k_m = V_m / V_макс. 1-режим — энг кўп ой чўққи соати.
+ * Ҳар соат учун юклама f = k_m·c_h, тармоқ ҳисобланади; етказилмаган газ соатлар бўйича йиғилади.
+ */
+function seasonal(M, { scenIndex = 0, step = 0.02 } = {}) {
+  const rows = (M.monthly || []).map((r, i) => ({ m: isNum(r.m) ? num(r.m) : i + 1, V: num(r.V) })).filter(r => r.m >= 1 && r.m <= 12 && Number.isFinite(r.V) && r.V >= 0);
+  if (!rows.length) return null;
+  const Vmax = Math.max(...rows.map(r => r.V));
+  if (!(Vmax > 0)) return null;
+  const base = M.scen[scenIndex] || { src: 'norm', dem: 1, growth: 0 };
+  const dem0 = isNum(base.dem) ? num(base.dem) : 1;
+  const cache = new Map();
+  const at = f => {
+    const q = Math.max(step, Math.round(f / step) * step);
+    if (!cache.has(q)) { const R = solveScenario(M, { ...base, dem: dem0 * q }); cache.set(q, { short: R.short, deliv: R.deliv, tot: R.tot, conv: R.conv }); }
+    return cache.get(q);
+  };
+  const out = rows.sort((a, b) => a.m - b.m).map(r => {
+    const k = r.V / Vmax, days = MONTH_DAYS[r.m - 1];
+    let shortDay = 0, delivDay = 0, peakShort = 0, conv = true;
+    for (const c of HOURLY) { const x = at(k * c); shortDay += x.short; delivDay += x.deliv; peakShort = Math.max(peakShort, x.short); conv = conv && x.conv; }
+    return { m: r.m, name: MONTH_NAMES[r.m - 1], V: r.V, k, days, peakShort, shortDay, shortMonth: shortDay * days, delivMonth: delivDay * days, conv };
+  });
+  const year = out.reduce((t, r) => t + r.shortMonth, 0);
+  const R1 = at(1);
+  return { rows: out, year, upperDay: R1.short * 24, evals: cache.size, conv: out.every(r => r.conv) };
+}
+
+// ---------- §13.6 диаметрларни автоматик танлаш ----------
+
+const SORTAMENT = {
+  steel: [26, 33, 41, 51, 70, 82, 100, 125, 150, 207, 259, 309, 408],
+  pe: [26, 32.6, 40.8, 51.4, 73.6, 90, 130.8, 184, 257.8, 327.4],
+};
+const sizes = mat => isPE(mat) ? SORTAMENT.pe : SORTAMENT.steel;
+function nextSize(d, mat) { return sizes(mat).find(x => x > d * 1.05) ?? null; }
+function prevSize(d, mat, min = 0) { const L = sizes(mat).filter(x => x < d * 0.999 && x >= min * 0.999); return L.length ? L[L.length - 1] : null; }
+
+/** Мақсад бажарилганми: барча истеъмолчилар «меъёрда», тезлик ошмаган. */
+function sizingIssues(R) {
+  const nodes = [], pipes = [];
+  R.nodes.forEach((n, k) => { if (n.qReq > 0 && n.st !== 'ok' && n.st !== 'nosrc') nodes.push(k); });
+  R.pipes.forEach((p, e) => { if (p.active && p.st === 'fast') pipes.push(e); });
+  return { nodes, pipes };
+}
+
+/**
+ * 6-режим учун минимал стандарт диаметрлар (сортамент), барча тугунлар «меъёрда» бўлиши учун.
+ * Очкўз катталаштириш (энг катта босим ютуғи / харажат), сўнг ортиқчасини камайтириш.
+ * Модел ўзгармайди; натижа — { dProp: {id: d}, changes, ok, remaining, iters }.
+ */
+function autoSize(M, { scenIndex = null, maxIter = 600 } = {}) {
+  const W = JSON.parse(JSON.stringify(M));
+  const si = scenIndex ?? Math.max(0, W.scen.findIndex(s => s.variant));
+  const sc = { ...(W.scen[si] || { src: 'norm', dem: 1, growth: 0 }), variant: true };
+  const dOf = p => isNum(p.dProp) && num(p.dProp) > 0 ? num(p.dProp) : num(p.d);
+  const base = W.pipes.map(dOf);
+  const setD = (e, d) => { W.pipes[e].dProp = d; };
+  const target = k => { const R0 = R.nodes[k]; return R0.stage === 'low' ? W.params.norms.low.exc : W.params.norms[R0.stage].min; };
+  let R = solveScenario(W, sc), iters = 0;
+  const before = sizingIssues(R);
+  const tried = new Set();
+  for (; iters < maxIter; iters++) {
+    const is = sizingIssues(R);
+    if (!is.nodes.length && !is.pipes.length) break;
+    let changed = false;
+    // тезлик ошган қувурлар — бир поғона катталаштирилади
+    for (const e of is.pipes) { const d1 = nextSize(dOf(W.pipes[e]), W.pipes[e].mat); if (d1) { setD(e, d1); changed = true; } }
+    // босим етмаган тугунлар: йўлдаги энг самарали қувур
+    const score = new Map();
+    for (const k of is.nodes) {
+      const deficit = Math.max(1e-6, target(k) - R.nodes[k].P) / target(k);
+      for (const st of tracePath(W, R, k)) {
+        if (st.e === null) continue;
+        const p = W.pipes[st.e], d0 = dOf(p), d1 = nextSize(d0, p.mat);
+        if (!d1) continue;
+        const dP = Math.abs(R.pipes[st.e].dP), L = num(p.L) || 1;
+        const gain = dP * (1 - Math.pow(d0 / d1, 4.8)), cost = L * (d1 - d0);
+        score.set(st.e, (score.get(st.e) || 0) + deficit * gain / cost);
+      }
+    }
+    if (score.size) {
+      const [e] = [...score.entries()].sort((a, b) => b[1] - a[1])[0];
+      setD(e, nextSize(dOf(W.pipes[e]), W.pipes[e].mat)); changed = true;
+    }
+    if (!changed) break;
+    const key = W.pipes.map(dOf).join(',');
+    if (tried.has(key)) break;
+    tried.add(key);
+    R = solveScenario(W, sc);
+  }
+  const ok = () => { const is = sizingIssues(R); return !is.nodes.length && !is.pipes.length; };
+  const feasible = ok();
+  // ортиқчасини камайтириш: энг қиммат катталаштиришлардан бошлаб
+  if (feasible) {
+    for (let round = 0; round < 60; round++) {
+      let any = false;
+      const order = W.pipes.map((p, e) => e).filter(e => dOf(W.pipes[e]) > base[e] * 1.001)
+        .sort((a, b) => (num(W.pipes[b].L) * dOf(W.pipes[b])) - (num(W.pipes[a].L) * dOf(W.pipes[a])));
+      for (const e of order) {
+        const p = W.pipes[e], d0 = dOf(p);
+        const d1 = prevSize(d0, p.mat, base[e]) ?? base[e];   // стандарт поғона ёки мавжуд диаметрга қайтиш
+        if (!(d1 < d0)) continue;
+        const keep = p.dProp;
+        setD(e, d1);
+        const R2 = solveScenario(W, sc), is = sizingIssues(R2);
+        if (!is.nodes.length && !is.pipes.length) { R = R2; any = true; } else setD(e, keep);
+      }
+      if (!any) break;
+    }
+  }
+  const changes = [];
+  W.pipes.forEach((p, e) => {
+    const d1 = dOf(p);
+    if (Math.abs(d1 - base[e]) > 1e-9) changes.push({ e, id: p.id, L: num(p.L), d0: base[e], d1, mat: p.mat || 'пўлат' });
+  });
+  const is = sizingIssues(R);
+  const remaining = {
+    nodes: is.nodes.map(k => W.nodes[k].id), pipes: is.pipes.map(e => W.pipes[e].id),
+    regs: (W.regs || []).filter((g, r) => R.regs[r]?.over || R.regs[r]?.lowin || R.regs[r]?.dead).map(g => g.id),
+  };
+  return { scenIndex: si, ok: !is.nodes.length && !is.pipes.length, changes, remaining, iters, before: { nodes: before.nodes.length, pipes: before.pipes.length },
+    dProp: Object.fromEntries(changes.map(c => [c.id, c.d1])), extraMetal: changes.reduce((t, c) => t + c.L * (c.d1 - c.d0) / 1000, 0), result: R };
+}
+
+// ---------- 5. маълумотлар текшируви («Ёрдамчи») ----------
+
+function card(lvl, title, o) {
+  return { lvl, title, what: o.what || '', why: o.why || '', where: o.where || '', excel: o.excel || '', todo: o.todo || '', ids: o.ids || [] };
+}
+
+function dupIds(arr) {
+  const seen = new Set(), d = new Set();
+  for (const x of arr) { const id = String(x.id ?? '').trim(); if (!id) continue; if (seen.has(id)) d.add(id); seen.add(id); }
+  return [...d];
+}
+
+/** BFS чуқурлиги ГТС дан (қувурлар + регуляторлар). */
+function chainDepth(M) {
+  const idx = new Map(M.nodes.map((n, k) => [String(n.id ?? '').trim(), k]));
+  const adj = M.nodes.map(() => []);
+  const link = (a, b) => { const i = idx.get(String(a ?? '').trim()), j = idx.get(String(b ?? '').trim()); if (i !== undefined && j !== undefined && i !== j) { adj[i].push(j); adj[j].push(i); } };
+  for (const p of M.pipes) if (normStatus(p.status) !== 'таклиф') link(p.from, p.to);
+  for (const g of M.regs || []) link(g.in, g.out);
+  const depth = new Int32Array(M.nodes.length).fill(-1), q = [];
+  M.nodes.forEach((n, k) => { if (normType(n.type) === 'ГТС') { depth[k] = 0; q.push(k); } });
+  while (q.length) { const k = q.shift(); for (const j of adj[k]) if (depth[j] < 0) { depth[j] = depth[k] + 1; q.push(j); } }
+  let max = 0;
+  const consumers = M.nodes.filter(n => nodeLoad(n, M.params || defaultParams()) > 0 || normType(n.type) === 'истеъмолчи').length;
+  M.nodes.forEach((n, k) => { if (depth[k] > max) max = depth[k]; });
+  return { depth, max, consumers };
+}
+
+function checkModel(M, results) {
+  const out = [];
+  const P = M.params || defaultParams();
+  const nodeIds = new Set(M.nodes.map(n => String(n.id ?? '').trim()).filter(Boolean));
+  const ex = { nodes: 'Excel: «Тугунлар» варағи', pipes: 'Excel: «Қувурлар» варағи', regs: 'Excel: «ГРП-ШРП» варағи', par: 'Excel: «Параметрлар» варағи' };
+
+  if (!M.nodes.length || !M.pipes.length) out.push(card('crit', 'Тармоқ маълумотлари йўқ', {
+    what: `Тугунлар: ${M.nodes.length}, қувурлар: ${M.pipes.length}.`,
+    why: 'Моделсиз гидравлик ҳисоб бажарилмайди (ТТ §3.1, §8).',
+    where: 'Тармоқ паспорти, ижро чизмалари, ГАТ/ГИС маълумотлари.',
+    excel: `${ex.nodes} ва ${ex.pipes}`, todo: 'Excel андозасини юклаб, тугун ва қувурларни тўлдиринг.' }));
+  const miss = [];
+  if (blank(M.meta?.obj)) miss.push('Объект');
+  if (blank(M.meta?.exec)) miss.push('Ҳисобни бажарди');
+  if (miss.length) out.push(card('crit', 'Лойиҳа маълумотлари тўлиқ эмас', {
+    what: `Тўлдирилмаган: ${miss.join(', ')}.`, why: 'Ҳисобот титул варағи ва имзолар учун шарт (ТТ §17).',
+    where: 'Шартнома / буюртмачи хати.', excel: `${ex.par}: «Объект», «Ҳисобни бажарди»`, todo: 'Объект номи ва ижрочини киритинг.' }));
+  const src = M.nodes.filter(n => normType(n.type) === 'ГТС');
+  if (M.nodes.length && !src.length) out.push(card('crit', 'Манба (ГТС) йўқ', {
+    what: 'Бирорта тугуннинг тури «ГТС» эмас.', why: 'Ҳисоб манбадан энг узоқ тугунгача бажарилади (ТТ §4.2).',
+    where: 'ГТС чиқишидаги босим ва уланиш нуқтаси — «Ҳудудгазтаъминот» диспетчерлик хизмати.',
+    excel: `${ex.nodes}: «Тури» = ГТС`, todo: 'Манба тугунини қўшинг ёки турини ГТС деб белгиланг.' }));
+  const noPn = src.filter(n => !(num(n.Pnorm) > 0));
+  if (noPn.length) out.push(card('crit', 'ГТС босими кўрсатилмаган', {
+    what: 'ГТС нинг нормал чиқиш босими (P норм) йўқ.', why: 'Манба босимисиз ҳисоб бошланмайди.',
+    where: 'ГТС режим картаси, диспетчерлик журнали.', excel: `${ex.nodes}: «P норм кПа»`, todo: 'Нормал босимни кПа да киритинг.', ids: noPn.map(n => n.id) }));
+  const dn = dupIds(M.nodes), dp = dupIds(M.pipes);
+  if (dn.length || dp.length) out.push(card('crit', 'Такрорланувчи ID', {
+    what: `Тугунлар: ${dn.join(', ') || '—'}; қувурлар: ${dp.join(', ') || '—'}.`, why: 'ID барча файлларда ягона бўлиши шарт (ТТ §12).',
+    where: 'Тармоқ схемаси.', excel: `${ex.nodes} / ${ex.pipes}: «ID»`, todo: 'Ҳар бир элементга ягона ID беринг.', ids: [...dn, ...dp] }));
+  const badRef = M.pipes.filter(p => !nodeIds.has(String(p.from ?? '').trim()) || !nodeIds.has(String(p.to ?? '').trim()));
+  if (badRef.length) out.push(card('crit', 'Қувур мавжуд бўлмаган тугунга уланган', {
+    what: 'Бошланғич ёки охирги тугун «Тугунлар» рўйхатида йўқ.', why: 'Топологик узилиш — ТТ §14 бўйича йўл қўйилмайди.',
+    where: 'Тармоқ схемаси.', excel: `${ex.pipes}: «Бошланғич тугун», «Охирги тугун»`, todo: 'Тугун ID ларини текширинг ёки етишмаган тугунни қўшинг.', ids: badRef.map(p => p.id) }));
+  const self = M.pipes.filter(p => String(p.from ?? '').trim() && String(p.from).trim() === String(p.to ?? '').trim());
+  if (self.length) out.push(card('crit', 'Қувур боши ва охири бир хил', {
+    what: 'Бошланғич ва охирги тугун бир хил.', why: 'Бундай қувур ҳисобда маънога эга эмас.', where: 'Тармоқ схемаси.',
+    excel: `${ex.pipes}`, todo: 'Тугунларни тузатинг.', ids: self.map(p => p.id) }));
+  const badLd = M.pipes.filter(p => !(num(p.L) > 0) || !(num(p.d) > 0));
+  if (badLd.length) out.push(card('crit', 'Қувур узунлиги ёки диаметри йўқ', {
+    what: 'L ёки ички d кўрсатилмаган ёки 0 дан катта эмас.', why: 'Босим йўқотиши L ва d⁵ га боғлиқ (СП 42-101).',
+    where: 'Ижро чизмалари, тармоқ паспорти.', excel: `${ex.pipes}: «L м», «d ички мм»`, todo: 'Узунлик (м) ва ички диаметрни (мм) киритинг.', ids: badLd.map(p => p.id) }));
+  const regs = M.regs || [];
+  const badReg = regs.filter(g => !nodeIds.has(String(g.in ?? '').trim()) || !nodeIds.has(String(g.out ?? '').trim()));
+  if (badReg.length) out.push(card('crit', 'ГРП/ШРП мавжуд бўлмаган тугунга уланган', {
+    what: 'Кириш ёки чиқиш тугуни рўйхатда йўқ.', why: 'Поғоналар ўртасида узилиш ҳосил бўлади.', where: 'ГРП/ШРП паспорти.',
+    excel: `${ex.regs}: «Кириш тугуни», «Чиқиш тугуни»`, todo: 'Тугун ID ларини тузатинг.', ids: badReg.map(g => g.id) }));
+  const noSet = regs.filter(g => !(num(g.Pset) > 0));
+  if (noSet.length) out.push(card('crit', 'ГРП/ШРП чиқиш босими йўқ', {
+    what: 'Созланган чиқиш босими (уставка) кўрсатилмаган.', why: 'Паст поғонанинг манба босими — регулятор уставкаси (ТТ §8).',
+    where: 'ГРП/ШРП паспорти, созлаш далолатномаси.', excel: `${ex.regs}: «Чиқиш босими кПа»`, todo: 'Уставкани кПа да киритинг.', ids: noSet.map(g => g.id) }));
+  const noStove = M.nodes.filter(n => num(n.N) > 0 && !(num(n.p4) > 0) && !(num(n.p2) > 0));
+  if (noStove.length) out.push(card('crit', 'Хонадонлар бор, плиталар йўқ', {
+    what: 'N > 0, лекин плита сони кўрсатилмаган.', why: 'Ҳисобий сарф асбоблар сони ва бир вақтлилик коэффициенти орқали топилади (§4.1).',
+    where: 'Абонентлар базаси (биллинг), МФЙ маълумотлари.', excel: `${ex.nodes}: «Плита 4к», «Плита 2к»`, todo: 'Плиталар сонини киритинг.', ids: noStove.map(n => n.id) }));
+  const topo = new Set();
+  for (const r of results || []) for (const t of r.topo || []) topo.add(t);
+  if (topo.size) out.push(card('crit', 'Топология хатоси', {
+    what: [...topo].join('; '), why: 'Модель узилишсиз ва тўғри поғоналанган бўлиши шарт (ТТ §14).', where: 'Тармоқ схемаси, ГРП/ШРП уланиш чизмаси.',
+    excel: `${ex.regs} / ${ex.pipes}`, todo: 'ГРП кириш/чиқиш тугунларини ва қувурлар уланишини текширинг.' }));
+  const ch = chainDepth(M);
+  if (ch.consumers >= 10 && ch.max >= Math.max(10, 0.7 * ch.consumers) && !M.meta?.chainOk) out.push(card('crit', 'Схема шубҳали', {
+    what: `Манбадан энг узоқ тугунгача ${ch.max} та қувур кетма-кет уланган (${ch.consumers} истеъмолчи). Барча кўчалар бир занжирда бўлса, бутун маҳалла гази биринчи кичик қувур орқали ўтади.`,
+    why: 'Олдинги ҳисобда айнан шу сабабли босим −18 644 кПа чиққан. Нотўғри схема нотўғри хулосага олиб келади.',
+    where: 'Ижро чизмаси: ҳар бир кўча қайси қувурдан (тармоқланишдан) олинишини аниқланг.',
+    excel: `${ex.pipes}: «Бошланғич тугун»; схема тўғри бўлса — ${ex.par}: «Кетма-кет схема тўғри» = ҳа`,
+    todo: 'Ҳар бир кўча қайси магистралдан олинишини кўрсатинг ёки занжир ҳақиқатан тўғрилигини тасдиқланг.' }));
+
+  // --- warn ---
+  const noPm = src.filter(n => num(n.Pnorm) > 0 && !(num(n.Pmin) > 0));
+  if (noPm.length) out.push(card('warn', 'ГТС минимал босими йўқ', {
+    what: 'P мин кўрсатилмаган — 2-режимда нормал босим ишлатилади.', why: 'ТТ §3.2: минимал босимда меъёрий босим сақланадиган ҳудудлар.',
+    where: 'Қишки пик кунлари диспетчерлик журнали.', excel: `${ex.nodes}: «P мин кПа»`, todo: 'Минимал кузатилган босимни киритинг.', ids: noPm.map(n => n.id) }));
+  const noCat = M.pipes.filter(p => !normStage(p.cat));
+  if (noCat.length) out.push(card('warn', 'Қувур поғонаси кўрсатилмаган', {
+    what: `${noCat.length} та қувурда босим поғонаси йўқ.`, why: 'Поғона формула ва меъёрни белгилайди; ҳозир қўшни қувурлардан олинди.',
+    where: 'Тармоқ паспорти.', excel: `${ex.pipes}: «Поғона» (паст / ўрта / юқори II / юқори I)`, todo: 'Поғонани киритинг.', ids: noCat.map(p => p.id) }));
+  const regWarn = regs.filter(g => !(num(g.PinMin) > 0) || !(num(g.cap) > 0));
+  if (regWarn.length) out.push(card('warn', 'ГРП/ШРП паспорт маълумотлари тўлиқ эмас', {
+    what: 'Минимал кириш босими ёки ўтказиш қобилияти йўқ.', why: 'Регулятор кириш босими етарлилиги ва юкланиши текширилмайди (ТТ §8).',
+    where: 'Регулятор паспорти (РДГ, РДНК ва б.).', excel: `${ex.regs}: «Мин. кириш босими кПа», «Ўтказиш қобилияти м³/соат»`, todo: 'Паспорт қийматларини киритинг.', ids: regWarn.map(g => g.id) }));
+  const linked = new Set();
+  for (const p of M.pipes) { linked.add(String(p.from ?? '').trim()); linked.add(String(p.to ?? '').trim()); }
+  for (const g of regs) { linked.add(String(g.in ?? '').trim()); linked.add(String(g.out ?? '').trim()); }
+  const lonely = M.nodes.filter(n => !linked.has(String(n.id ?? '').trim()));
+  if (lonely.length) out.push(card('warn', 'Уланмаган тугунлар', {
+    what: `${lonely.length} та тугунга бирорта қувур уланмаган.`, why: 'Бу тугунлар газсиз қолади.', where: 'Тармоқ схемаси.',
+    excel: ex.pipes, todo: 'Уловчи қувурни қўшинг ёки ортиқча тугунни ўчиринг.', ids: lonely.map(n => n.id) }));
+  const r0 = results && results[0];
+  if (r0) {
+    const mism = [];
+    M.pipes.forEach((p, e) => { const c = normStage(p.cat), rp = r0.pipes[e]; if (c && rp && rp.active && rp.stage && c !== rp.stage) mism.push(p.id); });
+    if (mism.length) out.push(card('warn', 'Поғоналар ГРП сиз уланган', {
+      what: 'Қувур поғонаси у жойлашган тармоқ қисмининг поғонасига мос эмас.', why: 'Турли босимли тармоқлар фақат ГРП/ШРП орқали уланади.',
+      where: 'Тармоқ схемаси.', excel: `${ex.pipes}: «Поғона» ёки ${ex.regs}`, todo: 'Поғонани тузатинг ёки орага ГРП/ШРП қўшинг.', ids: mism }));
+  }
+  const noAppl = M.nodes.filter(n => !(num(n.N) > 0) && Qnom(n) > 0);
+  if (noAppl.length) out.push(card('warn', 'Асбоблар бор, хонадон сони йўқ', {
+    what: 'N = 0 бўлгани учун бир вақтлилик коэффициенти 0 — асбоблар сарфи ҳисобга олинмади.', why: 'K_бир(N) хонадон сонига боғлиқ.',
+    where: 'Абонентлар базаси.', excel: `${ex.nodes}: «N хонадон»`, todo: 'Хонадон сонини киритинг.', ids: noAppl.map(n => n.id) }));
+  // --- tip ---
+  if (M.nodes.length && !M.nodes.some(n => isNum(n.Pmeas))) out.push(card('tip', 'Ўлчанган босимлар йўқ', {
+    what: 'Модель ўлчовлар билан солиштирилмаган (калибровка).', why: 'ТТ §9, §14: модель ҳақиқий ўлчовлар билан тасдиқланади.',
+    where: 'Назорат нуқталарида манометр кўрсаткичлари (қишки пик).', excel: `${ex.nodes}: «P ўлчанган кПа»`, todo: 'Камида 3–5 нуқтада ўлчанган босимни киритинг.' }));
+  if (M.nodes.length && !(M.monthly || []).some(r => isNum(r.V))) out.push(card('tip', 'Ойлик газ қабули маълумотлари йўқ', {
+    what: 'Етказиб берилмаган газнинг суткалик ва мавсумий ҳажми фақат юқори баҳо (соатлик × 24) сифатида берилади.', why: 'ТТ §3.4, §7: ҳажмни ойлар бўйича баҳолаш.',
+    where: 'ГТС/ГРП ҳисоблагичлари бўйича ойлик қабул ҳисоботи.', excel: 'Excel: «Ойлик сарф» варағи (Ой, Қабул қилинган газ, м³)', todo: '12 ой бўйича қабул қилинган газ ҳажмини киритинг.' }));
+  const n1 = (M.scen || []).find(s => /N-1|авария/i.test(s.name || ''));
+  if (n1 && !splitIds(n1.closed).length) out.push(card('tip', 'N-1 режими учун элемент танланмаган', {
+    what: 'Авария режимида ҳеч қайси қувур ёки ГРП узилмаган.', why: 'ТТ §9: битта элемент ишдан чиққанда таъминот ишончлилиги.',
+    where: 'Энг юкланган магистрал ёки ягона ГРП.', excel: 'Excel: «Режимлар» варағи — «Узилган элементлар»', todo: 'Узиладиган элемент ID сини киритинг.' }));
+  if (M.nodes.length && !M.nodes.some(n => isNum(n.x) && isNum(n.y))) out.push(card('tip', 'Тугун координаталари йўқ', {
+    what: 'Схема автоматик қатламлар бўйича чизилди.', why: 'Ҳақиқий жойлашув схемани ўқишни осонлаштиради (ТТ §11).',
+    where: 'ГИС, топосъёмка.', excel: `${ex.nodes}: «X», «Y»`, todo: 'Координаталарни киритинг (ихтиёрий).' }));
+  return out;
+}
+
+// ---------- 7. муаммолар реестри ----------
+
+const TERM_ORDER = { 'тезкор': 0, 'ўрта': 1, 'узоқ': 2 };
+
+function collectProblems(M, results) {
+  const map = new Map();
+  const add = (key, o, ri, val, worse) => {
+    let p = map.get(key);
+    if (!p) { p = { ...o, scen: [], worst: val }; map.set(key, p); }
+    if (!p.scen.includes(ri + 1)) p.scen.push(ri + 1);
+    if (worse(val, p.worst)) p.worst = val;
+  };
+  const lower = (a, b) => a < b, higher = (a, b) => a > b;
+  (results || []).forEach((R, ri) => {
+    const closed = splitIds(R.scen?.closed);
+    M.nodes.forEach((n, k) => {
+      const r = R.nodes[k];
+      if (!r || !(r.qReq > 0)) return;
+      if (r.st === 'bad' || r.st === 'dead') add('P:' + n.id, { kind: 'Босим', type: 'node', id: n.id, name: n.name || '', unit: 'кПа',
+        measure: 'Таъминловчи қувурлар диаметрини ошириш ёки ҳалқалаш; ШРП чиқиш босимини текшириш', term: 'ўрта' }, ri, r.P, lower);
+      if (r.st === 'nosrc') add('S:' + n.id, { kind: 'Манбасиз', type: 'node', id: n.id, name: n.name || '', unit: 'м³/соат',
+        measure: closed.length ? 'Захира таъминот: ҳалқаловчи боғловчи қувур' : 'Тармоқ уланишини текшириш', term: closed.length ? 'ўрта' : 'тезкор' }, ri, r.qReq, higher);
+    });
+    M.pipes.forEach((p, e) => {
+      const r = R.pipes[e];
+      if (r && r.st === 'fast') add('V:' + p.id, { kind: 'Газ тезлиги', type: 'pipe', id: p.id, name: `${p.from} → ${p.to}`, unit: 'м/с',
+        measure: 'Диаметрни ошириш ёки параллел қувур', term: 'ўрта' }, ri, r.v, higher);
+    });
+    (M.regs || []).forEach((g, t) => {
+      const r = R.regs[t];
+      if (!r) return;
+      if (r.lowin || r.dead) add('I:' + g.id, { kind: 'Кириш босими', type: 'reg', id: g.id, name: g.name || '', unit: 'кПа',
+        measure: 'Юқори поғона тармоғини кучайтириш (диаметр, ҳалқалаш) ёки ГРП ни бошқа манбага кўчириш', term: 'узоқ' }, ri, r.Pin, lower);
+      if (r.over) add('O:' + g.id, { kind: 'Юкланиш %', type: 'reg', id: g.id, name: g.name || '', unit: '%',
+        measure: 'ГРП/ШРП ни модернизация қилиш ёки қўшимча ШРП', term: 'ўрта' }, ri, r.load, higher);
+    });
+  });
+  return [...map.values()].sort((a, b) => b.scen.length - a.scen.length || TERM_ORDER[a.term] - TERM_ORDER[b.term]);
+}
+
+// ---------- форматлаш ----------
+
+/** Босим матни: паст — кПа, ўрта/юқори — МПа (4 белги). Ҳеч қачон манфий эмас. */
+function fmtP(Pk, stage) {
+  const p = Math.max(0, Number(Pk) || 0);
+  return stage === 'low' || !stage ? p.toFixed(3) : (p / 1000).toFixed(4);
+}
+function pUnit(stage) { return stage === 'low' || !stage ? 'кПа' : 'МПа'; }
+
+return { P0, STAGES, STAGE_NAME, STAGE_COLOR, APPL, defaultParams, defaultScenarios, emptyModel, num, isNum, blank, normStage, normType, normStatus, isPE, splitIds, Kbir, Qnom, nodeLoad, lambdaRe, reynolds, lambdaQ, pipeHyd, dphiOfQ, qOfDphi, phiOfP, pOfPhi, demandFactor, solveComponent, buildTopology, solveScenario, solveAll, tracePath, calibrate, MONTH_NAMES, MONTH_DAYS, HOURLY, seasonal, SORTAMENT, nextSize, prevSize, autoSize, chainDepth, checkModel, collectProblems, fmtP, pUnit };
+})();
+const { P0, STAGES, STAGE_NAME, STAGE_COLOR, APPL, defaultParams, defaultScenarios, emptyModel, num, isNum, blank, normStage, normType, normStatus, isPE, splitIds, Kbir, Qnom, nodeLoad, lambdaRe, reynolds, lambdaQ, pipeHyd, dphiOfQ, qOfDphi, phiOfP, pOfPhi, demandFactor, solveComponent, buildTopology, solveScenario, solveAll, tracePath, calibrate, MONTH_NAMES, MONTH_DAYS, HOURLY, seasonal, SORTAMENT, nextSize, prevSize, autoSize, chainDepth, checkModel, collectProblems, fmtP, pUnit } = __m_engine_js;
+
+// ===== sample.js =====
+const __m_sample_js = (() => {
+// Намуна маълумотлар: Ҳалқобод кўчалари (T9) ва намуна тармоқ (§11).
+
+const STREET_NAMES = ['Бодомзор', 'Усмонобод', 'Регистон 1-тупик', 'Регистон 2-тупик', 'Лаззат', 'Регистон', 'Дўстлик дом', 'Дўстлик',
+  'Мактаб тор', 'Тенглик', 'Ғунча', 'Саломатлик', 'Зиё', 'Лолазор', 'Бунёдкор', 'Ўзбекистон', 'Оқ-олтин', 'Соҳибкор', 'Минг ўрик 1',
+  'Минг ўрик 2', 'Минг ўрик', 'Минг ўрик 3', 'Анҳор', 'Оби-Ҳаёт', 'Соғлом авлод', 'Қурилиш', 'Янги ҳаёт', 'Ғалаба', 'Янги ҳаёт 2'];
+
+// N, плита 4к, плита 2к, котел, колонка, L м, d мм
+const RAW = `32,32,2,32,8,600,50; 10,10,0,10,0,250,50; 10,10,0,10,0,170,38; 10,10,0,10,0,150,38; 12,12,0,12,0,220,50;
+78,78,2,78,9,370,50; 20,20,0,20,0,100,50; 32,32,0,32,0,450,70; 10,10,5,10,0,120,38; 42,42,0,42,0,330,50;
+30,30,0,30,3,270,50; 20,20,0,20,0,70,38; 48,48,6,48,2,490,50; 46,46,5,46,3,500,70; 94,94,3,94,8,420,50;
+34,34,0,34,1,600,50; 28,28,0,28,4,260,50; 36,36,9,36,5,150,50; 32,32,0,32,8,120,50; 41,41,6,41,2,150,50;
+30,30,2,30,0,110,50; 16,16,0,16,0,130,50; 117,117,5,117,15,850,50; 36,36,0,36,0,420,50; 20,20,0,20,0,430,50;
+30,30,0,30,0,360,50; 45,45,4,45,6,380,50; 17,17,8,17,5,190,50; 50,50,2,50,3,560,50`;
+
+const STREETS = RAW.split(';').map((r, k) => {
+  const [N, p4, p2, boil, col, L, d] = r.trim().split(',').map(Number);
+  return { name: STREET_NAMES[k], N, p4, p2, boil, col, L, d };
+});
+
+/** §11 намуна тармоғи. */
+function sampleModel() {
+  const M = emptyModel();
+  M.meta = { obj: 'Ҳалқобод МФЙ газ тақсимлаш тармоғи (намуна)', dist: 'Намуна вилояти, Намуна тумани', org: '«Намуна лойиҳа» МЧЖ',
+    exec: 'Муҳандис А. Намунов', check: '', date: new Date().toISOString().slice(0, 10), chainOk: false };
+  const node = (id, name, type, cat, extra = {}) => M.nodes.push({ id, name, type, cat, N: '', p4: '', p2: '', boil: '', col: '', q: '',
+    Pnorm: '', Pmin: '', Pmeas: '', x: '', y: '', zone: '', ...extra });
+  const pipe = (id, from, to, cat, L, d, extra = {}) => M.pipes.push({ id, from, to, cat, L, d, mat: 'пўлат', lay: 'ер ости', year: '', status: 'очиқ', dProp: '', ...extra });
+  node('ГТС-1', 'ГТС чиқиши', 'ГТС', 'high2', { Pnorm: 600, Pmin: 390 });
+  node('H-01', 'Магистрал тугуни', 'тугун', 'high2');
+  node('H-02', 'ГРП-1 кириши', 'тугун', 'high2');
+  pipe('Q-H01', 'ГТС-1', 'H-01', 'high2', 2500, 150);
+  pipe('Q-H02', 'H-01', 'H-02', 'high2', 1800, 125);
+  M.regs.push({ id: 'ГРП-1', name: 'ГРП-1 (посёлок)', type: 'ГРП', in: 'H-02', out: 'M-00', Pset: 300, PinMin: 350, cap: 2500 });
+  for (const id of ['M-00', 'M-01', 'M-02', 'M-03', 'M-04']) node(id, id === 'M-00' ? 'ГРП-1 чиқиши' : 'Ўрта босим тугуни', 'тугун', 'mid');
+  node('M-F1', 'Корхона', 'истеъмолчи', 'mid', { q: 350 });
+  pipe('Q-M01', 'M-00', 'M-01', 'mid', 800, 100);
+  pipe('Q-M02', 'M-01', 'M-02', 'mid', 900, 100);
+  pipe('Q-M03', 'M-02', 'M-03', 'mid', 700, 80);
+  pipe('Q-M04', 'M-03', 'M-00', 'mid', 1000, 80);
+  pipe('Q-M05', 'M-01', 'M-04', 'mid', 600, 80);
+  pipe('Q-M06', 'M-01', 'M-F1', 'mid', 400, 80);
+  M.regs.push({ id: 'ШРП-1', name: 'ШРП-1', type: 'ШРП', in: 'M-02', out: 'L-00', Pset: 3, PinMin: 50, cap: 1300 });
+  M.regs.push({ id: 'ШРП-2', name: 'ШРП-2', type: 'ШРП', in: 'M-03', out: 'K-00', Pset: 3, PinMin: 50, cap: 100 });
+  M.regs.push({ id: 'ШРП-3', name: 'ШРП-3', type: 'ШРП', in: 'M-04', out: 'L-T2', Pset: 3, PinMin: 50, cap: 600 });
+  node('L-00', 'ШРП-1 чиқиши', 'тугун', 'low');
+  node('L-T1', 'Тармоқланиш 1', 'тугун', 'low');
+  node('L-T2', 'ШРП-3 чиқиши', 'тугун', 'low');
+  pipe('Q-L00', 'L-00', 'L-T1', 'low', 40, 250);
+  STREETS.forEach((s, k) => {
+    const id = 'L-' + String(k + 1).padStart(2, '0');
+    node(id, s.name + ' кўчаси', 'истеъмолчи', 'low', { N: s.N, p4: s.p4, p2: s.p2, boil: s.boil, col: s.col, zone: 'Ҳалқобод МФЙ' });
+    const d = s.d === 50 ? (s.N > 40 ? 100 : 80) : s.d === 38 ? 50 : s.d;
+    pipe('Q-' + id, k < 15 ? 'L-T1' : 'L-T2', id, 'low', s.L, d);
+  });
+  node('K-00', 'ШРП-2 чиқиши', 'тугун', 'low');
+  node('K-01', 'Намуна кўча 1', 'истеъмолчи', 'low', { N: 25, p4: 25, boil: 25, zone: 'Қўшни МФЙ' });
+  node('K-02', 'Намуна кўча 2', 'истеъмолчи', 'low', { N: 18, p4: 18, boil: 18, zone: 'Қўшни МФЙ' });
+  pipe('Q-K01', 'K-00', 'K-01', 'low', 250, 70);
+  pipe('Q-K02', 'K-00', 'K-02', 'low', 200, 50);
+  pipe('Q-L99', 'L-T1', 'L-T2', 'low', 600, 130.8, { mat: 'ПЭ', status: 'таклиф', lay: 'ер ости' });
+  M.scen[3].closed = 'Q-M02';
+  M.monthly = [1030, 960, 760, 460, 250, 180, 160, 160, 200, 420, 720, 980].map((v, i) => ({ m: i + 1, V: v * 1000 }));
+  return M;
+}
+
+/** T9: 29 кўча бир занжирда (эски формат импорти натижаси каби). */
+function chainModel(P0kPa = 3) {
+  const M = emptyModel();
+  M.nodes.push({ id: 'GRP', name: 'ГРП', type: 'ГТС', cat: 'low', Pnorm: P0kPa, Pmin: '' });
+  STREETS.forEach((s, k) => {
+    const id = 'K-' + String(k + 1).padStart(2, '0');
+    M.nodes.push({ id, name: s.name, type: 'истеъмолчи', cat: 'low', N: s.N, p4: s.p4, p2: s.p2, boil: s.boil, col: s.col });
+    M.pipes.push({ id: 'Q-' + id, from: k ? 'K-' + String(k).padStart(2, '0') : 'GRP', to: id, cat: 'low', L: s.L, d: s.d, mat: 'пўлат', status: 'очиқ' });
+  });
+  return M;
+}
+
+return { STREET_NAMES, STREETS, sampleModel, chainModel };
+})();
+const { STREET_NAMES, STREETS, sampleModel, chainModel } = __m_sample_js;
+
+// ===== io.js =====
+const __m_io_js = (() => {
+// Excel импорт/экспорт, JSON лойиҳа, файлларни юклаб олиш.
+
+const SHEETS = {
+  nodes: { name: 'Тугунлар', cols: [['id', 'ID'], ['name', 'Номи'], ['type', 'Тури'], ['cat', 'Поғона'], ['N', 'N хонадон'], ['p4', 'Плита 4к'],
+    ['p2', 'Плита 2к'], ['boil', 'Котел/АГВ'], ['col', 'Колонка'], ['q', 'Q қўшимча м³/соат'], ['Pnorm', 'P норм кПа'], ['Pmin', 'P мин кПа'],
+    ['Pmeas', 'P ўлчанган кПа'], ['x', 'X'], ['y', 'Y'], ['z', 'Z м'], ['zone', 'МФЙ / ҳудуд']] },
+  pipes: { name: 'Қувурлар', cols: [['id', 'ID'], ['from', 'Бошланғич тугун'], ['to', 'Охирги тугун'], ['cat', 'Поғона'], ['L', 'L м'],
+    ['d', 'd ички мм'], ['mat', 'Материал'], ['lay', 'Ётқизилиш'], ['year', 'Қурилган йили'], ['status', 'Ҳолати'], ['dProp', 'd таклиф мм']] },
+  regs: { name: 'ГРП-ШРП', cols: [['id', 'ID'], ['name', 'Номи'], ['type', 'Тури'], ['in', 'Кириш тугуни'], ['out', 'Чиқиш тугуни'],
+    ['Pset', 'Чиқиш босими кПа'], ['PinMin', 'Мин. кириш босими кПа'], ['cap', 'Ўтказиш қобилияти м³/соат']] },
+  scen: { name: 'Режимлар', cols: [['name', 'Номи'], ['src', 'ГТС босими (нормал/минимал)'], ['dem', 'Сарф коэффициенти'], ['growth', 'Ўсиш %'],
+    ['closed', 'Узилган элементлар'], ['variant', 'Таклиф варианти (ҳа/йўқ)']] },
+};
+const NUMERIC = new Set(['z', 'N', 'p4', 'p2', 'boil', 'col', 'q', 'Pnorm', 'Pmin', 'Pmeas', 'x', 'y', 'L', 'd', 'year', 'dProp', 'Pset', 'PinMin', 'cap', 'dem', 'growth']);
+
+const META_ROWS = [['obj', 'Объект'], ['dist', 'Вилоят туман'], ['org', 'Ижрочи ташкилот'], ['exec', 'Ҳисобни бажарди'], ['check', 'Текширди'],
+  ['date', 'Сана'], ['chainOk', 'Кетма-кет схема тўғри']];
+const PARAM_ROWS = [['rho', 'Газ зичлиги ρ, кг/м³'], ['nu', 'Кинематик қовушоқлик ν, ×10⁻⁶ м²/с'], ['loc', 'Маҳаллий қаршиликлар, %'],
+  ['ka', 'Бир вақтлилик коэффициенти a'], ['kb', 'Бир вақтлилик коэффициенти b'], ['norms.low.exc', 'Паст: яхши босим, кПа'],
+  ['norms.low.sat', 'Паст: минимал босим, кПа'], ['norms.mid.min', 'Ўрта: минимал босим, кПа'], ['norms.high2.min', 'Юқори II: минимал босим, кПа'],
+  ['norms.high1.min', 'Юқори I: минимал босим, кПа'], ['vmax.low', 'Паст: рухсат этилган тезлик, м/с'], ['vmax.mid', 'Ўрта: рухсат этилган тезлик, м/с'],
+  ['vmax.high2', 'Юқори II: рухсат этилган тезлик, м/с'], ['vmax.high1', 'Юқори I: рухсат этилган тезлик, м/с'], ['rhoAir', 'Ҳаво зичлиги, кг/м³'], ['nk', 'Ғадир-будурлик коэффициенти (калибровка)']];
+
+const INSTR = [
+  ['Excel андозани тўлдириш бўйича кўрсатма'],
+  [''],
+  ['1. «Тугунлар»: ҳар бир тугун (ГТС, тармоқланиш, кўча, корхона) — ягона ID. Тури: ГТС / тугун / истеъмолчи.'],
+  ['   Поғона: паст / ўрта / юқори II / юқори I. Хонадонлар ва асбоблар сони — абонентлар базасидан.'],
+  ['   ГТС учун P норм ва P мин (кПа, ортиқча босим) шарт. P ўлчанган — назорат нуқталаридаги манометр кўрсаткичи.'],
+  ['   Z — тугуннинг геодезик баландлиги, м (паст босимда босимга тузатма киритилади; ихтиёрий).'],
+  ['2. «Қувурлар»: ҳар бир участка — бошланғич ва охирги тугун ID, узунлик L (м), ички диаметр d (мм), материал (пўлат/ПЭ).'],
+  ['   Ҳолати: очиқ / ёпиқ / таклиф. «таклиф» қувурлар фақат «Таклиф варианти» режимида ҳисобга олинади; d таклиф — янги диаметр.'],
+  ['   МУҲИМ: ҳар бир кўча қайси магистралдан олинишини тўғри кўрсатинг. Барча кўчаларни занжир қилиб улаш хато натижа беради.'],
+  ['3. «ГРП-ШРП»: кириш ва чиқиш тугунлари турли поғоналарда бўлади. Чиқиш босими (уставка), минимал кириш босими, ўтказиш қобилияти — паспортдан.'],
+  ['4. «Режимлар»: ТТ §9 бўйича 6 режим. Узилган элементлар — вергул билан ID лар (масалан: Q-M02).'],
+  ['5. «Параметрлар»: объект, ижрочи ва ҳисоб параметрлари. «?» белгиси — тўлдирилиши шарт бўлган катак.'],
+  ['6. «Ойлик сарф»: 12 ой бўйича ГТС/ГРП орқали қабул қилинган газ, м³ — етказиб берилмаган газнинг мавсумий ҳажми учун (ихтиёрий).'],
+  ['Барча босимлар — ортиқча, кПа. Натижада паст босим кПа да, ўрта ва юқори босим МПа да кўрсатилади.'],
+];
+
+function fromCell(field, v) {
+  if (v === undefined || v === null) return '';
+  if (typeof v === 'string' && v.trim() === '?') return '';
+  if (field === 'cat') return normStage(v) || (typeof v === 'string' ? v.trim() : '');
+  if (field === 'type') return normType(v);
+  if (field === 'status') return normStatus(v);
+  if (NUMERIC.has(field)) { const x = num(v); return Number.isFinite(x) ? x : (String(v).trim() ? String(v).trim() : ''); }
+  return String(v).trim();
+}
+function toCell(field, v) {
+  if (v === undefined || v === null) return '';
+  if (field === 'cat') return STAGE_NAME[normStage(v)] || v;
+  return v;
+}
+
+const hk = s => String(s ?? '').toLowerCase().replace(/[’ʼ‘`']/g, '').replace(/[^a-zа-яёўқғҳ0-9]/g, '');
+
+/** Сарлавҳа қаторини топиш ва устунларни ном бўйича мослаштириш. */
+function readTable(ws, def, keyHeader = 'ID') {
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
+  let h = rows.findIndex(r => r.some(c => hk(c) === hk(keyHeader)));
+  if (h < 0) h = 0;
+  const head = rows[h].map(hk);
+  const map = def.cols.map(([f, title]) => {
+    const t = hk(title);
+    let i = head.indexOf(t);
+    if (i < 0) i = head.findIndex(c => c && (c.startsWith(t) || t.startsWith(c)) && c.length >= 2);
+    return [f, i];
+  });
+  const out = [];
+  for (let r = h + 1; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row || row.every(c => String(c).trim() === '')) continue;
+    const o = {};
+    for (const [f, i] of map) o[f] = i >= 0 ? fromCell(f, row[i]) : '';
+    out.push(o);
+  }
+  return out;
+}
+
+function setPath(o, path, v) { const ks = path.split('.'); let t = o; for (let k = 0; k < ks.length - 1; k++) t = t[ks[k]]; t[ks[ks.length - 1]] = v; }
+function getPath(o, path) { return path.split('.').reduce((t, k) => t?.[k], o); }
+const yes = v => /^(ҳа|ха|ha|yes|true|1|да|\+)$/i.test(String(v ?? '').trim());
+
+/** Workbook → модель. Эски формат ҳам танилади. */
+function importWorkbook(wb) {
+  const names = wb.SheetNames;
+  const find = n => names.find(s => hk(s) === hk(n)) || names.find(s => hk(s).includes(hk(n)));
+  if (!find('Тугунлар') && find('Истеъмолчилар') && find('Гидравлик ҳисоб')) return importOld(wb, find('Истеъмолчилар'), find('Гидравлик ҳисоб'));
+  const M = emptyModel();
+  if (find('Тугунлар')) M.nodes = readTable(wb.Sheets[find('Тугунлар')], SHEETS.nodes).filter(n => !blank(n.id) || !blank(n.name));
+  if (find('Қувурлар')) M.pipes = readTable(wb.Sheets[find('Қувурлар')], SHEETS.pipes).filter(p => !blank(p.id) || !blank(p.from));
+  const rs = find('ГРП-ШРП') || find('ГРП');
+  if (rs) M.regs = readTable(wb.Sheets[rs], SHEETS.regs).filter(g => !blank(g.id) || !blank(g.in));
+  if (find('Режимлар')) {
+    const sc = readTable(wb.Sheets[find('Режимлар')], SHEETS.scen, 'Номи').filter(s => !blank(s.name));
+    if (sc.length) M.scen = sc.map(s => ({ name: s.name, src: /мин|min/i.test(String(s.src)) ? 'min' : 'norm', dem: isFinite(num(s.dem)) ? num(s.dem) : 1,
+      growth: isFinite(num(s.growth)) ? num(s.growth) : 0, closed: String(s.closed ?? ''), variant: yes(s.variant) }));
+  }
+  const ms = find('Ойлик сарф');
+  if (ms) {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[ms], { header: 1, defval: '', raw: true });
+    const h = Math.max(0, rows.findIndex(r => r.some(c => /^ой$/i.test(String(c).trim()))));
+    for (const r of rows.slice(h + 1)) {
+      let m = num(r[0]);
+      if (!Number.isFinite(m)) m = MONTH_NAMES.findIndex(x => hk(x) === hk(r[0])) + 1;
+      const V = num(r[1]);
+      if (m >= 1 && m <= 12 && Number.isFinite(V)) M.monthly.push({ m, V });
+    }
+  }
+  const ps = find('Параметрлар');
+  if (ps) {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[ps], { header: 1, defval: '', raw: true });
+    const val = new Map(rows.filter(r => r.length >= 2).map(r => [hk(r[0]), r[1]]));
+    for (const [k, t] of META_ROWS) {
+      const v = val.get(hk(t));
+      if (v === undefined) continue;
+      M.meta[k] = k === 'chainOk' ? yes(v) : (String(v).trim() === '?' ? '' : String(v).trim());
+    }
+    for (const [k, t] of PARAM_ROWS) { const v = num(val.get(hk(t))); if (Number.isFinite(v)) setPath(M.params, k, v); }
+    const rc = String(val.get(hk('ГРП модели')) ?? '');
+    if (/тавсиф|char/i.test(rc)) M.params.regChar = 'char';
+  }
+  M.nodes.forEach((n, k) => { if (blank(n.id)) n.id = 'N-' + (k + 1); });
+  M.pipes.forEach((p, k) => { if (blank(p.id)) p.id = 'P-' + (k + 1); });
+  M.regs.forEach((g, k) => { if (blank(g.id)) g.id = 'R-' + (k + 1); });
+  return M;
+}
+
+/** Эски формат: «Истеъмолчилар» + «Гидравлик ҳисоб» (кўчалар занжири). */
+function importOld(wb, consName, hydName) {
+  const M = emptyModel();
+  const cons = XLSX.utils.sheet_to_json(wb.Sheets[consName], { header: 1, defval: '', raw: true });
+  const hyd = XLSX.utils.sheet_to_json(wb.Sheets[hydName], { header: 1, defval: '', raw: true });
+  // ГРП даги босим
+  let P0 = 3;
+  for (const sheet of [hyd, cons]) for (const row of sheet) row.forEach((c, i) => {
+    if (/грп.*босим|босим.*грп/i.test(String(c))) { const v = row.slice(i + 1).map(num).find(Number.isFinite); if (Number.isFinite(v) && v > 0) P0 = v; }
+  });
+  const col = (head, res) => head.findIndex(h => res.some(re => re.test(h)));
+  const skip = r => r.some(c => /^\s*жами/i.test(String(c)));
+  // истеъмолчилар
+  let hc = cons.findIndex(r => r.some(c => /хонадон|квартир/i.test(String(c))));
+  if (hc < 0) hc = 0;
+  const H = cons[hc].map(c => String(c).toLowerCase());
+  const ci = { name: col(H, [/кўча|куча|номи|мфй|улиц/]), N: col(H, [/хонадон|квартир/]), p4: col(H, [/4\s*к|4\s*конф|4-конф/]),
+    p2: col(H, [/2\s*к|2\s*конф|2-конф/]), boil: col(H, [/котел|қозон|козон|агв/]), col: col(H, [/колонка|сув иситгич/]) };
+  const streets = [];
+  for (let r = hc + 1; r < cons.length; r++) {
+    const row = cons[r];
+    if (!row || skip(row)) continue;
+    const name = ci.name >= 0 ? String(row[ci.name]).trim() : '';
+    const N = num(row[ci.N]);
+    if (!name && !Number.isFinite(N)) continue;
+    streets.push({ name: name || 'Кўча ' + (streets.length + 1), N: Number.isFinite(N) ? N : '', p4: fromCell('p4', row[ci.p4]), p2: fromCell('p2', row[ci.p2]),
+      boil: fromCell('boil', row[ci.boil]), col: fromCell('col', row[ci.col]) });
+  }
+  // гидравлик ҳисоб
+  let hh = hyd.findIndex(r => r.some(c => /участка|қаердан|каердан/i.test(String(c))));
+  if (hh < 0) hh = 0;
+  const G = hyd[hh].map(c => String(c).toLowerCase().trim());
+  const gi = { name: col(G, [/участка|кўча|номи/]), from: col(G, [/қаердан|каердан|qayerdan|откуда/]), L: col(G, [/^l\b|^l,|узунлик|длина/]), d: col(G, [/^d\b|^d,|диаметр/]) };
+  const segs = [];
+  for (let r = hh + 1; r < hyd.length; r++) {
+    const row = hyd[r];
+    if (!row || skip(row)) continue;
+    const name = gi.name >= 0 ? String(row[gi.name]).trim() : '';
+    if (!name && !Number.isFinite(num(row[gi.L]))) continue;
+    segs.push({ name, from: gi.from >= 0 ? String(row[gi.from]).trim() : '', L: fromCell('L', row[gi.L]), d: fromCell('d', row[gi.d]) });
+  }
+  M.nodes.push({ id: 'GRP', name: 'ГРП', type: 'ГТС', cat: 'low', Pnorm: P0, Pmin: '' });
+  const n = Math.max(streets.length, segs.length);
+  const idOf = k => 'K-' + String(k + 1).padStart(2, '0');
+  const nameKey = s => hk(s);
+  const byName = new Map();
+  for (let k = 0; k < n; k++) byName.set(nameKey((streets[k] || segs[k]).name), k);
+  for (let k = 0; k < n; k++) {
+    const s = streets[k] || { name: segs[k].name }, seg = segs.find(g => nameKey(g.name) === nameKey(s.name)) || segs[k] || {};
+    M.nodes.push({ id: idOf(k), name: s.name, type: 'истеъмолчи', cat: 'low', N: s.N ?? '', p4: s.p4 ?? '', p2: s.p2 ?? '', boil: s.boil ?? '', col: s.col ?? '' });
+    const f = String(seg.from ?? '').trim();
+    let from = 'GRP';
+    if (f && !/грп|шрп|grp/i.test(f)) {
+      const ix = byName.get(nameKey(f));
+      if (ix !== undefined) from = idOf(ix);
+      else if (Number.isFinite(num(f)) && num(f) >= 1 && num(f) <= n) from = idOf(num(f) - 1);
+    }
+    M.pipes.push({ id: 'Q-' + idOf(k), from, to: idOf(k), cat: 'low', L: seg.L ?? '', d: seg.d ?? '', mat: 'пўлат', lay: '', year: '', status: 'очиқ', dProp: '' });
+  }
+  return M;
+}
+
+function aoaSheet(aoa, widths) {
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  if (widths) ws['!cols'] = widths.map(w => ({ wch: w }));
+  return ws;
+}
+
+/**
+ * Модел файли (таҳрирланадиган). missing — ID/майдон бўйича «?» қўйиладиган катаклар:
+ * { nodes:{id:[field]}, pipes:{...}, regs:{...}, meta:[field] }
+ */
+function modelWorkbook(M, missing = null) {
+  const wb = XLSX.utils.book_new();
+  for (const key of ['nodes', 'pipes', 'regs']) {
+    const def = SHEETS[key];
+    const aoa = [def.cols.map(c => c[1])];
+    for (const o of M[key]) {
+      const miss = missing?.[key]?.[o.id] || [];
+      aoa.push(def.cols.map(([f]) => miss.includes(f) && blank(o[f]) ? '?' : toCell(f, o[f])));
+    }
+    XLSX.utils.book_append_sheet(wb, aoaSheet(aoa, def.cols.map(c => Math.max(8, c[1].length + 2))), def.name);
+  }
+  const sc = [SHEETS.scen.cols.map(c => c[1])];
+  for (const s of M.scen) sc.push([s.name, s.src === 'min' ? 'минимал' : 'нормал', s.dem, s.growth, s.closed || '', s.variant ? 'ҳа' : 'йўқ']);
+  XLSX.utils.book_append_sheet(wb, aoaSheet(sc, [36, 26, 18, 10, 24, 22]), SHEETS.scen.name);
+  const par = [['Параметр', 'Қиймат']];
+  for (const [k, t] of META_ROWS) {
+    let v = k === 'chainOk' ? (M.meta.chainOk ? 'ҳа' : 'йўқ') : (M.meta[k] ?? '');
+    if (missing?.meta?.includes(k) && (k === 'chainOk' || blank(v))) v = '?';
+    par.push([t, v]);
+  }
+  for (const [k, t] of PARAM_ROWS) par.push([t, getPath(M.params, k)]);
+  par.push(['ГРП модели', M.params.regChar === 'char' ? 'тавсифнома' : 'пропорционал']);
+  const mon = [['Ой', 'Қабул қилинган газ, м³', 'Номи']];
+  for (let m = 1; m <= 12; m++) { const r = (M.monthly || []).find(x => num(x.m) === m); mon.push([m, r ? r.V : '', MONTH_NAMES[m - 1]]); }
+  XLSX.utils.book_append_sheet(wb, aoaSheet(mon, [6, 24, 12]), 'Ойлик сарф');
+  XLSX.utils.book_append_sheet(wb, aoaSheet(par, [40, 40]), 'Параметрлар');
+  XLSX.utils.book_append_sheet(wb, aoaSheet(INSTR, [120]), 'Кўрсатма');
+  return wb;
+}
+
+const ST_NAME = { ok: 'меъёрда', warn: 'паст', bad: 'меъёрдан паст', dead: 'газсиз', nosrc: 'манбасиз', fast: 'тезлик юқори', off: 'ўчирилган',
+  invalid: 'нотўғри', lowin: 'кириш босими паст', over: 'ортиқча юкланган', limited: 'қобилият етмайди' };
+const statusName = s => ST_NAME[s] || s;
+
+/** §9.2 натижалар китоби. */
+function resultsWorkbook(M, results, problems) {
+  const wb = XLSX.utils.book_new();
+  const r2 = x => Math.round(x * 100) / 100, r4 = x => Math.round(x * 10000) / 10000;
+  results.forEach((R, i) => {
+    const nd = [['ID', 'Номи', 'Поғона', 'Талаб, м³/соат', 'Олинган, м³/соат', 'P', 'Бирлик', 'Ҳолат']];
+    M.nodes.forEach((n, k) => { const r = R.nodes[k]; nd.push([n.id, n.name || '', STAGE_NAME[r.stage], r2(r.qReq), r2(r.qGot), Number(fmtP(r.P, r.stage)), pUnit(r.stage), statusName(r.st)]); });
+    XLSX.utils.book_append_sheet(wb, aoaSheet(nd, [10, 24, 10, 14, 14, 10, 7, 16]), `Р${i + 1} тугунлар`);
+    const pp = [['ID', 'Бошланғич', 'Охирги', 'Поғона', 'L, м', 'd, мм', 'Q, м³/соат', 'Йўналиш', 'v, м/с', 'ΔP, кПа', 'Ҳолат']];
+    M.pipes.forEach((p, e) => { const r = R.pipes[e]; pp.push([p.id, p.from, p.to, STAGE_NAME[r.stage] || '', num(p.L), num(p.d), r2(Math.abs(r.Q)), r.Q < -1e-9 ? 'тескари (охиридан бошига)' : 'тўғри', r2(r.v), r4(Math.abs(r.dP)), statusName(r.st)]); });
+    XLSX.utils.book_append_sheet(wb, aoaSheet(pp, [10, 10, 10, 10, 8, 8, 11, 22, 8, 10, 14]), `Р${i + 1} қувурлар`);
+  });
+  const rg = [['Режим', 'ID', 'Номи', 'P кириш, кПа', 'P чиқиш, кПа', 'Сарф, м³/соат', 'Юкланиш, %', 'Ҳолат']];
+  results.forEach((R, i) => (M.regs || []).forEach((g, t) => { const r = R.regs[t]; rg.push([i + 1, g.id, g.name || '', r2(r.Pin), r4(r.Pout), r2(r.Q), r2(r.load), statusName(r.st)]); }));
+  XLSX.utils.book_append_sheet(wb, aoaSheet(rg, [7, 10, 18, 12, 12, 12, 11, 18]), 'ГРП-ШРП натижа');
+  const pr = [['№', 'Тури', 'Элемент', 'Номи', 'Энг ёмон қиймат', 'Бирлик', 'Режимлар', 'Чора', 'Муддат']];
+  problems.forEach((p, k) => pr.push([k + 1, p.kind, p.id, p.name, r2(p.worst), p.unit, p.scen.join(', '), p.measure, p.term]));
+  XLSX.utils.book_append_sheet(wb, aoaSheet(pr, [5, 14, 10, 22, 12, 8, 10, 60, 8]), 'Муаммолар');
+  return wb;
+}
+
+function wbToBlob(wb) {
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  return new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+async function readWorkbookFile(file) {
+  const buf = await file.arrayBuffer();
+  return XLSX.read(buf, { type: 'array' });
+}
+
+/** JSON лойиҳа → модель (эски майдонларни тўлдириш). */
+function normalizeModel(o) {
+  const M = emptyModel();
+  if (!o || typeof o !== 'object') return M;
+  Object.assign(M.meta, o.meta || {});
+  const P = defaultParams();
+  M.params = { ...P, ...(o.params || {}), norms: { ...P.norms, ...(o.params?.norms || {}) }, vmax: { ...P.vmax, ...(o.params?.vmax || {}) } };
+  for (const s of Object.keys(P.norms)) M.params.norms[s] = { ...P.norms[s], ...(o.params?.norms?.[s] || {}) };
+  M.nodes = Array.isArray(o.nodes) ? o.nodes : [];
+  M.pipes = Array.isArray(o.pipes) ? o.pipes : [];
+  M.regs = Array.isArray(o.regs) ? o.regs : [];
+  M.scen = Array.isArray(o.scen) && o.scen.length ? o.scen : defaultScenarios();
+  M.monthly = Array.isArray(o.monthly) ? o.monthly : [];
+  return M;
+}
+
+// ---------- юклаб олиш ----------
+
+function inFrame() { try { return window.self !== window.top; } catch { return true; } }
+
+async function saveFile(filename, blob) {
+  try {
+    const dl = window.claude?.use?.('downloads');
+    if (dl && typeof dl.save === 'function') {
+      const data = new Uint8Array(await blob.arrayBuffer());
+      await dl.save({ filename, data });
+      return true;
+    }
+  } catch { /* оддий усулга ўтамиз */ }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.style.display = 'none';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 4000);
+  return true;
+}
+
+const TR = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo', ж: 'j', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's',
+  т: 't', у: 'u', ф: 'f', х: 'x', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sh', ъ: '', ы: 'i', ь: '', э: 'e', ю: 'yu', я: 'ya', ў: 'o', қ: 'q', ғ: 'g', ҳ: 'h' };
+/** Файл номи: лотинча (баъзи браузерлар кирилл номни «download» га алмаштиради). */
+function safeName(s) {
+  const t = [...String(s || 'loyiha')].map(c => { const l = c.toLowerCase(), r = TR[l]; return r === undefined ? c : (c !== l && r ? r[0].toUpperCase() + r.slice(1) : r); }).join('');
+  return t.replace(/[^A-Za-z0-9._-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').slice(0, 60) || 'loyiha';
+}
+
+// ---------- §13.5 GeoJSON / KML / DXF ----------
+
+/** Координаталар WGS84 (узунлик X, кенглик Y) кўринишидами. */
+function coordsKind(M) {
+  const withXY = M.nodes.filter(n => Number.isFinite(num(n.x)) && Number.isFinite(num(n.y)));
+  if (!withXY.length) return 'none';
+  const geo = withXY.every(n => Math.abs(num(n.x)) <= 180 && Math.abs(num(n.y)) <= 90);
+  return (geo ? 'lonlat' : 'local') + (withXY.length < M.nodes.length ? '-partial' : '');
+}
+
+function geoProps(M, R) {
+  const r3 = x => Math.round(x * 1000) / 1000;
+  const nodes = M.nodes.map((n, k) => { const r = R?.nodes[k]; return { kind: 'тугун', id: n.id, name: n.name || '', type: n.type || '', stage: r ? STAGE_NAME[r.stage] : '', P: r ? Number(fmtP(r.P, r.stage)) : null, unit: r ? pUnit(r.stage) : '', qReq: r ? r3(r.qReq) : null, qGot: r ? r3(r.qGot) : null, status: r ? statusName(r.st) : '', z: num(n.z) || null }; });
+  const pipes = M.pipes.map((p, e) => { const r = R?.pipes[e]; return { kind: 'қувур', id: p.id, from: p.from, to: p.to, stage: r ? STAGE_NAME[r.stage] || '' : '', L: num(p.L), d: num(p.d), dProp: num(p.dProp) || null, mat: p.mat || '', state: p.status || 'очиқ', Q: r ? r3(Math.abs(r.Q)) : null, v: r ? r3(r.v) : null, dP_kPa: r ? r3(Math.abs(r.dP)) : null, status: r ? statusName(r.st) : '' }; });
+  return { nodes, pipes };
+}
+
+function toGeoJSON(M, R) {
+  const kind = coordsKind(M);
+  const pos = M.nodes.map(n => [num(n.x), num(n.y)]);
+  const idx = new Map(M.nodes.map((n, k) => [String(n.id).trim(), k]));
+  const ok = k => k !== undefined && Number.isFinite(pos[k][0]) && Number.isFinite(pos[k][1]);
+  const P = geoProps(M, R), features = [];
+  M.nodes.forEach((n, k) => { if (ok(k)) features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: pos[k] }, properties: P.nodes[k] }); });
+  M.pipes.forEach((p, e) => { const i = idx.get(String(p.from).trim()), j = idx.get(String(p.to).trim()); if (ok(i) && ok(j)) features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [pos[i], pos[j]] }, properties: P.pipes[e] }); });
+  (M.regs || []).forEach((g, t) => {
+    const i = idx.get(String(g.in).trim()), j = idx.get(String(g.out).trim()), r = R?.regs[t];
+    if (ok(i) && ok(j)) features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [pos[i], pos[j]] }, properties: { kind: 'ГРП/ШРП', id: g.id, name: g.name || '', Pset: num(g.Pset), cap: num(g.cap), Pin: r ? Math.round(r.Pin * 100) / 100 : null, load: r ? Math.round(r.load) : null, status: r ? statusName(r.st) : '' } });
+  });
+  const fc = { type: 'FeatureCollection', name: M.meta?.obj || 'gaz', features };
+  if (!kind.startsWith('lonlat')) fc.note = 'Координаталар маҳаллий тизимда (WGS84 эмас) — ГИСда тегишли проекцияни белгиланг';
+  return JSON.stringify(fc, null, 1);
+}
+
+const KML_STAGE = { high1: 'ff5a2c8e', high2: 'ff7a44c0', mid: 'ffb36d2f', low: 'ff00a1d9', none: 'ff9a9a9a' };   // aabbggrr
+const KML_NODE = { ok: 'ff5b9e2e', warn: 'ff00a1e0', bad: 'ff4145d6', dead: 'ff1f1f7b', nosrc: 'ff9a9a9a' };
+const xe = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function toKML(M, R) {
+  if (!coordsKind(M).startsWith('lonlat')) return null;
+  const P = geoProps(M, R), idx = new Map(M.nodes.map((n, k) => [String(n.id).trim(), k]));
+  const pos = M.nodes.map(n => [num(n.x), num(n.y)]), has = k => k !== undefined && pos[k].every(Number.isFinite);
+  const desc = o => `<![CDATA[${Object.entries(o).filter(([, v]) => v !== null && v !== '').map(([k, v]) => `${k}: ${v}`).join('<br>')}]]>`;
+  const styles = Object.entries(KML_STAGE).map(([k, c]) => `<Style id="p_${k}"><LineStyle><color>${c}</color><width>3</width></LineStyle></Style>`).join('') +
+    Object.entries(KML_NODE).map(([k, c]) => `<Style id="n_${k}"><IconStyle><color>${c}</color><scale>0.8</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>`).join('');
+  const pm = [];
+  M.pipes.forEach((p, e) => {
+    const i = idx.get(String(p.from).trim()), j = idx.get(String(p.to).trim());
+    if (!has(i) || !has(j)) return;
+    const r = R?.pipes[e], st = !r || r.st === 'nosrc' || !r.active ? 'none' : r.stage || 'low';
+    pm.push(`<Placemark><name>${xe(p.id)}</name><description>${desc(P.pipes[e])}</description><styleUrl>#p_${st}</styleUrl><LineString><coordinates>${pos[i].join(',')} ${pos[j].join(',')}</coordinates></LineString></Placemark>`);
+  });
+  M.nodes.forEach((n, k) => {
+    if (!has(k)) return;
+    const st = R?.nodes[k]?.st || 'ok';
+    pm.push(`<Placemark><name>${xe(n.id)}</name><description>${desc(P.nodes[k])}</description><styleUrl>#n_${st}</styleUrl><Point><coordinates>${pos[k].join(',')}</coordinates></Point></Placemark>`);
+  });
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xe(M.meta?.obj || 'Газ тармоғи')}</name>${styles}${pm.join('\n')}</Document></kml>`;
+}
+
+/** DXF (R12, ASCII): қатламлар поғоналар бўйича; координаталар — X,Y ёки схема жойлашуви. */
+function toDXF(M, R, layout) {
+  const kind = coordsKind(M);
+  const pos = kind === 'lonlat' || kind === 'local' ? M.nodes.map(n => [num(n.x), num(n.y)]) : layout.pos.map(([x, y]) => [x, layout.h - y]);
+  const geo = kind === 'lonlat';
+  const scale = geo ? 1 : 1, th = geo ? 0.00005 : (kind === 'local' ? 2 : 6);
+  const t = s => [...String(s ?? '')].map(c => c.charCodeAt(0) < 128 ? c : '\\U+' + c.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
+  const LAY = { high1: ['PIPE_HIGH1', 6], high2: ['PIPE_HIGH2', 221], mid: ['PIPE_MID', 5], low: ['PIPE_LOW', 2], none: ['PIPE_NOSRC', 8], prop: ['PIPE_PROPOSED', 3], nodes: ['NODES', 7], bad: ['NODES_PROBLEM', 1], labels: ['LABELS', 7], regs: ['REGULATORS', 4] };
+  const out = [];
+  const g = (c, v) => out.push(String(c), String(v));
+  g(0, 'SECTION'); g(2, 'HEADER'); g(9, '$ACADVER'); g(1, 'AC1009'); g(0, 'ENDSEC');
+  g(0, 'SECTION'); g(2, 'TABLES'); g(0, 'TABLE'); g(2, 'LAYER'); g(70, Object.keys(LAY).length);
+  for (const [name, col] of Object.values(LAY)) { g(0, 'LAYER'); g(2, name); g(70, 0); g(62, col); g(6, 'CONTINUOUS'); }
+  g(0, 'ENDTAB'); g(0, 'ENDSEC');
+  g(0, 'SECTION'); g(2, 'ENTITIES');
+  const idx = new Map(M.nodes.map((n, k) => [String(n.id).trim(), k]));
+  const ok = k => k !== undefined && pos[k].every(Number.isFinite);
+  const line = (a, b, layer) => { g(0, 'LINE'); g(8, layer); g(10, a[0] * scale); g(20, a[1] * scale); g(30, 0); g(11, b[0] * scale); g(21, b[1] * scale); g(31, 0); };
+  const text = (p, s, h, layer) => { g(0, 'TEXT'); g(8, layer); g(10, p[0] * scale); g(20, p[1] * scale); g(30, 0); g(40, h); g(1, t(s)); };
+  M.pipes.forEach((p, e) => {
+    const i = idx.get(String(p.from).trim()), j = idx.get(String(p.to).trim());
+    if (!ok(i) || !ok(j)) return;
+    const r = R?.pipes[e];
+    const lay = /таклиф/.test(p.status || '') ? LAY.prop[0] : !r || !r.active || r.st === 'nosrc' ? LAY.none[0] : LAY[r.stage || 'low'][0];
+    line(pos[i], pos[j], lay);
+    text([(pos[i][0] + pos[j][0]) / 2, (pos[i][1] + pos[j][1]) / 2], `${p.id} d${num(p.dProp) || num(p.d)} L${num(p.L)}`, th * 0.7, LAY.labels[0]);
+  });
+  (M.regs || []).forEach(gg => {
+    const i = idx.get(String(gg.in).trim()), j = idx.get(String(gg.out).trim());
+    if (!ok(i) || !ok(j)) return;
+    line(pos[i], pos[j], LAY.regs[0]);
+    text([(pos[i][0] + pos[j][0]) / 2, (pos[i][1] + pos[j][1]) / 2 + th], gg.id, th, LAY.regs[0]);
+  });
+  M.nodes.forEach((n, k) => {
+    if (!ok(k)) return;
+    const r = R?.nodes[k], bad = r && ['bad', 'dead', 'nosrc'].includes(r.st);
+    g(0, 'CIRCLE'); g(8, bad ? LAY.bad[0] : LAY.nodes[0]); g(10, pos[k][0] * scale); g(20, pos[k][1] * scale); g(30, 0); g(40, th * 0.6);
+    text([pos[k][0] + th, pos[k][1] - th * 1.5], r ? `${n.id} ${fmtP(r.P, r.stage)} ${pUnit(r.stage)}` : n.id, th, LAY.labels[0]);
+  });
+  g(0, 'ENDSEC'); g(0, 'EOF');
+  return out.join('\r\n') + '\r\n';
+}
+
+return { SHEETS, importWorkbook, modelWorkbook, statusName, resultsWorkbook, wbToBlob, readWorkbookFile, normalizeModel, inFrame, saveFile, safeName, coordsKind, toGeoJSON, toKML, toDXF };
+})();
+const { SHEETS, importWorkbook, modelWorkbook, statusName, resultsWorkbook, wbToBlob, readWorkbookFile, normalizeModel, inFrame, saveFile, safeName, coordsKind, toGeoJSON, toKML, toDXF } = __m_io_js;
+
+// ===== scheme.js =====
+const __m_scheme_js = (() => {
+// SVG схема: поғона бўйича рангли қувурлар, ҳолат бўйича тугунлар, масштаб ва суриш.
+
+
+const NODE_COLOR = { ok: '#2e9e5b', warn: '#e0a100', bad: '#d64541', dead: '#7b1f1f', nosrc: '#9a9a9a' };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/** Координаталар: ҳаммасида X,Y бўлса — улар; акс ҳолда ГТС дан BFS қатламлари. */
+function layoutNodes(M) {
+  const n = M.nodes.length;
+  const pos = new Array(n);
+  if (n && M.nodes.every(t => isNum(t.x) && isNum(t.y))) {
+    const xs = M.nodes.map(t => num(t.x)), ys = M.nodes.map(t => num(t.y));
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const span = Math.max(x1 - x0, y1 - y0) || 1, W = Math.max(600, 60 * Math.sqrt(n) * 3);
+    for (let k = 0; k < n; k++) pos[k] = [40 + (xs[k] - x0) / span * W, 40 + (y1 - ys[k]) / span * W];
+    return { pos, w: 80 + (x1 - x0) / span * W, h: 80 + (y1 - y0) / span * W };
+  }
+  const idx = new Map(M.nodes.map((t, k) => [String(t.id ?? '').trim(), k]));
+  const adj = M.nodes.map(() => []);
+  const link = (a, b) => { const i = idx.get(String(a ?? '').trim()), j = idx.get(String(b ?? '').trim()); if (i !== undefined && j !== undefined && i !== j) { adj[i].push(j); adj[j].push(i); } };
+  for (const p of M.pipes) if (normStatus(p.status) !== 'таклиф') link(p.from, p.to);
+  for (const g of M.regs || []) link(g.in, g.out);
+  const depth = new Array(n).fill(-1), order = [], q = [];
+  M.nodes.forEach((t, k) => { if (normType(t.type) === 'ГТС') { depth[k] = 0; q.push(k); } });
+  if (!q.length && n) { depth[0] = 0; q.push(0); }
+  for (let h = 0; h < q.length; h++) { const k = q[h]; order.push(k); for (const j of adj[k]) if (depth[j] < 0) { depth[j] = depth[k] + 1; q.push(j); } }
+  let maxD = Math.max(0, ...depth);
+  for (let k = 0; k < n; k++) if (depth[k] < 0) { depth[k] = maxD + 1; order.push(k); }
+  maxD = Math.max(0, ...depth);
+  const layers = Array.from({ length: maxD + 1 }, () => []);
+  for (const k of order) layers[depth[k]].push(k);
+  const rank = new Array(n).fill(0);
+  layers.forEach((L, d) => {
+    if (d > 0) {
+      const bc = k => { const ps = adj[k].filter(j => depth[j] === d - 1); return ps.length ? ps.reduce((s, j) => s + rank[j], 0) / ps.length : 1e9; };
+      const b = new Map(L.map(k => [k, bc(k)]));
+      L.sort((a, c) => b.get(a) - b.get(c));
+    }
+    L.forEach((k, i) => { rank[k] = i; });
+  });
+  const DX = 150, DY = 46, maxLen = Math.max(1, ...layers.map(L => L.length));
+  layers.forEach((L, d) => L.forEach((k, i) => { pos[k] = [50 + d * DX, 40 + (i + (maxLen - L.length) / 2) * DY]; }));
+  return { pos, w: 100 + maxD * DX + 60, h: 60 + maxLen * DY };
+}
+
+/**
+ * SVG матни. R — фаол режим натижаси (ихтиёрий). opts.print — оқ фон, литерал ранглар (PDF учун).
+ */
+function schemeSVG(M, R, opts = {}) {
+  const { pos, w, h } = layoutNodes(M);
+  const idx = new Map(M.nodes.map((t, k) => [String(t.id ?? '').trim(), k]));
+  const txt = opts.print ? '#222' : 'currentColor';
+  const parts = [];
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w.toFixed(0)} ${h.toFixed(0)}" width="${w.toFixed(0)}" height="${h.toFixed(0)}" font-family="Arial, sans-serif">`);
+  if (opts.print) parts.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="#ffffff"/>`);
+  parts.push('<g class="vp">');
+  M.pipes.forEach((p, e) => {
+    const i = idx.get(String(p.from ?? '').trim()), j = idx.get(String(p.to ?? '').trim());
+    if (i === undefined || j === undefined || i === j) return;
+    const r = R?.pipes?.[e];
+    const st = normStatus(p.status);
+    const dash = st !== 'очиқ' || (r && !r.active) ? ' stroke-dasharray="7 5"' : '';
+    let col = STAGE_COLOR[r?.stage || 'low'] || STAGE_COLOR.low;
+    if (r && (r.st === 'nosrc' || r.st === 'dead' || !r.active)) col = STAGE_COLOR.none;
+    const d = num(p.d) || 50, sw = Math.min(9, 1.2 + d / 45);
+    const [x1, y1] = pos[i], [x2, y2] = pos[j];
+    if (r?.st === 'fast') parts.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#d64541" stroke-width="${sw + 5}" stroke-opacity="0.45"/>`);
+    parts.push(`<line data-k="p" data-i="${e}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${sw.toFixed(1)}" stroke-linecap="round"${dash}><title>${esc(p.id)}</title></line>`);
+    if (opts.labels !== false) {
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 4;
+      parts.push(`<text x="${mx.toFixed(1)}" y="${my.toFixed(1)}" font-size="8" fill="${txt}" fill-opacity="0.65" text-anchor="middle">${esc(p.id)}</text>`);
+    }
+  });
+  (M.regs || []).forEach((g, t) => {
+    const i = idx.get(String(g.in ?? '').trim()), j = idx.get(String(g.out ?? '').trim());
+    if (i === undefined || j === undefined) return;
+    const r = R?.regs?.[t];
+    const bad = r && ['lowin', 'dead', 'over', 'nosrc'].includes(r.st) || r?.over;
+    const [x1, y1] = pos[i], [x2, y2] = pos[j], mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    const col = bad ? '#d64541' : (opts.print ? '#333' : 'currentColor');
+    parts.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="1.6" stroke-dasharray="4 3"/>`);
+    parts.push(`<rect data-k="r" data-i="${t}" x="${mx - 8}" y="${my - 8}" width="16" height="16" fill="${bad ? '#d64541' : '#ffffff'}" stroke="${col}" stroke-width="2"><title>${esc(g.id)}</title></rect>`);
+    parts.push(`<text x="${mx}" y="${my - 12}" font-size="9" font-weight="bold" fill="${bad ? '#d64541' : txt}" text-anchor="middle">${esc(g.id)}</text>`);
+  });
+  M.nodes.forEach((t, k) => {
+    const [x, y] = pos[k], r = R?.nodes?.[k];
+    if (normType(t.type) === 'ГТС') {
+      parts.push(`<rect data-k="n" data-i="${k}" x="${x - 9}" y="${y - 9}" width="18" height="18" fill="#111"><title>${esc(t.id)}</title></rect>`);
+    } else {
+      const col = r ? NODE_COLOR[r.st] || '#888' : '#888';
+      const rad = r && r.qReq > 0 ? 6.5 : 4.5;
+      parts.push(`<circle data-k="n" data-i="${k}" cx="${x}" cy="${y}" r="${rad}" fill="${col}" stroke="#ffffff" stroke-width="1.5"><title>${esc(t.id)}</title></circle>`);
+    }
+    if (opts.labels !== false) {
+      const lbl = r ? `${t.id} · ${fmtP(r.P, r.stage)}` : t.id;
+      parts.push(`<text x="${x + 9}" y="${y + 13}" font-size="9" fill="${txt}">${esc(lbl)}</text>`);
+    }
+  });
+  parts.push('</g></svg>');
+  return parts.join('');
+}
+
+function legendHTML() {
+  const st = [['high1', 'юқори I'], ['high2', 'юқори II'], ['mid', 'ўрта'], ['low', 'паст'], ['none', 'манбасиз']];
+  const nd = [['ok', 'меъёрда'], ['warn', 'паст'], ['bad', 'меъёрдан паст'], ['dead', 'газсиз'], ['nosrc', 'манбасиз']];
+  return `<div class="legend">${st.map(([k, t]) => `<span><i class="ln" style="background:${STAGE_COLOR[k]}"></i>${t}</span>`).join('')}
+    ${nd.map(([k, t]) => `<span><i class="dot" style="background:${NODE_COLOR[k]}"></i>${t}</span>`).join('')}
+    <span><i class="sq"></i>ГТС</span><span><i class="sq2"></i>ГРП/ШРП</span><span><i class="dash"></i>таклиф / ёпиқ</span></div>`;
+}
+
+/** Интерактив кўрсатгич: ғилдирак билан масштаб, суриш, маълумот ойнаси. */
+function mountScheme(host, M, R, describe) {
+  host.innerHTML = `<div class="sch-tools"><button type="button" data-z="in" aria-label="Катталаштириш">＋</button><button type="button" data-z="out" aria-label="Кичрайтириш">－</button><button type="button" data-z="fit">Бутун схема</button></div>
+    <div class="sch-view">${schemeSVG(M, R)}</div><div class="sch-tip" hidden></div>`;
+  const view = host.querySelector('.sch-view'), svg = view.querySelector('svg'), tip = host.querySelector('.sch-tip');
+  if (!svg) return;
+  const vb0 = svg.viewBox.baseVal;
+  const W = vb0.width, H = vb0.height;
+  svg.removeAttribute('width'); svg.removeAttribute('height');
+  let vb = { x: 0, y: 0, w: W, h: H };
+  const apply = () => svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  const fit = () => { vb = { x: 0, y: 0, w: W, h: H }; apply(); };
+  const zoom = (f, cx = 0.5, cy = 0.5) => {
+    const nw = Math.min(W * 4, Math.max(40, vb.w * f)), nh = nw * vb.h / vb.w;
+    vb.x += (vb.w - nw) * cx; vb.y += (vb.h - nh) * cy; vb.w = nw; vb.h = nh; apply();
+  };
+  fit();
+  host.querySelector('.sch-tools').addEventListener('click', e => {
+    const z = e.target.closest('button')?.dataset.z;
+    if (z === 'in') zoom(0.75); else if (z === 'out') zoom(1 / 0.75); else if (z === 'fit') fit();
+  });
+  view.addEventListener('wheel', e => {
+    e.preventDefault();
+    const b = svg.getBoundingClientRect();
+    zoom(e.deltaY < 0 ? 0.85 : 1 / 0.85, (e.clientX - b.left) / b.width, (e.clientY - b.top) / b.height);
+  }, { passive: false });
+  let drag = null;
+  view.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, vx: vb.x, vy: vb.y, moved: false }; });
+  view.addEventListener('pointermove', e => {
+    if (drag && (e.buttons & 1 || e.pointerType === 'touch')) {
+      const b = svg.getBoundingClientRect(), k = vb.w / b.width;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (Math.abs(dx) + Math.abs(dy) > 3) { drag.moved = true; view.setPointerCapture?.(e.pointerId); }
+      vb.x = drag.vx - dx * k; vb.y = drag.vy - dy * k; apply();
+      return;
+    }
+    show(e);
+  });
+  view.addEventListener('pointerup', e => { const d = drag; drag = null; if (d && !d.moved) show(e, true); });
+  view.addEventListener('pointerleave', () => { if (!drag) tip.hidden = true; });
+  function show(e, sticky) {
+    const el = e.target.closest?.('[data-k]');
+    if (!el) { if (sticky) tip.hidden = true; if (!sticky && !tip.dataset.sticky) tip.hidden = true; return; }
+    tip.innerHTML = describe(el.dataset.k, +el.dataset.i);
+    const b = host.getBoundingClientRect();
+    tip.style.left = Math.min(b.width - 230, Math.max(4, e.clientX - b.left + 12)) + 'px';
+    tip.style.top = (e.clientY - b.top + 12) + 'px';
+    tip.hidden = false;
+  }
+}
+
+/** SVG → PNG dataURL (PDF учун; html2pdf SVG ни нотўғри чизади). */
+function svgToPng(svgText, maxW = 2200) {
+  return new Promise((resolve, reject) => {
+    const m = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svgText);
+    const w0 = m ? +m[1] : 800, h0 = m ? +m[2] : 600;
+    const k = Math.min(3, maxW / w0), w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
+    const img = new Image();
+    const url = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' }));
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve({ data: c.toDataURL('image/png'), w, h });
+    };
+    img.onerror = err => { URL.revokeObjectURL(url); reject(err); };
+    img.src = url;
+  });
+}
+
+function describeElement(M, R, kind, i) {
+  const row = (a, b) => `<div><span>${a}</span><b>${b}</b></div>`;
+  if (kind === 'n') {
+    const t = M.nodes[i], r = R?.nodes?.[i];
+    if (!t) return '';
+    return `<h4>${esc(t.id)} ${esc(t.name || '')}</h4>` + (r ? row('Поғона', STAGE_NAME[r.stage]) + row('Босим', `${fmtP(r.P, r.stage)} ${pUnit(r.stage)}`) +
+      row('Талаб / олинган', `${r.qReq.toFixed(1)} / ${r.qGot.toFixed(1)} м³/соат`) + row('Ҳолат', statusName(r.st)) : '');
+  }
+  if (kind === 'p') {
+    const p = M.pipes[i], r = R?.pipes?.[i];
+    if (!p) return '';
+    return `<h4>${esc(p.id)}: ${esc(p.from)} → ${esc(p.to)}</h4>` + row('L × d', `${p.L} м × ${p.d} мм`) +
+      (r ? row('Q', `${Math.abs(r.Q).toFixed(1)} м³/соат${r.Q < -1e-9 ? ' (тескари)' : ''}`) + row('v', `${r.v.toFixed(2)} м/с`) + row('ΔP', `${Math.abs(r.dP).toFixed(3)} кПа`) + row('Ҳолат', statusName(r.st)) : '');
+  }
+  const g = M.regs[i], r = R?.regs?.[i];
+  if (!g) return '';
+  return `<h4>${esc(g.id)} ${esc(g.name || '')}</h4>` + (r ? row('P кириш', `${r.Pin.toFixed(2)} кПа`) + row('P чиқиш', `${r.Pout.toFixed(2)} кПа`) +
+    row('Сарф', `${r.Q.toFixed(1)} м³/соат (${r.load.toFixed(0)}%)`) + row('Ҳолат', statusName(r.st)) : '');
+}
+
+// ---------- §13.7 босим профили ----------
+
+/** Йўл бўйлаб нуқталар: [{k, id, x (км), P, stage, st, via}] ва поғона бўлаклари. */
+function profileData(M, R, path) {
+  const pts = path.map(s => {
+    const r = R.nodes[s.k];
+    const via = s.e !== null ? M.pipes[s.e].id : s.r !== null ? M.regs[s.r].id : '';
+    return { k: s.k, id: M.nodes[s.k].id, name: M.nodes[s.k].name || '', x: s.x / 1000, P: r.P, stage: r.stage, st: r.st, via, viaReg: s.r !== null };
+  });
+  const segs = [];
+  for (const p of pts) {
+    const last = segs[segs.length - 1];
+    if (!last || last.stage !== p.stage || p.viaReg) segs.push({ stage: p.stage, pts: [p] }); else last.pts.push(p);
+  }
+  return { pts, segs, L: pts.length ? pts[pts.length - 1].x : 0 };
+}
+
+function niceStep(span) {
+  const raw = span / 4, p = Math.pow(10, Math.floor(Math.log10(raw || 1))), m = raw / p;
+  return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+}
+
+/**
+ * Кичик кўп графиклар: ҳар бир поғона — алоҳида график (ўз ўқи, ўз бирлиги), X ўқи — манбадан масофа, км.
+ * opts.print — литерал ранглар (PDF).
+ */
+function profileSVG(M, R, data, opts = {}) {
+  const P = M.params, W = opts.width || 760, H = 150, padL = 58, padR = 16, padT = 26, padB = 26;
+  const ink = opts.print ? '#222' : 'currentColor', grid = opts.print ? '#dde2e8' : 'var(--line)', muted = opts.print ? '#666' : 'var(--muted)';
+  const ring = opts.print ? '#fff' : 'var(--panel)', crit = opts.print ? '#c0262d' : 'var(--bad)';
+  const xMax = Math.max(0.001, data.L), X = x => padL + x / xMax * (W - padL - padR);
+  const xs = niceStep(xMax);
+  return data.segs.map(seg => {
+    const low = seg.stage === 'low', k = low ? 1 : 1 / 1000, unit = low ? 'кПа' : 'МПа';
+    const norm = low ? P.norms.low.sat : P.norms[seg.stage]?.min;
+    const vals = seg.pts.map(p => p.P * k).concat(norm ? [norm * k] : []);
+    const hi = Math.max(...vals) * 1.08, lo = 0, ys = niceStep(hi - lo);
+    const Y = v => padT + (1 - (v - lo) / (hi - lo || 1)) * (H - padT - padB);
+    const g = [];
+    g.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="Arial, sans-serif" font-size="11" role="img" aria-label="Босим профили: ${STAGE_NAME[seg.stage]}">`);
+    if (opts.print) g.push(`<rect width="${W}" height="${H}" fill="#fff"/>`);
+    g.push(`<text x="${padL}" y="15" font-size="12" font-weight="bold" fill="${ink}">${STAGE_NAME[seg.stage]} босим, ${unit}</text>`);
+    for (let v = 0; v <= hi + 1e-12; v += ys) g.push(`<line x1="${padL}" x2="${W - padR}" y1="${Y(v)}" y2="${Y(v)}" stroke="${grid}" stroke-width="1"/><text x="${padL - 6}" y="${Y(v) + 4}" text-anchor="end" fill="${muted}">${+v.toFixed(4)}</text>`);
+    for (let x = 0; x <= xMax + 1e-9; x += xs) g.push(`<text x="${X(x)}" y="${H - 8}" text-anchor="middle" fill="${muted}">${+x.toFixed(3)}</text>`);
+    g.push(`<text x="${W - padR}" y="${H - 8}" text-anchor="end" fill="${muted}">км</text>`);
+    if (norm) g.push(`<line x1="${padL}" x2="${W - padR}" y1="${Y(norm * k)}" y2="${Y(norm * k)}" stroke="${crit}" stroke-width="1.5" stroke-dasharray="6 4"/><text x="${padL + 6}" y="${Y(norm * k) - 5}" text-anchor="start" fill="${ink}">меъёр ${+(norm * k).toFixed(4)} ${unit}</text>`);
+    const col = STAGE_COLOR[seg.stage];
+    g.push(`<polyline fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${seg.pts.map(p => `${X(p.x).toFixed(1)},${Y(p.P * k).toFixed(1)}`).join(' ')}"/>`);
+    seg.pts.forEach((p, i) => {
+      const cx = X(p.x), cy = Y(p.P * k), bad = ['bad', 'dead'].includes(p.st);
+      const tip = `${p.id}${p.name ? ' ' + p.name : ''} · ${p.x.toFixed(3)} км · ${fmtP(p.P, p.stage)} ${unit} · ${statusName(p.st)}`;
+      g.push(`<circle cx="${cx}" cy="${cy}" r="4.5" fill="${bad ? crit : col}" stroke="${ring}" stroke-width="2"/>`);
+      g.push(`<circle cx="${cx}" cy="${cy}" r="11" fill="transparent" data-tip="${esc(tip)}"><title>${esc(tip)}</title></circle>`);
+      const last = i === seg.pts.length - 1;
+      if (i === 0 || last) {
+        // бошланғич ва охирги нуқта ёрлиғи: чегарадан чиқмасин, бир-бирини ёпмасин
+        const anchor = cx > W * 0.55 ? 'end' : 'start', dx = anchor === 'end' ? -7 : 7;
+        const close = last && seg.pts.length > 1 && Math.abs(cx - X(seg.pts[0].x)) < 150;
+        const ty = close ? cy + 17 : cy - 9;
+        g.push(`<text x="${cx + dx}" y="${Math.max(padT + 2, Math.min(H - padB - 2, ty))}" text-anchor="${anchor}" fill="${ink}">${esc(p.id)} ${fmtP(p.P, p.stage)}</text>`);
+      }
+    });
+    g.push('</svg>');
+    return g.join('');
+  }).join('');
+}
+
+return { NODE_COLOR, layoutNodes, schemeSVG, legendHTML, mountScheme, svgToPng, describeElement, profileData, profileSVG };
+})();
+const { NODE_COLOR, layoutNodes, schemeSVG, legendHTML, mountScheme, svgToPng, describeElement, profileData, profileSVG } = __m_scheme_js;
+
+// ===== report.js =====
+const __m_report_js = (() => {
+// PDF ҳисобот (ТТ §17, 15 бўлим) ва етишмаётган маълумотлар бўйича PDF-сўров.
+
+
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const f1 = x => (Number(x) || 0).toFixed(1), f2 = x => (Number(x) || 0).toFixed(2), f0 = x => Math.round(Number(x) || 0).toLocaleString('ru-RU');
+const pv = (P, st) => `<span class="pv">${fmtP(P, st)}</span>`;          // босим: ҳеч қачон манфий эмас
+const table = (head, rows, cls = '') => `<table class="${cls}"><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${
+  rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+
+const CSS = `
+.rep{font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff;font-size:11px;line-height:1.4}
+.rep h1{font-size:22px;margin:0 0 8px}.rep h2{font-size:15px;margin:14px 0 6px;border-bottom:2px solid #2f6db3;padding-bottom:3px;color:#1d3f6e}
+.rep h3{font-size:12.5px;margin:10px 0 4px}.rep p{margin:4px 0}
+.rep table{border-collapse:collapse;width:100%;margin:4px 0 8px;font-size:10px}
+.rep th,.rep td{border:1px solid #9aa4b2;padding:2px 4px;text-align:left;vertical-align:top}
+.rep th{background:#e8eef7}.rep tr{page-break-inside:avoid}
+.rep .num td{text-align:right}.rep .num td:first-child,.rep .num td:nth-child(2){text-align:left}
+.rep .red{color:#c0262d;font-weight:bold}.rep .ok{color:#1f7a45}.rep .muted{color:#555}
+.rep .pb{page-break-before:always}.rep .title{text-align:center;padding-top:40px}
+.rep .title .org{font-size:14px;font-weight:bold;letter-spacing:.5px}.rep .title .obj{font-size:17px;margin:14px 0}
+.rep .box{border:1px solid #9aa4b2;padding:8px 10px;margin:8px 0;background:#f6f8fb}
+.rep .sign{display:flex;justify-content:space-between;margin-top:40px}.rep .sign div{width:45%}
+.rep .formula{font-family:'Times New Roman',serif;font-size:12px;margin:3px 0 3px 12px}
+.rep img{max-width:100%}.rep .crit{border-left:4px solid #c0262d;padding:4px 8px;margin:6px 0;background:#fff4f4}
+.rep .warn{border-left:4px solid #e0a100;padding:4px 8px;margin:6px 0;background:#fffaee}`;
+
+function stageSummary(M, R) {
+  const out = {};
+  for (const s of STAGES) out[s] = { n: 0, L: 0, dL: 0, dmin: Infinity };
+  M.pipes.forEach((p, e) => {
+    const s = R?.pipes?.[e]?.stage || 'low', L = num(p.L), d = num(p.d);
+    if (!(L > 0) || !out[s]) return;
+    const o = out[s]; o.n++; o.L += L; if (d > 0) { o.dL += d * L; o.dmin = Math.min(o.dmin, d); }
+  });
+  return out;
+}
+
+function formulasHTML(P) {
+  return `<p><b>Ҳисобий сарф</b> (СП 42-101): Q<sub>ном</sub> = 1,2·n<sub>4к</sub> + 0,6·n<sub>2к</sub> + 2,5·n<sub>котел</sub> + 2,2·n<sub>колонка</sub>, м³/соат;
+  K<sub>бир</sub>(N) = min(1; a·N<sup>b</sup>), a = ${P.ka}, b = ${P.kb}; Q<sub>тугун</sub> = K<sub>бир</sub>·Q<sub>ном</sub> + Q<sub>қўшимча</sub>; режимда Q·k<sub>сарф</sub>·(1 + ўсиш/100).</p>
+  <p><b>Ишқаланиш коэффициенти λ</b>: Re = 0,0354·Q/(d·ν); Re &lt; 2000: λ = 64/Re; 2000–4000: λ = 0,0025·Re<sup>0,333</sup>;
+  Re ≥ 4000: λ = 0,11·(n·k<sub>n</sub>/d + 68/Re)<sup>0,25</sup>, n = 0,01 см (пўлат), 0,0007 см (ПЭ), k<sub>n</sub> = ${P.nk ?? 1} (калибровка). d — см, ν = ${P.nu}·10⁻⁶ м²/с.</p>
+  <p class="formula">Паст босим: ΔP = 626,1·λ·Q²·ρ·L′/d⁵, Па</p>
+  <p class="formula">Ўрта ва юқори босим: P<sub>б</sub>² − P<sub>о</sub>² = 1,2687·10⁻⁴·λ·Q²·ρ·L′/d⁵, МПа (абсолют)</p>
+  <p class="formula">Баландлик тузатмаси (паст босим): P<sub>о</sub> = P<sub>б</sub> − ΔP + g·(ρ<sub>ҳаво</sub> − ρ)·(z<sub>о</sub> − z<sub>б</sub>), ρ<sub>ҳаво</sub> = ${P.rhoAir ?? 1.293} кг/м³</p>
+  <p>L′ = L·(1 + ${P.loc}/100) — маҳаллий қаршиликлар ҳисобга олинган; ρ = ${P.rho} кг/м³.
+  Тезлик v = Q/(3600·πd²/4), ўрта ва юқори босимда ·P<sub>атм</sub>/P<sub>ўрт</sub>.</p>
+  <p><b>Босимга боғлиқ истеъмол</b>: s = P/P<sub>т</sub>; s ≥ 1 — тўлиқ сарф; 0 &lt; s &lt; 1 — q = q<sub>т</sub>·(√(s+ε) − √ε)/(√(1+ε) − √ε), ε = 0,01;
+  s ≤ 0 — q = 0. Тармоқ ўтказа олмаган газ — <b>етказиб берилмаган газ</b> Σ(q<sub>т</sub> − q). Шу сабабли босим манфий бўлмайди.</p>
+  <p><b>Ечиш усули</b>: тугун потенциаллари (паст: φ = P, ўрта/юқори: φ = P<sub>абс</sub>²), Ньютон усули, Якобиан — сийрак симметрик матрица,
+  предобуславливателли қўшма градиентлар; ҳалқалар, тупиклар ва параллел қувурлар алоҳида элемент сифатида. ГРП/ШРП: P<sub>чиқ</sub> = P<sub>созл</sub>,
+  ${P.regChar === 'char' ? 'агар сарф регулятор ўтказиш қобилиятидан ошмаса; акс ҳолда тўлиқ очиқ клапан тавсифномаси бўйича: Q = K·√((p<sub>1</sub> − p<sub>2</sub>)·p<sub>2</sub>), критик оқимда Q = K·p<sub>1</sub>/2 (абсолют босимлар), K — паспорт қобилияти (P<sub>кир.мин</sub>, P<sub>созл</sub>) бўйича.' : 'агар P<sub>кир</sub> ≥ P<sub>кир.мин</sub>; акс ҳолда P<sub>созл</sub>·P<sub>кир</sub>/P<sub>кир.мин</sub>.'} Поғоналар пастдан юқорига (сарф) ва юқоридан пастга (босим) ўзаро боғланади.</p>`;
+}
+
+const TERM = { 'тезкор': 'Тезкор (1 йилгача)', 'ўрта': 'Ўрта муддатли (1–3 йил)', 'узоқ': 'Узоқ муддатли (3 йилдан ортиқ)' };
+
+async function buildReportHTML(M, results, problems, checks) {
+  const R1 = results[0], R6 = results.find(r => r.scen?.variant) || results[5];
+  const P = M.params, meta = M.meta;
+  const S = stageSummary(M, R1);
+  const crit = checks.filter(c => c.lvl === 'crit'), warn = checks.filter(c => c.lvl === 'warn');
+  const totalKm = STAGES.reduce((s, k) => s + S[k].L, 0) / 1000;
+  const src = M.nodes.filter(n => normType(n.type) === 'ГТС');
+  const probIn = i => problems.filter(p => p.scen.includes(i + 1)).length;
+  let png = null;
+  try { png = await svgToPng(schemeSVG(M, R1, { print: true }), 2400); } catch { png = null; }
+  // §13.7: энг паст нисбий босимли истеъмолчигача профиль
+  let prof = null;
+  const cons = M.nodes.map((n, k) => [k, R1.nodes[k]]).filter(([, r]) => r.qReq > 0 && r.st !== 'nosrc');
+  if (cons.length) {
+    const rel = r => r.P / (r.stage === 'low' ? P.norms.low.sat : P.norms[r.stage].min);
+    const [kw] = cons.sort((a, b) => rel(a[1]) - rel(b[1]))[0];
+    const data = profileData(M, R1, tracePath(M, R1, kw));
+    const imgs = [];
+    for (const svg of profileSVG(M, R1, data, { print: true, width: 900 }).split('</svg>').filter(x => x.trim())) {
+      try { imgs.push((await svgToPng(svg + '</svg>', 1800)).data); } catch { /* ўтказиб юборамиз */ }
+    }
+    prof = { id: M.nodes[kw].id, name: M.nodes[kw].name || '', data, imgs };
+  }
+
+  const Z = seasonal(M);
+  const worst = results.reduce((a, r, i) => (r.short > (a?.short ?? -1) ? { ...r, i } : a), null);
+  const verdict = R1.short > 0.01 || R1.riskN > 0
+    ? `Амалдаги максимал режимда ${R1.riskN} та истеъмолчи меъёрий босимсиз, етказиб берилмаган газ ${f1(R1.short)} м³/соат.`
+    : `Амалдаги максимал режимда барча истеъмолчилар меъёрий босим билан таъминланади.`;
+  const verdict2 = worst && worst.short > 0.01 ? ` Энг оғир режим — «${esc(worst.scen.name)}»: етказиб берилмаган газ ${f1(worst.short)} м³/соат.` : '';
+
+  const h = [];
+  // 1. Титул
+  h.push(`<div class="title"><div class="org">${esc(meta.org || '—')}</div>
+    <h1 style="margin-top:30px">ГАЗ ТАҚСИМЛАШ ТАРМОҒИНИНГ ГИДРАВЛИК ҲИСОБИ</h1>
+    <div class="muted">«Ҳудудгазтаъминот» АЖ техник топшириғи (2026) асосида</div>
+    <div class="obj"><b>${esc(meta.obj || '—')}</b><br>${esc(meta.dist || '')}</div>
+    <div>${esc(meta.date || '')}</div>
+    <div class="box" style="text-align:left;margin:24px auto;max-width:760px"><b>Қисқа хулоса.</b> ${verdict}${verdict2}
+      Муаммолар реестрида ${problems.length} та ёзув.</div>
+    <div class="sign"><div>Ҳисобни бажарди: ____________ ${esc(meta.exec || '')}</div><div>Текширди: ____________ ${esc(meta.check || '')}</div></div></div>`);
+  // 2. Ижрочилар
+  h.push(`<h2 class="pb">1. Ижрочилар</h2>${table(['Вазифа', 'Ф.И.Ш. / ташкилот'], [['Ижрочи ташкилот', esc(meta.org || '—')], ['Ҳисобни бажарди', esc(meta.exec || '—')], ['Текширди', esc(meta.check || '—')], ['Сана', esc(meta.date || '—')]])}`);
+  // 3. ТЗ ва чегаралар
+  h.push(`<h2>2. Техник топшириқ ва ҳисоб чегаралари</h2>
+    <p>Ҳисоб ГТС дан охирги истеъмолчигача бўлган тўлиқ модель бўйича бажарилди (ТТ §3.1, §4.2): тармоқ узунлиги ${totalKm.toFixed(2)} км,
+    ${M.nodes.length} тугун, ${M.pipes.length} участка, ${(M.regs || []).length} ГРП/ШРП. Ҳалқалар, тупиклар ва параллел қувурлар алоҳида элемент сифатида киритилган (§4.3).</p>
+    ${table(['Поғона', 'Участкалар', 'Узунлик, км'], STAGES.filter(s => S[s].n).map(s => [STAGE_NAME[s], S[s].n, (S[s].L / 1000).toFixed(3)]), 'num')}
+    <p><b>Манбалар:</b> ${src.map(n => `${esc(n.id)} (нормал ${f1(num(n.Pnorm))} кПа${isNum(n.Pmin) ? `, минимал ${f1(num(n.Pmin))} кПа` : ''})`).join('; ') || '—'}.</p>`);
+  // 4. Норматив база
+  h.push(`<h2>3. Норматив база</h2><ul><li>ШНҚ 2.04.08-22 «Газ таъминоти»;</li><li>ҚР 05.02-23;</li><li>Вазирлар Маҳкамасининг 31.05.2024 йилдаги 319-сон қарори;</li>
+    <li>СП 42-101-2003 — гидравлик ҳисоб формулалари;</li></ul>
+    ${table(['Поғона', 'Минимал босим', 'Рухсат этилган тезлик, м/с'], [['паст', `${P.norms.low.sat} кПа (яхши ≥ ${P.norms.low.exc} кПа)`, P.vmax.low],
+      ['ўрта', `${P.norms.mid.min} кПа`, P.vmax.mid], ['юқори II', `${P.norms.high2.min} кПа`, P.vmax.high2], ['юқори I', `${P.norms.high1.min} кПа`, P.vmax.high1]])}`);
+  // 5. Аудит
+  h.push(`<h2>4. Бошланғич маълумотлар аудити</h2>
+    ${crit.length ? crit.map(c => `<div class="crit"><b>${esc(c.title)}.</b> ${esc(c.what)} ${c.ids.length ? `<span class="muted">(${esc(c.ids.slice(0, 20).join(', '))})</span>` : ''}</div>`).join('') : '<p class="ok">Жиддий камчиликлар йўқ.</p>'}
+    ${warn.map(c => `<div class="warn"><b>${esc(c.title)}.</b> ${esc(c.what)} ${c.ids.length ? `<span class="muted">(${esc(c.ids.slice(0, 20).join(', '))})</span>` : ''}</div>`).join('')}
+    <p><b>Қабул қилинган фаразлар:</b> босимлар — ортиқча; материал кўрсатилмаса — пўлат; поғонаси кўрсатилмаган қувур — у жойлашган тармоқ қисмининг поғонаси;
+    P мин кўрсатилмаса — нормал босим; бир вақтлилик коэффициенти K = ${P.ka}·N^${P.kb}.${M.meta.chainOk ? ' Кетма-кет схема буюртмачи томонидан тасдиқланган.' : ''}</p>`);
+  // 6. Мавжуд тармоқ
+  h.push(`<h2 class="pb">5. Мавжуд тармоқ тавсифи</h2>
+    ${table(['Поғона', 'Участкалар', 'Узунлик, км', 'Ўртача вазнли d, мм', 'Минимал d, мм'], STAGES.filter(s => S[s].n).map(s => [STAGE_NAME[s], S[s].n, (S[s].L / 1000).toFixed(3), S[s].L ? f1(S[s].dL / S[s].L) : '—', Number.isFinite(S[s].dmin) ? S[s].dmin : '—']), 'num')}
+    <h3>ГРП / ШРП</h3>${(M.regs || []).length ? table(['ID', 'Номи', 'Тури', 'Кириш → чиқиш', 'Созланган P чиқ., кПа', 'P кир. мин, кПа', 'Ўтказиш қобилияти, м³/соат'],
+      M.regs.map(g => [esc(g.id), esc(g.name || ''), esc(g.type || ''), `${esc(g.in)} → ${esc(g.out)}`, esc(g.Pset), esc(g.PinMin), esc(g.cap)])) : '<p>—</p>'}`);
+  // 7, 9. Ўлчовлар ва калибровка
+  const meas = M.nodes.map((n, k) => [n, R1.nodes[k]]).filter(([n]) => isNum(n.Pmeas));
+  h.push(`<h2>6. Ўлчовлар ва калибровка</h2>${meas.length ? table(['Тугун', 'Ўлчанган, кПа', 'Ҳисобий, кПа', 'Фарқ, %'], meas.map(([n, r]) => {
+      const m = num(n.Pmeas), dev = m ? (r.P - m) / m * 100 : 0;
+      return [esc(n.id), f2(m), pv(r.P, 'low'), `<span class="${Math.abs(dev) > 10 ? 'red' : ''}">${dev.toFixed(1)}</span>`];
+    }), 'num') + `<p>Ғадир-будурлик коэффициенти k<sub>n</sub> = ${P.nk ?? 1}${Number(P.nk ?? 1) !== 1 ? ' (ўлчовлар бўйича энг кичик квадратлар усулида танланган)' : ''}.</p><p>Фарқ 10% дан ортиқ бўлган нуқталар қизил рангда; улар учун қувур ҳолати (ички диаметр, ифлосланиш) ва юкламаларни аниқлаштириш тавсия этилади.</p>`
+    : '<p class="red">Назорат нуқталарида ўлчанган босимлар тақдим этилмаган — модель калибровка қилинмаган (ТТ §9, §14). Натижалар ҳисобий баҳо ҳисобланади.</p>'}`);
+  // 8. Модель ва параметрлар
+  h.push(`<h2>7. Модель ва ҳисоб параметрлари</h2>${formulasHTML(P)}
+    ${table(['Режим', 'Яқинлашиш', 'ГРП итерациялари'], results.map((r, i) => [`${i + 1}. ${esc(r.scen.name)}`, r.conv ? '<span class="ok">яқинлашди</span>' : '<span class="red">ҳисоб яқинлашмади</span>', r.outerIters]))}`);
+  // 10. Натижалар
+  h.push(`<h2 class="pb">8. Режимлар бўйича натижалар</h2>
+    ${table(['Режим', 'Ҳисобий сарф, м³/соат', 'Етказилган, м³/соат', 'Етказиб берилмаган, м³/соат', 'Етказиб берилмаган, м³/сутка*', 'Меъёрий босимсиз истеъмолчилар', 'Паст тармоқ мин. P, кПа', 'Муаммолар'],
+      results.map((r, i) => [`${i + 1}. ${esc(r.scen.name)}`, f1(r.tot), f1(r.deliv), `<span class="${r.short > 0.05 ? 'red' : ''}">${f1(r.short)}</span>`, f1(r.short * 24),
+        `${r.riskN} (${f1(r.risk)} м³/соат)`, r.minLow === null ? '—' : pv(r.minLow, 'low'), probIn(i)]), 'num')}
+    <p class="muted">* Суткалик ҳажм — юқори баҳо: соатлик етишмовчилик × 24 (пик соатлар бутун сутка давом этади деб фараз қилинган).${Z ? ' Ойлик маълумотлар бўйича аниқроқ баҳо — қуйида.' : ' Аниқ баҳо учун ойлик қабул маълумотлари керак (ТТ §3.4).'}</p>
+    ${Z ? `<h3>Етказиб берилмаган газнинг мавсумий ҳажми (ойлик қабул бўйича)</h3>${table(['Ой', 'Қабул, м³', 'Юклама k', 'Чўққи соатда, м³/соат', 'м³/сутка', 'м³/ой'],
+      [...Z.rows.map(r => [r.name, f0(r.V), r.k.toFixed(2), f1(r.peakShort), f0(r.shortDay), f0(r.shortMonth)]), ['<b>Йил</b>', '', '', '', '', `<b>${f0(Z.year)}</b>`]], 'num')}
+      <p class="muted">Ойлик қабул мавсумий шакл сифатида олинган (k = V/V<sub>макс</sub>; энг кўп ой чўққи соати — 1-режим), сутка ичидаги тақсимот — маиший истеъмолнинг типик соатбай профили; ҳар бир соатлик юклама учун тармоқ қайта ҳисобланган.</p>` : ''}
+    ${(M.regs || []).length ? `<h3>ГРП/ШРП: кириш босими ва юкланиш бўйича режимлар</h3>${table(['Режим', ...M.regs.map(g => esc(g.id))],
+      results.map((r, i) => [`${i + 1}`, ...r.regs.map((g, t) => g.st === 'off' ? '—' : `<span class="${g.lowin || g.dead || g.over ? 'red' : ''}">${pv(g.Pin, 'low')} кПа · ${g.load.toFixed(0)}%</span>`)]), 'num')}` : ''}
+    <h3>1-режим схемаси</h3>${png ? `<img src="${png.data}" style="max-height:640px;object-fit:contain">` : '<p>—</p>'}
+    ${prof ? `<h3>Босим профили: манбадан ${esc(prof.id)} ${esc(prof.name)} гача (энг паст нисбий босим)</h3>
+      ${prof.imgs.map(src => `<img src="${src}" style="width:760px;display:block">`).join('')}
+      ${table(['Тугун', 'Келган элемент', 'Масофа, км', 'P', 'Бирлик'], prof.data.pts.map(p => [esc(p.id), esc(p.via), p.x.toFixed(3), pv(p.P, p.stage), pUnit(p.stage)]), 'num')}` : ''}
+    <p class="muted">Қувур ранги — босим поғонаси (юқори I — тўқ қизил-бинафша, юқори II — пушти, ўрта — кўк, паст — сариқ, кулранг — манбасиз); тугун ранги — ҳолат (яшил — меъёрда, сариқ — паст, қизил — меъёрдан паст, тўқ қизил — газсиз). Пунктир — таклиф ёки ёпиқ.</p>`);
+  // 11. Муаммолар
+  h.push(`<h2 class="pb">9. Муаммолар реестри</h2>${problems.length ? table(['№', 'Тури', 'Элемент', 'Энг ёмон қиймат', 'Режимлар', 'Чора', 'Муддат'],
+    problems.map((p, k) => [k + 1, esc(p.kind), `${esc(p.id)} ${esc(p.name)}`, p.unit === 'кПа' ? `${pv(p.worst, 'low')} кПа` : `${f2(p.worst)} ${p.unit}`, p.scen.join(', '), esc(p.measure), esc(p.term)])) : '<p class="ok">Муаммолар аниқланмади.</p>'}`);
+  // 12. Солиштириш
+  if (R6) {
+    const bad = R => R.nodes.filter(n => n.qReq > 0 && ['bad', 'dead', 'nosrc'].includes(n.st)).length;
+    const fixed = M.nodes.map((n, k) => [n, R1.nodes[k], R6.nodes[k]]).filter(([, a, b]) => a.qReq > 0 && ['bad', 'dead', 'warn'].includes(a.st) && b.st === 'ok');
+    h.push(`<h2>10. Мавжуд ва таклиф этилаётган ҳолат солиштируви</h2>
+      ${table(['Кўрсаткич', 'Мавжуд (1-режим)', 'Таклиф (6-режим)'], [['Етказиб берилмаган газ, м³/соат', f1(R1.short), f1(R6.short)], ['Меъёрий босимсиз истеъмолчилар', bad(R1), bad(R6)],
+        ['Паст тармоқ мин. босими, кПа', R1.minLow === null ? '—' : pv(R1.minLow, 'low'), R6.minLow === null ? '—' : pv(R6.minLow, 'low')],
+        ['Муаммолар сони', probIn(0), probIn(results.indexOf(R6))]])}
+      ${fixed.length ? `<p>Таклиф натижасида меъёрга келтирилган тугунлар: ${fixed.map(([n, a, b]) => `${esc(n.id)} (${pv(a.P, a.stage)} → ${pv(b.P, b.stage)} ${pUnit(b.stage)})`).join('; ')}.</p>` : ''}
+      <p>Таклиф этилган элементлар: ${M.pipes.filter(p => /таклиф/i.test(p.status || '') || isNum(p.dProp)).map(p => `${esc(p.id)}${isNum(p.dProp) ? ` (d → ${p.dProp} мм)` : ''}`).join(', ') || '—'}.
+      Ҳар бир ечим 6-режимда қайта ҳисоб билан тасдиқланган (ТТ §14).</p>`);
+  }
+  // 13. Чоралар дастури
+  h.push(`<h2>11. Чоралар дастури</h2>${['тезкор', 'ўрта', 'узоқ'].map(t => {
+    const L = problems.filter(p => p.term === t);
+    return L.length ? `<h3>${TERM[t]}</h3><ol>${L.map(p => `<li><b>${esc(p.id)}</b> (${esc(p.kind)}, режимлар ${p.scen.join(', ')}): ${esc(p.measure)}.</li>`).join('')}</ol>` : '';
+  }).join('') || '<p>Чоралар талаб этилмайди.</p>'}`);
+  // 14. Хулоса
+  const nosrcScen = results.map((r, i) => r.errors.some(e => e.startsWith('Манбага')) ? i + 1 : 0).filter(Boolean);
+  h.push(`<h2>12. Хулоса</h2><ol><li>${verdict}${verdict2}</li>
+    <li>Минимал кириш босими режимида (2-режим) ${results[1] ? `${results[1].riskN} та истеъмолчи меъёрий босимсиз; ${results[1].regs.filter(g => g.lowin).length} та ГРП/ШРП кириш босими паст.` : '—'}</li>
+    ${nosrcScen.length ? `<li>Манбадан узилган қисмлар ${nosrcScen.join(', ')}-режимларда аниқланди — захира таъминот (ҳалқалаш) кўриб чиқилсин.</li>` : ''}
+    <li>Муаммолар реестрида ${problems.length} та ёзув; тезкор чоралар — ${problems.filter(p => p.term === 'тезкор').length}, ўрта муддатли — ${problems.filter(p => p.term === 'ўрта').length}, узоқ муддатли — ${problems.filter(p => p.term === 'узоқ').length}.</li>
+    <li>${meas.length ? 'Модель ўлчовлар билан солиштирилди (6-бўлим).' : 'Модель ўлчовлар билан калибровка қилинмаган — назорат ўлчовларини ўтказиш тавсия этилади.'}</li>
+    ${results.some(r => !r.conv) ? '<li class="red">Айрим режимларда ҳисоб яқинлашмади — уларнинг натижалари ишончсиз, маълумотларни текширинг.</li>' : ''}</ol>`);
+  // 15. Иловалар
+  h.push(`<h2 class="pb">13. Иловалар: 1-режим тугунлари</h2>${table(['ID', 'Номи', 'Поғона', 'Талаб, м³/соат', 'Олинган, м³/соат', 'P', 'Бирлик', 'Ҳолат'],
+    M.nodes.map((n, k) => { const r = R1.nodes[k]; return [esc(n.id), esc(n.name || ''), STAGE_NAME[r.stage], f1(r.qReq), f1(r.qGot), pv(r.P, r.stage), pUnit(r.stage), statusName(r.st)]; }), 'num')}
+    <h2 class="pb">14. Иловалар: 1-режим қувурлари</h2>${table(['ID', 'Бошланғич', 'Охирги', 'Поғона', 'L, м', 'd, мм', 'Q, м³/соат', 'v, м/с', 'ΔP, кПа', 'Ҳолат'],
+    M.pipes.map((p, e) => { const r = R1.pipes[e]; return [esc(p.id), esc(p.from), esc(p.to), STAGE_NAME[r.stage] || '', esc(p.L), esc(p.d), `${f1(Math.abs(r.Q))}${r.Q < -1e-9 ? ' ←' : ''}`, f2(r.v), `<span class="pv">${Math.abs(r.dP).toFixed(3)}</span>`, statusName(r.st)]; }), 'num')}<p class="muted">«←» — газ қувур охиридан бошига томон оқади (ҳалқада оқим йўналиши).</p>`);
+  return `<div class="rep"><style>${CSS}</style>${h.join('\n')}</div>`;
+}
+
+/** §7 ТТ: буюртмачидан олинадиган маълумотлар. */
+const TZ7 = ['Газ тақсимлаш тармоғи ижро чизмалари (трасса, узунлик, диаметр, материал, ётқизилиш усули, қурилган йили)', 'ГТС чиқишидаги нормал ва минимал босим (қишки пик)',
+  'ГРП/ШРП паспортлари: регулятор тури, созланган чиқиш босими, минимал кириш босими, ўтказиш қобилияти', 'Абонентлар базаси: кўчалар/МФЙ бўйича хонадонлар, газ асбоблари (плита, котел/АГВ, колонка)',
+  'Саноат ва коммунал-маиший истеъмолчилар соатлик сарфи', 'Назорат нуқталаридаги босим ўлчовлари (калибровка учун)', 'Ойлик/суткалик газ қабул қилиш маълумотлари (етказиб берилмаган газ ҳажми учун)',
+  'Тармоқнинг истиқболли ривожланиш режаси (янги истеъмолчилар)'];
+
+function buildRequestHTML(M, checks, fileName) {
+  const crit = checks.filter(c => c.lvl === 'crit'), warn = checks.filter(c => c.lvl === 'warn');
+  const ch = chainDepth(M);
+  const card = c => `<div class="${c.lvl === 'crit' ? 'crit' : 'warn'}"><b>${esc(c.title)}</b><br>${esc(c.what)}
+    ${c.why ? `<br><i>Нега муҳим:</i> ${esc(c.why)}` : ''}${c.where ? `<br><i>Қаердан олинади:</i> ${esc(c.where)}` : ''}${c.excel ? `<br><i>Excel'да қаерга:</i> ${esc(c.excel)}` : ''}
+    ${c.todo ? `<br><i>Нима қилиш керак:</i> ${esc(c.todo)}` : ''}${c.ids.length ? `<br><span class="muted">ID: ${esc(c.ids.slice(0, 40).join(', '))}${c.ids.length > 40 ? ' …' : ''}</span>` : ''}</div>`;
+  return `<div class="rep"><style>${CSS}</style>
+    <h1>Маълумотлар бўйича сўров</h1>
+    <p><b>Объект:</b> ${esc(M.meta.obj || '—')} &nbsp; <b>Туман:</b> ${esc(M.meta.dist || '—')} &nbsp; <b>Сана:</b> ${new Date().toISOString().slice(0, 10)}</p>
+    <div class="box">Тўлиқ гидравлик ҳисобот тайёрлаш учун <b>${crit.length}</b> та муҳим маълумот етишмайди${warn.length ? `, ${warn.length} та маълумотни текшириш керак` : ''}.
+    Илова қилинган Excel файлда тўлдирилиши шарт бўлган катаклар «?» билан белгиланган. Тўлдирилган файлни дастурга қайта юкланг.</div>
+    <h2>Юкланган маълумотлар</h2>${table(['Кўрсаткич', 'Қиймат'], [['Файл', esc(fileName || '—')], ['Тугунлар', M.nodes.length], ['Қувурлар', M.pipes.length], ['ГРП/ШРП', (M.regs || []).length],
+      ['Истеъмолчилар', ch.consumers], ['Манбадан энг узоқ тугунгача участкалар', ch.max]])}
+    <h2>Етишмаётган маълумотлар</h2>${crit.map(card).join('') || '<p>—</p>'}
+    ${warn.length ? `<h2>Текшириш керак</h2>${warn.map(card).join('')}` : ''}
+    <h2>ТТ §7 бўйича тақдим этиладиган маълумотлар рўйхати</h2><ol>${TZ7.map(t => `<li>${t}</li>`).join('')}</ol></div>`;
+}
+
+/** HTML → PDF Blob (html2pdf), саҳифа рақамлари «i / n». */
+async function htmlToPdf(html, orientation = 'landscape') {
+  if (typeof html2pdf === 'undefined') throw new Error('html2pdf кутубхонаси юкланмаган (интернет йўқми?)');
+  const el = document.createElement('div');
+  el.style.width = orientation === 'landscape' ? '1040px' : '720px';
+  el.style.background = '#fff';
+  el.innerHTML = html;
+  const opt = {
+    margin: [8, 8, 12, 8], image: { type: 'jpeg', quality: 0.92 },
+    html2canvas: { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.crit', '.warn', 'img'] },
+  };
+  const worker = html2pdf().set(opt).from(el).toPdf();
+  const pdf = await worker.get('pdf');
+  const n = pdf.internal.getNumberOfPages(), W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight();
+  for (let i = 1; i <= n; i++) { pdf.setPage(i); pdf.setFontSize(9); pdf.setTextColor(90); pdf.text(`${i} / ${n}`, W - 14, H - 5, { align: 'right' }); }
+  return pdf.output('blob');
+}
+
+
+return { stageSummary, formulasHTML, buildReportHTML, buildRequestHTML, htmlToPdf };
+})();
+const { stageSummary, formulasHTML, buildReportHTML, buildRequestHTML, htmlToPdf } = __m_report_js;
+
+// ===== app.js =====
+const __m_app_js = (() => {
+// Ҳолат, текширувлар, интерфейс.
+
+
+
+
+
+const DRAFT_KEY = 'gaz-tarmogi-modeli:draft:v1', THEME_KEY = 'gaz-tarmogi-modeli:theme';
+const $ = s => document.querySelector(s);
+const escH = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const S = { M: null, results: [], checks: [], problems: [], si: 0, tab: 'help', isSample: false, fileMsg: null, busy: false, sizing: null, sizingUndo: null, profNode: null, calib: null };
+
+// ---------- сақлаш ----------
+function saveDraft() {
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ M: S.M, isSample: S.isSample, si: S.si, tab: S.tab })); } catch { /* хотира йўқ */ }
+}
+function loadDraft() {
+  try { const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); if (d && d.M) return d; } catch { /* бузилган */ }
+  return null;
+}
+
+function toast(msg, ms = 3500) {
+  const t = $('#toast'); t.textContent = msg; t.classList.remove('hide');
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.add('hide'), ms);
+}
+
+// ---------- ҳисоб ----------
+function recompute() {
+  S.results = solveAll(S.M);
+  S.checks = checkModel(S.M, S.results);
+  S.problems = collectProblems(S.M, S.results);
+  if (S.si >= S.results.length) S.si = 0;
+  window.__gaz = S;                       // синов учун
+}
+let timer = null;
+function changed(now = false) {
+  clearTimeout(timer);
+  const run = () => { recompute(); renderAll(); saveDraft(); };
+  if (now) run(); else timer = setTimeout(run, 150);
+}
+
+// ---------- лойиҳа ва параметрлар ----------
+const META = [['obj', 'Объект'], ['dist', 'Вилоят, туман'], ['org', 'Ижрочи ташкилот'], ['exec', 'Ҳисобни бажарди'], ['check', 'Текширди'], ['date', 'Сана']];
+function renderMeta() {
+  $('#meta').innerHTML = META.map(([k, t]) => `<label class="f">${t}<input data-path="meta.${k}" ${k === 'date' ? 'type="date"' : ''} value="${escH(S.M.meta[k] ?? '')}"></label>`).join('') +
+    `<label class="f" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" data-path="meta.chainOk" ${S.M.meta.chainOk ? 'checked' : ''}> Кетма-кет (занжир) схема тўғри — тасдиқлайман</label>`;
+}
+const PARAMS = [['rho', 'Газ зичлиги ρ, кг/м³'], ['nu', 'Қовушоқлик ν, ×10⁻⁶ м²/с'], ['loc', 'Маҳаллий қаршиликлар, %'], ['ka', 'K_бир коэффициенти a'], ['kb', 'K_бир даража кўрсаткичи b'],
+  ['norms.low.exc', 'Паст: яхши босим, кПа'], ['norms.low.sat', 'Паст: минимал босим, кПа'], ['norms.mid.min', 'Ўрта: минимал, кПа'], ['norms.high2.min', 'Юқори II: минимал, кПа'],
+  ['norms.high1.min', 'Юқори I: минимал, кПа'], ['vmax.low', 'Паст: v макс, м/с'], ['vmax.mid', 'Ўрта: v макс, м/с'], ['vmax.high2', 'Юқори II: v макс, м/с'], ['vmax.high1', 'Юқори I: v макс, м/с'], ['rhoAir', 'Ҳаво зичлиги, кг/м³ (баландлик)'], ['nk', 'Ғадир-будурлик коэфф. (калибровка)']];
+const getP = (o, p) => p.split('.').reduce((t, k) => t?.[k], o);
+function calibText() {
+  const C = S.calib;
+  if (!C) return '<span class="small muted">«P ўлчанган» бўйича ғадир-будурлик коэффициентини танлайди.</span>';
+  if (!C.ok) return `<span class="small" style="color:var(--bad)">${escH(C.reason)}</span>`;
+  return `<span class="small">${C.n} нуқта: ўртача квадратик фарқ ${C.rmsBefore.toFixed(3)} → <b>${C.rmsAfter.toFixed(3)} кПа</b>, коэффициент ${C.nk0.toFixed(2)} → <b>${C.nk.toFixed(2)}</b>.${C.atBound ? ' <span style="color:var(--bad)">Чегарага етди — фарқни ғадир-будурлик билан тушунтириб бўлмайди (юклама, диаметр ёки ўлчовни текширинг).</span>' : ''}</span>`;
+}
+function renderParams() {
+  $('#params').innerHTML = PARAMS.map(([k, t]) => `<label class="f">${t}<input inputmode="decimal" data-path="params.${k}" data-num="1" value="${escH(getP(S.M.params, k))}"></label>`).join('') +
+    `<div class="small muted" style="grid-column:1/-1">Нормалар: ШНҚ 2.04.08-22, ҚР 05.02-23; тезликлар — СП 42-101 п.3.38. Ўзгартириш барча режимларни қайта ҳисоблайди.</div>
+    <label class="f">ГРП/ШРП модели<select data-path="params.regChar"><option value="prop" ${S.M.params.regChar !== 'char' ? 'selected' : ''}>пропорционал (ТТ: Pчиқ = Pсозл·Pкир/Pкир.мин)</option><option value="char" ${S.M.params.regChar === 'char' ? 'selected' : ''}>тавсифнома (ўтказиш қобилияти ΔP га боғлиқ)</option></select></label>
+    <div style="grid-column:1/-1"><button type="button" data-act="calib">Ўлчовлар бўйича калибровка (1-режим)</button> ${calibText()}</div>`;
+}
+
+// ---------- режимлар ва кўрсаткичлар ----------
+function renderScen() {
+  $('#scenBtns').innerHTML = S.M.scen.map((s, i) => `<button type="button" data-si="${i}" class="${i === S.si ? 'on' : ''}" title="${escH(s.name)}">${i + 1}. ${escH(s.name)}</button>`).join('');
+}
+function renderKpis() {
+  const R = S.results[S.si];
+  if (!R) { $('#kpis').innerHTML = ''; $('#errs').innerHTML = ''; return; }
+  const st = stageSummary(S.M, R);
+  const len = STAGES.filter(s => st[s].n).map(s => `${STAGE_NAME[s]} ${(st[s].L / 1000).toFixed(2)}`).join(' · ') || '—';
+  const pct = R.tot > 0 ? R.short / R.tot * 100 : 0;
+  const np = S.problems.filter(p => p.scen.includes(S.si + 1)).length;
+  const k = (l, v, s = '', cls = '') => `<div class="kpi ${cls}"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+  $('#kpis').innerHTML = [
+    k('Тармоқ', `${S.M.nodes.length} / ${S.M.pipes.length} / ${(S.M.regs || []).length}`, 'тугун / қувур / ГРП'),
+    k('Узунлик, км', (STAGES.reduce((a, s) => a + st[s].L, 0) / 1000).toFixed(2), len),
+    k('Ҳисобий сарф', `${R.tot.toFixed(1)}`, 'м³/соат'),
+    k('Етказиб берилмаган газ', `${R.short.toFixed(1)} м³/соат`, `${pct.toFixed(1)}% · ${(R.short * 24).toFixed(0)} м³/сутка гача`, R.short > 0.05 ? 'bad' : 'good'),
+    k('Меъёрий босимсиз истеъмолчилар', `${R.riskN}`, `${R.risk.toFixed(1)} м³/соат`, R.riskN ? 'bad' : 'good'),
+    k('Паст тармоқ мин. босими', R.minLow === null ? '—' : `${fmtP(R.minLow, 'low')} кПа`, `меъёр ≥ ${S.M.params.norms.low.sat} кПа`, R.minLow !== null && R.minLow < S.M.params.norms.low.sat ? 'bad' : ''),
+    k('Муаммолар', `${np}`, `бу режимда · жами ${S.problems.length}`, np ? 'bad' : 'good'),
+  ].join('');
+  $('#errs').innerHTML = R.errors.map(e => `<div class="banner red">${escH(e)}</div>`).join('');
+}
+
+// ---------- вкладкалар ----------
+const TABS = [['help', 'Ёрдамчи'], ['scheme', 'Схема'], ['profile', 'Профиль'], ['nodes', 'Тугунлар'], ['pipes', 'Қувурлар'], ['regs', 'ГРП / ШРП'], ['scen', 'Режимлар'], ['probs', 'Муаммолар'], ['method', 'Усул']];
+function renderTabs() {
+  const crit = S.checks.filter(c => c.lvl === 'crit').length;
+  $('#tabs').innerHTML = TABS.map(([k, t]) => {
+    const c = k === 'help' ? crit : k === 'probs' ? S.problems.length : 0;
+    return `<button type="button" data-tab="${k}" class="${k === S.tab ? 'on' : ''}">${t}${c ? `<span class="cnt">${c}</span>` : ''}</button>`;
+  }).join('');
+}
+
+const stCell = s => `<span class="st ${s}">${statusName(s)}</span>`;
+const typeSel = (path, v) => `<select data-path="${path}">${['ГТС', 'тугун', 'истеъмолчи'].map(o => `<option ${normType(v) === o ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+const stageSel = (path, v) => `<select data-path="${path}"><option value="">—</option>${STAGES.map(s => `<option value="${s}" ${normStage(v) === s ? 'selected' : ''}>${STAGE_NAME[s]}</option>`).join('')}</select>`;
+const statusSel = (path, v) => `<select data-path="${path}">${['очиқ', 'ёпиқ', 'таклиф'].map(o => `<option ${String(v || 'очиқ') === o ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+const inp = (path, v, cls = 'w1', isN = false) => `<input class="${cls}" data-path="${path}" ${isN ? 'inputmode="decimal" data-num="1"' : ''} value="${escH(v ?? '')}">`;
+
+function nodesTab() {
+  const R = S.results[S.si];
+  const rows = S.M.nodes.map((n, i) => {
+    const r = R?.nodes[i], p = `nodes.${i}.`;
+    return `<tr><td>${inp(p + 'id', n.id)}</td><td>${inp(p + 'name', n.name, 'w3')}</td><td>${typeSel(p + 'type', n.type)}</td><td>${stageSel(p + 'cat', n.cat)}</td>
+      ${['N', 'p4', 'p2', 'boil', 'col', 'q', 'Pnorm', 'Pmin', 'Pmeas', 'x', 'y', 'z'].map(f => `<td>${inp(p + f, n[f], 'w0', true)}</td>`).join('')}<td>${inp(p + 'zone', n.zone, 'w2')}</td>
+      <td class="r res">${r ? r.qReq.toFixed(1) : ''}</td><td class="r res">${r ? r.qGot.toFixed(1) : ''}</td><td class="r res">${r ? `${fmtP(r.P, r.stage)} ${pUnit(r.stage)}` : ''}</td><td class="res">${r ? stCell(r.st) : ''}</td>
+      <td><button type="button" data-del="nodes.${i}" title="Ўчириш">✕</button></td></tr>`;
+  }).join('');
+  return `<div class="row-actions"><button type="button" data-add="nodes">＋ Тугун</button><span class="small muted">Натижалар — фаол режим: ${escH(S.M.scen[S.si]?.name)}</span></div>
+    <div class="tw"><table class="t"><thead><tr><th>ID</th><th>Номи</th><th>Тури</th><th>Поғона</th><th>N хонадон</th><th>Плита 4к</th><th>Плита 2к</th><th>Котел/АГВ</th><th>Колонка</th>
+    <th>Q қўш., м³/с</th><th>P норм, кПа</th><th>P мин, кПа</th><th>P ўлч., кПа</th><th>X</th><th>Y</th><th>Z, м</th><th>МФЙ / ҳудуд</th><th>Талаб</th><th>Олинган</th><th>P</th><th>Ҳолат</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function pipesTab() {
+  const R = S.results[S.si];
+  const rows = S.M.pipes.map((q, i) => {
+    const r = R?.pipes[i], p = `pipes.${i}.`;
+    return `<tr><td>${inp(p + 'id', q.id)}</td><td>${inp(p + 'from', q.from)}</td><td>${inp(p + 'to', q.to)}</td><td>${stageSel(p + 'cat', q.cat)}</td><td>${inp(p + 'L', q.L, 'w0', true)}</td>
+      <td>${inp(p + 'd', q.d, 'w0', true)}</td><td>${inp(p + 'mat', q.mat, 'w0')}</td><td>${inp(p + 'lay', q.lay, 'w1')}</td><td>${inp(p + 'year', q.year, 'w0', true)}</td><td>${statusSel(p + 'status', q.status)}</td>
+      <td>${inp(p + 'dProp', q.dProp, 'w0', true)}</td><td class="r res">${r ? Math.abs(r.Q).toFixed(1) + (r.Q < -1e-9 ? ' ←' : '') : ''}</td><td class="r res">${r ? r.v.toFixed(2) : ''}</td><td class="r res">${r ? Math.abs(r.dP).toFixed(3) : ''}</td>
+      <td class="res">${r ? stCell(r.st) : ''}</td><td><button type="button" data-del="pipes.${i}" title="Ўчириш">✕</button></td></tr>`;
+  }).join('');
+  return `${sizingBox()}<div class="row-actions"><button type="button" data-add="pipes">＋ Қувур</button><button type="button" data-act="autosize">Диаметрларни автоматик танлаш</button>${S.sizingUndo ? '<button type="button" data-act="autosizeUndo">Танловни бекор қилиш</button>' : ''}<span class="small muted">L — м, d — ички диаметр, мм; «таклиф» ва «d таклиф» фақат 6-режимда.</span></div>
+    <div class="tw"><table class="t"><thead><tr><th>ID</th><th>Бошланғич</th><th>Охирги</th><th>Поғона</th><th>L, м</th><th>d, мм</th><th>Материал</th><th>Ётқизилиш</th><th>Йили</th><th>Ҳолати</th><th>d таклиф</th>
+    <th>Q, м³/соат</th><th>v, м/с</th><th>ΔP, кПа</th><th>Ҳолат</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function sizingBox() {
+  const A = S.sizing;
+  if (!A) return '';
+  const rem = [...A.remaining.nodes.map(x => 'тугун ' + x), ...A.remaining.pipes.map(x => 'қувур ' + x)];
+  return `<div class="banner ${A.ok ? 'info' : 'red'}"><b>Диаметрлар автоматик танланди (${A.scenIndex + 1}-режим).</b>
+    ${A.changes.length ? `Ўзгартирилган участкалар: ${A.changes.length}; қўшимча «метал» Σ L·Δd = ${A.extraMetal.toFixed(1)} м·м. «d таклиф» устунига ёзилди.` : 'Ўзгартириш талаб этилмади.'}
+    ${A.ok ? 'Барча истеъмолчилар меъёрий босимда, тезлик ошмаган.' : `Диаметр билан ҳал бўлмаган: ${escH(rem.join(', '))}.`}
+    ${A.remaining.regs.length ? `<br>ГРП/ШРП муаммоси диаметр билан ҳал бўлмайди: ${escH(A.remaining.regs.join(', '))} (юкланиш ёки кириш босими — «Муаммолар»).` : ''}
+    ${A.changes.length ? `<div class="tw" style="margin-top:6px"><table class="t"><thead><tr><th>Қувур</th><th>L, м</th><th>d мавжуд, мм</th><th>d таклиф, мм</th><th>Материал</th></tr></thead><tbody>${
+      A.changes.map(c => `<tr><td>${escH(c.id)}</td><td class="r">${c.L}</td><td class="r">${c.d0}</td><td class="r"><b>${c.d1}</b></td><td>${escH(c.mat)}</td></tr>`).join('')}</tbody></table></div>` : ''}</div>`;
+}
+function profileTab() {
+  const R = S.results[S.si];
+  if (!R) return '';
+  const cons = S.M.nodes.map((n, k) => [n, R.nodes[k], k]).filter(([, r]) => r.qReq > 0 && r.st !== 'nosrc');
+  if (!cons.length) return '<p>Истеъмолчилар йўқ.</p>';
+  const worst = cons.slice().sort((a, b) => a[1].P / (a[1].stage === 'low' ? 1 : 100) - b[1].P / (b[1].stage === 'low' ? 1 : 100))[0][2];
+  let k = S.M.nodes.findIndex(n => n.id === S.profNode);
+  if (k < 0 || R.nodes[k].st === 'nosrc') k = worst;
+  const data = profileData(S.M, R, tracePath(S.M, R, k));
+  const opts = cons.map(([n, r, i]) => `<option value="${escH(n.id)}" ${i === k ? 'selected' : ''}>${escH(n.id)} ${escH(n.name || '')} — ${fmtP(r.P, r.stage)} ${pUnit(r.stage)}</option>`).join('');
+  return `<div class="row-actions"><label class="f" style="flex:1 1 260px">Тугун (манбадан шу тугунгача йўл)<select id="profSel">${opts}</select></label></div>
+    <p class="small muted">Ҳар бир босим поғонаси — алоҳида график (ўз бирлиги). X ўқи — манбадан масофа, км. Қизил пунктир — меъёрий минимал босим. Нуқта устига олиб боринг — маълумот.</p>
+    <div class="prof">${profileSVG(S.M, R, data, { width: Math.round(Math.max(300, Math.min(900, ($('#panel').clientWidth || 800) - 30))) })}</div><div class="sch-tip" hidden></div>
+    <div class="tw"><table class="t"><thead><tr><th>Тугун</th><th>Номи</th><th>Келган элемент</th><th>Масофа, км</th><th>Поғона</th><th>P</th><th>Ҳолат</th></tr></thead><tbody>${
+      data.pts.map(p => `<tr><td>${escH(p.id)}</td><td>${escH(p.name)}</td><td>${escH(p.via)}</td><td class="r">${p.x.toFixed(3)}</td><td>${STAGE_NAME[p.stage]}</td><td class="r">${fmtP(p.P, p.stage)} ${pUnit(p.stage)}</td><td>${stCell(p.st)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function regsTab() {
+  const R = S.results[S.si];
+  const rows = (S.M.regs || []).map((g, i) => {
+    const r = R?.regs[i], p = `regs.${i}.`;
+    return `<tr><td>${inp(p + 'id', g.id)}</td><td>${inp(p + 'name', g.name, 'w2')}</td><td>${inp(p + 'type', g.type, 'w0')}</td><td>${inp(p + 'in', g.in)}</td><td>${inp(p + 'out', g.out)}</td>
+      <td>${inp(p + 'Pset', g.Pset, 'w0', true)}</td><td>${inp(p + 'PinMin', g.PinMin, 'w0', true)}</td><td>${inp(p + 'cap', g.cap, 'w0', true)}</td>
+      <td class="r res">${r ? r.Pin.toFixed(2) : ''}</td><td class="r res">${r ? r.Pout.toFixed(3) : ''}</td><td class="r res">${r ? r.Q.toFixed(1) : ''}</td><td class="r res">${r ? r.load.toFixed(0) : ''}</td>
+      <td class="res">${r ? stCell(r.st) + (r.limited ? ' ' + stCell('limited') : r.over && r.st !== 'over' ? ' ' + stCell('over') : '') : ''}</td><td><button type="button" data-del="regs.${i}" title="Ўчириш">✕</button></td></tr>`;
+  }).join('');
+  return `<div class="row-actions"><button type="button" data-add="regs">＋ ГРП/ШРП</button><span class="small muted">Босимлар — кПа (ортиқча).</span></div>
+    <div class="tw"><table class="t"><thead><tr><th>ID</th><th>Номи</th><th>Тури</th><th>Кириш тугуни</th><th>Чиқиш тугуни</th><th>P чиқ., кПа</th><th>P кир. мин, кПа</th><th>Ўтказиш, м³/соат</th>
+    <th>P кир., кПа</th><th>P чиқ., кПа</th><th>Сарф</th><th>Юкл., %</th><th>Ҳолат</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function scenTab() {
+  const rows = S.M.scen.map((s, i) => {
+    const R = S.results[i], p = `scen.${i}.`;
+    return `<tr><td>${i + 1}</td><td>${inp(p + 'name', s.name, 'w3')}</td><td><select data-path="${p}src"><option value="norm" ${s.src !== 'min' ? 'selected' : ''}>нормал</option><option value="min" ${s.src === 'min' ? 'selected' : ''}>минимал</option></select></td>
+      <td>${inp(p + 'dem', s.dem, 'w0', true)}</td><td>${inp(p + 'growth', s.growth, 'w0', true)}</td><td>${inp(p + 'closed', s.closed, 'w2')}</td><td><input type="checkbox" data-path="${p}variant" ${s.variant ? 'checked' : ''}></td>
+      <td class="r res">${R ? R.tot.toFixed(1) : ''}</td><td class="r res">${R ? R.short.toFixed(1) : ''}</td><td class="r res">${R ? R.riskN : ''}</td><td class="r res">${R && R.minLow !== null ? fmtP(R.minLow, 'low') : '—'}</td>
+      <td class="res">${R ? (R.conv ? '<span class="st ok">яқинлашди</span>' : '<span class="st bad">яқинлашмади</span>') : ''}</td></tr>`;
+  }).join('');
+  return `<p class="small muted">ТТ §9: олти режим. «Узилган элементлар» — вергул билан қувур ёки ГРП ID лари (N-1). «Таклиф» белгиланган режимда «таклиф» ҳолатидаги қувурлар ва «d таклиф» ишлатилади.</p>
+    <div class="row-actions"><button type="button" data-act="resetScen">Режимларни тиклаш</button></div>
+    <div class="tw"><table class="t"><thead><tr><th>№</th><th>Номи</th><th>ГТС босими</th><th>Сарф коэфф.</th><th>Ўсиш, %</th><th>Узилган элементлар</th><th>Таклиф</th>
+    <th>Сарф, м³/соат</th><th>Етказилмаган</th><th>Меъёрсиз ист.</th><th>Мин. P паст, кПа</th><th>Ҳисоб</th></tr></thead><tbody>${rows}</tbody></table></div>${monthlyBlock()}`;
+}
+let seasKey = '', seasVal = null;
+function getSeasonal() {
+  const key = JSON.stringify([S.M.nodes, S.M.pipes, S.M.regs, S.M.params, S.M.scen[0], S.M.monthly]);
+  if (key !== seasKey) { seasKey = key; seasVal = seasonal(S.M); }
+  return seasVal;
+}
+function monthlyBlock() {
+  const Z = getSeasonal(), byM = new Map((S.M.monthly || []).map((r, i) => [num(r.m), i]));
+  const cells = MONTH_NAMES.map((nm, i) => {
+    const j = byM.get(i + 1);
+    return `<label class="f">${i + 1}. ${nm}<input inputmode="decimal" data-month="${i + 1}" value="${escH(j !== undefined ? S.M.monthly[j].V : '')}"></label>`;
+  }).join('');
+  const f0 = x => Math.round(x).toLocaleString('ru-RU');
+  const tbl = Z ? `<div class="tw" style="margin-top:8px"><table class="t"><thead><tr><th>Ой</th><th>Қабул, м³</th><th>Юклама k</th><th>Чўққи соатда етказилмаган, м³/соат</th><th>Етказилмаган, м³/сутка</th><th>Етказилмаган, м³/ой</th></tr></thead><tbody>${
+      Z.rows.map(r => `<tr><td>${r.name}</td><td class="r">${f0(r.V)}</td><td class="r">${r.k.toFixed(2)}</td><td class="r">${r.peakShort.toFixed(1)}</td><td class="r">${f0(r.shortDay)}</td><td class="r"><b>${f0(r.shortMonth)}</b></td></tr>`).join('')}
+      <tr><td><b>Йил</b></td><td></td><td></td><td></td><td></td><td class="r"><b>${f0(Z.year)}</b></td></tr></tbody></table></div>
+      <p class="small muted">Баҳо: ойлик қабул мавсумий шакл сифатида (k = V/V<sub>макс</sub>), суткалик тақсимот — типик соатбай профил; ҳар соат учун тармоқ қайта ҳисобланган (${Z.evals} ҳисоб). 1-режимдаги юқори баҳо (соатлик × 24): ${f0(Z.upperDay)} м³/сутка.</p>` : '';
+  return `<h3 style="font-size:14.5px;margin:18px 0 6px">Ойлик газ қабули ва етказиб берилмаган ҳажм (ТТ §3.4)</h3>
+    <div class="grid">${cells}</div>${tbl}`;
+}
+function probsTab() {
+  if (!S.problems.length) return '<p class="status good">Муаммолар аниқланмади.</p>';
+  return `<p class="small muted">Барча режимлар бўйича: тур + ID бўйича ягона ёзув, энг ёмон қиймат ва режимлар рўйхати. Тартиб: режимлар сони, сўнг муддат.</p>
+    <div class="tw"><table class="t"><thead><tr><th>№</th><th>Тури</th><th>Элемент</th><th>Номи</th><th>Энг ёмон</th><th>Режимлар</th><th>Чора</th><th>Муддат</th></tr></thead><tbody>${
+    S.problems.map((p, k) => `<tr><td>${k + 1}</td><td>${escH(p.kind)}</td><td>${escH(p.id)}</td><td>${escH(p.name)}</td><td class="r">${p.unit === 'кПа' ? fmtP(p.worst, 'low') : p.worst.toFixed(2)} ${p.unit}</td>
+      <td>${p.scen.join(', ')}</td><td style="white-space:normal;min-width:260px">${escH(p.measure)}</td><td>${escH(p.term)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function methodTab() {
+  return `<div class="method"><h3>Формулалар (СП 42-101-2003)</h3>${formulasHTML(S.M.params)}
+    <h3>Режимлар (ТТ §9)</h3><ol>${defaultScenarios().map(s => `<li>${escH(s.name)}: ГТС босими — ${s.src === 'min' ? 'минимал' : 'нормал'}, сарф ×${s.dem}${s.growth ? `, ўсиш +${s.growth}%` : ''}${s.variant ? ', таклиф этилган қувурлар билан' : ''}.</li>`).join('')}</ol>
+    <h3>Ҳолатлар</h3><p>Паст босим: меъёрда — P ≥ ${S.M.params.norms.low.exc} кПа; паст — P ≥ ${S.M.params.norms.low.sat} кПа; меъёрдан паст — ундан кам. Ўрта/юқори: P ≥ минимал.
+    Газсиз — P ≈ 0 ёки талабнинг 5% дан камини олган. Манбасиз — манбага уланмаган. Қувур: тезлик юқори — v > v<sub>макс</sub>.</p>
+    <h3>Қўшимча имкониятлар (§13)</h3><ul>
+    <li><b>Баландлик</b>: «Тугунлар» даги Z (м) — паст босимда P<sub>о</sub> = P<sub>б</sub> − ΔP + g·(ρ<sub>ҳаво</sub> − ρ)·(z<sub>о</sub> − z<sub>б</sub>).</li>
+    <li><b>Ойлик сарф</b> («Режимлар» вкладкаси) — етказиб берилмаган газ м³/сутка ва м³/ой: ойлик қабул мавсумий шакл, типик соатбай профил, ҳар соат учун қайта ҳисоб.</li>
+    <li><b>ГРП/ШРП тавсифномаси</b> («Ҳисоб параметрлари»): Q = K·√((p<sub>1</sub>−p<sub>2</sub>)·p<sub>2</sub>), критик — K·p<sub>1</sub>/2; K паспорт қобилиятидан.</li>
+    <li><b>Калибровка</b>: «P ўлчанган» бўйича ғадир-будурлик коэффициенти k<sub>n</sub> энг кичик квадратлар усулида.</li>
+    <li><b>Экспорт</b> («Схема»): GeoJSON, KML (WGS84), DXF.</li>
+    <li><b>Диаметрларни автоматик танлаш</b> («Қувурлар»): 6-режимда барча истеъмолчилар меъёрда бўладиган минимал стандарт диаметрлар (пўлат ва ПЭ SDR11 сортаменти).</li>
+    <li><b>Босим профили</b> — манбадан танланган тугунгача, поғоналар бўйича.</li></ul></div>`;
+}
+function helpTab() {
+  const crit = S.checks.filter(c => c.lvl === 'crit').length, warn = S.checks.filter(c => c.lvl === 'warn').length;
+  const status = crit ? `<div class="status bad">${crit} та муҳим маълумот етишмайди — тўлиқ ҳисобот ўрнига маълумот сўрови тайёрланади.</div>`
+    : warn ? `<div class="status warn">Маълумотлар етарли. ${warn} та огоҳлантиришни кўриб чиқинг.</div>` : '<div class="status good">Маълумотлар тўлиқ — PDF ҳисобот тайёрлаш мумкин.</div>';
+  const LV = { crit: 'Етишмайди', warn: 'Текширинг', tip: 'Маслаҳат' };
+  const cards = S.checks.map(c => `<div class="chk ${c.lvl}"><h4><span class="lv">${LV[c.lvl]}</span>${escH(c.title)}</h4><dl>
+    <dt>Нима</dt><dd>${escH(c.what)}</dd>${c.why ? `<dt>Нега муҳим</dt><dd>${escH(c.why)}</dd>` : ''}${c.where ? `<dt>Қаердан олинади</dt><dd>${escH(c.where)}</dd>` : ''}
+    ${c.excel ? `<dt>Excel'да қаерга</dt><dd>${escH(c.excel)}</dd>` : ''}${c.todo ? `<dt>Нима қилиш керак</dt><dd>${escH(c.todo)}</dd>` : ''}
+    ${c.ids.length ? `<dt>ID</dt><dd>${escH(c.ids.slice(0, 60).join(', '))}${c.ids.length > 60 ? ' …' : ''}</dd>` : ''}</dl></div>`).join('');
+  return `<label class="drop" id="drop"><input type="file" id="fileX" accept=".xlsx,.xls,.xlsm,.json" hidden>
+      <b>Excel файлни шу ерга ташланг ёки босинг</b><br><span class="small muted">Андоза («Excel андоза») ёки эски формат («Истеъмолчилар» + «Гидравлик ҳисоб»). Юклангач маълумотлар текширилади ва жавоб файл сифатида юкланади.</span></label>
+    ${S.fileMsg ? `<div class="banner info">${S.fileMsg}</div>` : ''}${status}${cards || ''}`;
+}
+
+let schemeKey = '';
+function renderPanel() {
+  const el = $('#panel');
+  if (S.tab === 'scheme') {
+    const key = JSON.stringify([S.M.nodes, S.M.pipes, S.M.regs, S.si, S.results[S.si]?.tot, S.results[S.si]?.deliv]);
+    if (key === schemeKey && el.querySelector('.sch')) return;
+    schemeKey = key;
+    el.innerHTML = `<div class="row-actions"><button type="button" data-act="geojson">GeoJSON</button><button type="button" data-act="kml">KML</button><button type="button" data-act="dxf">DXF</button><span class="small muted">Экспорт — фаол режим натижалари билан. GeoJSON/KML учун тугунларда X (узунлик) ва Y (кенглик) керак.</span></div>${legendHTML()}<div class="sch"></div><p class="small muted">Ғилдирак ёки тугмалар — масштаб, судраш — суриш, элемент устига олиб боринг ёки босинг — маълумот.</p>`;
+    mountScheme(el.querySelector('.sch'), S.M, S.results[S.si], (k, i) => describeElement(S.M, S.results[S.si], k, i));
+    return;
+  }
+  schemeKey = '';
+  el.innerHTML = { help: helpTab, profile: profileTab, nodes: nodesTab, pipes: pipesTab, regs: regsTab, scen: scenTab, probs: probsTab, method: methodTab }[S.tab]();
+}
+
+function renderAll() {
+  const ae = document.activeElement, path = ae?.dataset?.path, sel = ae && 'selectionStart' in ae ? [ae.selectionStart, ae.selectionEnd] : null;
+  $('#sampleBanner').classList.toggle('hide', !S.isSample);
+  renderMeta(); renderParams(); renderScen(); renderKpis(); renderTabs(); renderPanel();
+  if (path) {
+    const el = document.querySelector(`[data-path="${CSS.escape(path)}"]`);
+    if (el && el !== document.activeElement) { el.focus({ preventScroll: true }); try { if (sel && el.setSelectionRange) el.setSelectionRange(...sel); } catch { /* select */ } }
+  }
+}
+
+// ---------- таҳрирлаш ----------
+function setPath(path, value) {
+  const ks = path.split('.');
+  let t = S.M;
+  for (let k = 0; k < ks.length - 1; k++) t = t[ks[k]];
+  t[ks[ks.length - 1]] = value;
+}
+function onEdit(e) {
+  const el = e.target;
+  const path = el.dataset?.path;
+  if (!path) return;
+  let v = el.type === 'checkbox' ? el.checked : el.value;
+  if (el.dataset.num && typeof v === 'string') { const x = num(v); v = v.trim() === '' ? '' : Number.isFinite(x) ? x : v.trim(); }
+  setPath(path, v);
+  changed();
+}
+const BLANK = {
+  nodes: () => ({ id: 'N-' + (S.M.nodes.length + 1), name: '', type: 'тугун', cat: 'low', N: '', p4: '', p2: '', boil: '', col: '', q: '', Pnorm: '', Pmin: '', Pmeas: '', x: '', y: '', zone: '' }),
+  pipes: () => ({ id: 'P-' + (S.M.pipes.length + 1), from: '', to: '', cat: 'low', L: '', d: '', mat: 'пўлат', lay: '', year: '', status: 'очиқ', dProp: '' }),
+  regs: () => ({ id: 'ШРП-' + ((S.M.regs || []).length + 1), name: '', type: 'ШРП', in: '', out: '', Pset: 3, PinMin: 50, cap: '' }),
+};
+
+// ---------- файллар ----------
+function missingMap(M) {
+  const m = { nodes: {}, pipes: {}, regs: {}, meta: [] };
+  const add = (k, id, f) => { (m[k][id] ||= []).push(f); };
+  for (const n of M.nodes) {
+    if (normType(n.type) === 'ГТС' && !(num(n.Pnorm) > 0)) add('nodes', n.id, 'Pnorm');
+    if (num(n.N) > 0 && !(num(n.p4) > 0) && !(num(n.p2) > 0)) add('nodes', n.id, 'p4');
+  }
+  for (const p of M.pipes) for (const f of ['from', 'to', 'L', 'd']) if (blank(p[f])) add('pipes', p.id, f);
+  for (const g of M.regs || []) for (const f of ['in', 'out', 'Pset']) if (blank(g[f])) add('regs', g.id, f);
+  if (blank(M.meta.obj)) m.meta.push('obj');
+  if (blank(M.meta.exec)) m.meta.push('exec');
+  if (S.checks.some(c => c.title === 'Схема шубҳали')) m.meta.push('chainOk');
+  return m;
+}
+const libsOk = () => typeof XLSX !== 'undefined' && typeof html2pdf !== 'undefined';
+const base = () => safeName(S.M.meta.obj || 'Gaz_tarmogi');
+
+async function fullReport() {
+  const html = await buildReportHTML(S.M, S.results, S.problems, S.checks);
+  window.__lastReport = html;
+  const blob = await htmlToPdf(html, 'landscape');
+  await saveFile(`${base()}_gidravlik_hisobot.pdf`, blob);
+}
+async function requestPdf(fileName) {
+  const html = buildRequestHTML(S.M, S.checks, fileName);
+  window.__lastRequest = html;
+  const blob = await htmlToPdf(html, 'portrait');
+  await saveFile(`${base()}_malumot_sorovi.pdf`, blob);
+}
+async function modelXlsx(mark = true) {
+  await saveFile(`${base()}_model.xlsx`, wbToBlob(modelWorkbook(S.M, mark ? missingMap(S.M) : null)));
+}
+
+async function busy(label, fn) {
+  if (S.busy) return;
+  S.busy = true;
+  document.querySelectorAll('header button').forEach(b => { b.disabled = true; });
+  toast(label, 60000);
+  try { await fn(); } catch (err) { console.warn(err); toast('Хато: ' + (err?.message || err), 6000); S.busy = false; enable(); return; }
+  S.busy = false; enable(); toast('Тайёр', 1500);
+  function enable() { document.querySelectorAll('header button').forEach(b => { b.disabled = false; }); }
+}
+
+async function handleFile(file) {
+  if (!file) return;
+  const name = file.name || 'файл';
+  if (/\.json$/i.test(name)) {
+    try { S.M = normalizeModel(JSON.parse(await file.text())); } catch { toast('JSON файл ўқилмади'); return; }
+    S.isSample = false; S.fileMsg = `«${escH(name)}» лойиҳаси очилди.`; changed(true); return;
+  }
+  if (typeof XLSX === 'undefined') { toast('Excel кутубхонаси юкланмаган — интернетни текширинг'); return; }
+  let M;
+  try { M = importWorkbook(await readWorkbookFile(file)); } catch (err) { console.warn(err); toast('Excel файл ўқилмади: ' + (err?.message || err), 6000); return; }
+  S.M = M; S.isSample = false; S.si = 0; S.tab = 'help';
+  changed(true);
+  const crit = S.checks.filter(c => c.lvl === 'crit').length;
+  if (!crit) {
+    S.fileMsg = `«${escH(name)}» юкланди: ${M.nodes.length} тугун, ${M.pipes.length} қувур. Маълумотлар тўлиқ — PDF ҳисобот юкланмоқда.`;
+    renderAll();
+    await busy('PDF ҳисобот тайёрланмоқда…', fullReport);
+  } else {
+    S.fileMsg = `«${escH(name)}» юкланди: ${M.nodes.length} тугун, ${M.pipes.length} қувур. ${crit} та муҳим маълумот етишмайди — PDF сўров ва «?» белгиланган Excel юкланмоқда.`;
+    renderAll();
+    await busy('Маълумот сўрови тайёрланмоқда…', async () => { await requestPdf(name); await modelXlsx(true); });
+  }
+}
+
+async function onAction(act) {
+  if (act === 'theme') {
+    const cur = document.documentElement.dataset.theme || 'auto';
+    const next = cur === 'auto' ? 'dark' : cur === 'dark' ? 'light' : 'auto';
+    if (next === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = next;
+    try { localStorage.setItem(THEME_KEY, next); } catch { /* */ }
+    toast('Мавзу: ' + { auto: 'тизим бўйича', dark: 'тўқ', light: 'ёруғ' }[next], 1500);
+    return;
+  }
+  if (act === 'open') { $('#fileJson').click(); return; }
+  if (act === 'save') { await saveFile(`${base()}.json`, new Blob([JSON.stringify(S.M, null, 1)], { type: 'application/json' })); return; }
+  if (act === 'resetScen') { S.M.scen = defaultScenarios(); changed(true); return; }
+  if (act === 'autosize') {
+    await busy('Диаметрлар танланмоқда…', async () => {
+      await new Promise(r => setTimeout(r, 30));
+      const A = autoSize(S.M);
+      S.sizingUndo = S.M.pipes.map(p => p.dProp ?? '');
+      S.M.pipes.forEach(p => { if (A.dProp[p.id] !== undefined) p.dProp = A.dProp[p.id]; });
+      const { result, ...rest } = A; void result;
+      S.sizing = rest; S.si = A.scenIndex;
+      changed(true);
+    });
+    return;
+  }
+  if (act === 'geojson' || act === 'kml' || act === 'dxf') {
+    const R = S.results[S.si], kind = coordsKind(S.M);
+    if (act === 'dxf') { await saveFile(`${base()}_sxema.dxf`, new Blob([toDXF(S.M, R, layoutNodes(S.M))], { type: 'application/dxf' })); if (kind === 'none') toast('Координаталар йўқ — DXF схема жойлашуви бўйича', 4000); return; }
+    if (kind === 'none') { toast('Тугунларда X, Y координаталар йўқ — GeoJSON/KML тузиб бўлмайди. DXF схемадан фойдаланинг.', 5000); return; }
+    if (act === 'kml') {
+      const k = toKML(S.M, R);
+      if (!k) { toast('KML учун WGS84 координаталар керак (X — узунлик, Y — кенглик)', 5000); return; }
+      await saveFile(`${base()}.kml`, new Blob([k], { type: 'application/vnd.google-earth.kml+xml' })); return;
+    }
+    await saveFile(`${base()}.geojson`, new Blob([toGeoJSON(S.M, R)], { type: 'application/geo+json' }));
+    if (!kind.startsWith('lonlat')) toast('Координаталар маҳаллий — GeoJSON да проекцияни белгиланг', 4000);
+    return;
+  }
+  if (act === 'calib') {
+    const C = calibrate(S.M, { scenIndex: 0 });
+    S.calib = C;
+    if (C.ok) S.M.params.nk = +C.nk.toFixed(3);
+    $('#paramsBox').open = true;
+    changed(true); return;
+  }
+  if (act === 'autosizeUndo') {
+    if (S.sizingUndo) S.M.pipes.forEach((p, i) => { if (i < S.sizingUndo.length) p.dProp = S.sizingUndo[i]; });
+    S.sizingUndo = null; S.sizing = null; changed(true); return;
+  }
+  if (!libsOk()) { toast('Excel/PDF кутубхоналари юкланмаган — интернет керак'); return; }
+  if (act === 'template') { await busy('Excel тайёрланмоқда…', () => modelXlsx(true)); return; }
+  if (act === 'xlsxres') { await busy('Натижалар тайёрланмоқда…', () => saveFile(`${base()}_natijalar.xlsx`, wbToBlob(resultsWorkbook(S.M, S.results, S.problems)))); return; }
+  if (act === 'pdf') {
+    const crit = S.checks.filter(c => c.lvl === 'crit').length;
+    if (crit) { toast(`${crit} та муҳим маълумот етишмайди — тўлиқ ҳисобот ўрнига маълумот сўрови`, 5000); await busy('Маълумот сўрови тайёрланмоқда…', () => requestPdf('')); return; }
+    await busy('PDF ҳисобот тайёрланмоқда…', fullReport);
+  }
+}
+
+// ---------- ишга тушириш ----------
+function init() {
+  try { const t = localStorage.getItem(THEME_KEY); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch { /* */ }
+  const d = loadDraft();
+  if (d) { S.M = normalizeModel(d.M); S.isSample = !!d.isSample; S.si = d.si || 0; S.tab = TABS.some(t => t[0] === d.tab) ? d.tab : 'help'; }
+  else { S.M = sampleModel(); S.isSample = true; }
+  if (inFrame()) $('#frameBanner').classList.remove('hide');
+  if (!libsOk()) $('#libBanner').classList.remove('hide');
+  recompute(); renderAll();
+
+  document.body.addEventListener('change', e => { if (e.target.dataset?.path) onEdit(e); });
+  document.body.addEventListener('change', e => {
+    const m = e.target.dataset?.month;
+    if (!m) return;
+    S.M.monthly = (S.M.monthly || []).filter(r => num(r.m) !== +m);
+    const V = num(e.target.value);
+    if (Number.isFinite(V)) S.M.monthly.push({ m: +m, V });
+    S.M.monthly.sort((a, b) => a.m - b.m);
+    changed();
+  });
+  document.body.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.si !== undefined) { S.si = +b.dataset.si; renderAll(); saveDraft(); return; }
+    if (b.dataset.tab) { S.tab = b.dataset.tab; renderAll(); saveDraft(); return; }
+    if (b.dataset.add) { const k = b.dataset.add; (S.M[k] ||= []).push(BLANK[k]()); changed(true); return; }
+    if (b.dataset.del) { const [k, i] = b.dataset.del.split('.'); S.M[k].splice(+i, 1); changed(true); return; }
+    if (b.dataset.act) onAction(b.dataset.act);
+  });
+  $('#fileJson').addEventListener('change', e => { handleFile(e.target.files[0]); e.target.value = ''; });
+  const panel = $('#panel');
+  panel.addEventListener('change', e => { if (e.target.id === 'fileX') { handleFile(e.target.files[0]); e.target.value = ''; } });
+  panel.addEventListener('dragover', e => { const d = e.target.closest?.('#drop'); if (d) { e.preventDefault(); d.classList.add('over'); } });
+  panel.addEventListener('dragleave', e => { e.target.closest?.('#drop')?.classList.remove('over'); });
+  panel.addEventListener('drop', e => { const d = e.target.closest?.('#drop'); if (!d) return; e.preventDefault(); d.classList.remove('over'); handleFile(e.dataTransfer.files[0]); });
+  panel.addEventListener('change', e => { if (e.target.id === 'profSel') { S.profNode = e.target.value; renderPanel(); } });
+  panel.addEventListener('pointermove', e => {
+    const tip = panel.querySelector('.prof ~ .sch-tip');
+    if (!tip) return;
+    const t = e.target.closest?.('[data-tip]');
+    if (!t) { tip.hidden = true; return; }
+    const b = panel.getBoundingClientRect();
+    tip.textContent = t.dataset.tip; tip.hidden = false;
+    tip.style.left = Math.min(b.width - 240, e.clientX - b.left + 12) + 'px'; tip.style.top = (e.clientY - b.top + 12) + 'px';
+  });
+  window.__gazHandleFile = handleFile;
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+
+return {  };
+})();
+
+</script>
+</body>
+</html>

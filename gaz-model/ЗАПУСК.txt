@@ -1,0 +1,11 @@
+Газ тармоғи гидравлик модели — как пользоваться
+
+1. Программа готова, ничего устанавливать не нужно:
+   dist\Gaz_tarmogi_modeli.html          — открыть двойным кликом в Chrome (для Excel/PDF нужен интернет)
+   dist\Gaz_tarmogi_modeli.inline.html   — то же самое, но работает полностью без интернета (1,9 МБ)
+
+2. Только если хотите менять код (нужен Node.js 18+ с nodejs.org):
+   cd /d "D:\Новая папка\gaz-model"
+   npm install
+   npm test            — тесты расчёта
+   npm run build       — пересобрать dist\Gaz_tarmogi_modeli.html после правок в src\

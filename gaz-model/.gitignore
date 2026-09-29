@@ -1,0 +1,6 @@
+node_modules/
+scratch/
+!dist/
+dist/*
+!dist/Gaz_tarmogi_modeli.html
+test-out/
