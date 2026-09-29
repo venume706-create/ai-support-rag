@@ -1,0 +1,17 @@
+{
+  "name": "gaz-tarmogi-modeli",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Газ тақсимлаш тармоқларининг гидравлик модели (бир файлли HTML)",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/engine.test.mjs",
+    "e2e": "node build.mjs --local && node test/e2e.mjs"
+  },
+  "devDependencies": {
+    "html2pdf.js": "0.10.1",
+    "playwright": "^1.56.1",
+    "xlsx": "0.18.5"
+  }
+}
