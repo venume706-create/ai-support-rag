@@ -10,7 +10,7 @@ export const APPL = { p4: 1.2, p2: 0.6, boil: 2.5, col: 2.2 };   // асбобл
 
 export function defaultParams() {
   return {
-    rho: 0.73, nu: 14.3, loc: 10, ka: 0.85, kb: -0.28, rhoAir: 1.293, nk: 1,
+    rho: 0.73, nu: 14.3, loc: 10, ka: 0.85, kb: -0.28, rhoAir: 1.293, nk: 1, regChar: 'prop',
     norms: { low: { exc: 2.0, sat: 1.2 }, mid: { min: 50 }, high2: { min: 150 }, high1: { min: 300 } },
     vmax: { low: 7, mid: 15, high2: 25, high1: 25 },
   };
@@ -30,7 +30,7 @@ export function defaultScenarios() {
 export function emptyModel() {
   return {
     meta: { obj: '', dist: '', org: '', exec: '', check: '', date: '', chainOk: false },
-    params: defaultParams(), nodes: [], pipes: [], regs: [], scen: defaultScenarios(),
+    params: defaultParams(), nodes: [], pipes: [], regs: [], scen: defaultScenarios(), monthly: [],
   };
 }
 
@@ -499,7 +499,20 @@ export function solveScenario(M, sc = {}) {
   let conv = true, outerIters = 0, outerConv = false;
   const compConv = new Uint8Array(comps.length).fill(1);
   const PinEff = g => g.PinMin > 0 ? g.PinMin : g.Pset;   // PinMin йўқ бўлса: Pout ≤ Pin
-  const law = (g, Pin) => !(Pin > 0) ? 0 : Pin < PinEff(g) ? g.Pset * Pin / PinEff(g) : g.Pset;
+  const lawProp = (g, Pin) => !(Pin > 0) ? 0 : Pin < PinEff(g) ? g.Pset * Pin / PinEff(g) : g.Pset;
+  // §13.3: регулятор тавсифномаси — тўлиқ очиқ клапан орқали сарф Q = K·f(p1, p2),
+  // f = √((p1 − p2)·p2) (p2 ≥ p1/2), f = p1/2 (критик). K — паспорт сарфи (PinMin, Pset) бўйича.
+  const useChar = String(P.regChar || '') === 'char';
+  const fOr = (p1, p2) => p2 >= p1 / 2 ? Math.sqrt(Math.max(0, (p1 - p2) * p2)) : p1 / 2;
+  regs.forEach(g => { g.K = useChar && g.cap > 0 ? g.cap / fOr(PinEff(g) / 1000 + P0, g.Pset / 1000 + P0) : 0; });
+  const lawChar = (g, Pin, Q) => {
+    if (!(Pin > 0)) return 0;
+    const p1 = Pin / 1000 + P0, pt = Math.min(g.Pset, Pin) / 1000 + P0, q = Math.max(0, Q) / g.K;
+    if (q <= fOr(p1, pt)) return (pt - P0) * 1000;
+    const p2 = q >= p1 / 2 ? (p1 / 2) * (p1 / 2) / q : (p1 + Math.sqrt(Math.max(0, p1 * p1 - 4 * q * q))) / 2;
+    return Math.max(0, Math.min(pt, p2) - P0) * 1000;
+  };
+  const law = (g, Pin, Q) => g.K > 0 ? lawChar(g, Pin, Q) : lawProp(g, Pin);
 
   // Пастки тармоқ жавоби модели D_r(Pout): жорий нуқта ва кичик оғиш бўйича (уринма).
   // Юқори тармоқда ГРП кириши юки = D_r(law(Pin)) — Pin га монотон ва узлуксиз, масала қавариқ қолади.
@@ -533,6 +546,11 @@ export function solveScenario(M, sc = {}) {
         const sp = Math.sqrt(ph); Pin = (sp - P0) * 1000; dPin = 1000 / (2 * sp);
       }
       if (!(Pin > 0)) return [0, 0];
+      if (g.K > 0) {                          // тавсифнома: сарф жорий қиймати билан (кечиккан), ҳосила — айирма
+        const Ql = Qreg[r], h = Math.max(1e-6, 1e-6 * Pin);
+        const [q] = D(lawChar(g, Pin, Ql)), [q2] = D(lawChar(g, Pin + h, Ql));
+        return [q, (q2 - q) / h * dPin];
+      }
       if (Pin >= pe) return [D(g.Pset)[0], 0];
       const [q, dq] = D(g.Pset * Pin / pe);
       return [q, dq * g.Pset / pe * dPin];
@@ -608,7 +626,7 @@ export function solveScenario(M, sc = {}) {
     backClosed = regs.map(() => false);
     for (const c of bottomUp) solveComp(c);
     const G = regs.map(() => 0);
-    for (const r of act) G[r] = law(regs[r], pk(regs[r].i, comps[regs[r].cin].stage)) - p[r];
+    for (const r of act) G[r] = law(regs[r], pk(regs[r].i, comps[regs[r].cin].stage), Qreg[r]) - p[r];
     return G;
   }
   const gnorm = G => act.reduce((m, r) => Math.max(m, Math.abs(G[r]) / regs[r].Pset), 0);
@@ -657,7 +675,7 @@ export function solveScenario(M, sc = {}) {
     const pn = p.slice();
     let dmax = 0, qerr = 0;
     for (const r of act) {
-      pn[r] = law(regs[r], pk(regs[r].i, comps[regs[r].cin].stage));
+      pn[r] = law(regs[r], pk(regs[r].i, comps[regs[r].cin].stage), Qreg[r]);
       dmax = Math.max(dmax, Math.abs(pn[r] - p[r]) / regs[r].Pset);
       qerr = Math.max(qerr, Math.abs(Qup[r] - Qreg[r]) / Math.max(1, Dcap[r]));
     }
@@ -779,9 +797,10 @@ export function solveScenario(M, sc = {}) {
     const Q = Math.max(0, Qreg[r]);
     const cap = g.cap;
     const load = cap > 0 ? Q / cap * 100 : 0;
-    const dead = !(Pin > 1e-3), lowin = !dead && g.PinMin > 0 && Pin < g.PinMin, over = cap > 0 && Q > cap;
+    const limited = g.K > 0 && !backClosed[r] && Po < Math.min(g.Pset, Pin) * (1 - 1e-4);   // §13.3: ўтказиш қобилияти етмади
+    const dead = !(Pin > 1e-3), lowin = !dead && g.PinMin > 0 && Pin < g.PinMin, over = (cap > 0 && Q > cap) || limited;
     const st = dead ? 'dead' : lowin ? 'lowin' : over ? 'over' : 'ok';
-    return { Pin, Pout: Po, Q, load, st, lowin, over, dead, closedBack: backClosed[r] };
+    return { Pin, Pout: Po, Q, load, st, lowin, over, dead, limited, closedBack: backClosed[r] };
   });
   let tot = 0, deliv = 0, risk = 0, riskN = 0, minLow = Infinity, supply = 0;
   M.nodes.forEach((n, k) => {
@@ -896,6 +915,41 @@ export function calibrate(M, { scenIndex = 0, lo = 0.1, hi = 30 } = {}) {
   const rows = meas.map(([k, v]) => ({ id: W.nodes[k].id, meas: v, before: r0.R.nodes[k].P, after: r1.R.nodes[k].P }));
   const atBound = nk < lo * 1.05 || nk > hi / 1.05;
   return { ok: true, nk, nk0, n: r1.n, rmsBefore: rms(r0), rmsAfter: rms(r1), rows, atBound, evals };
+}
+
+// ---------- §13.2 ойлик сарф бўйича етказиб берилмаган газ ҳажми ----------
+
+export const MONTH_NAMES = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+export const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+/** Маиший истеъмолнинг соатбай типик улуши (энг катта соат = 1): тун паст, эрталаб ва кечқурун чўққи. */
+export const HOURLY = [0.45, 0.42, 0.42, 0.42, 0.45, 0.55, 0.75, 0.95, 1.0, 0.9, 0.8, 0.75, 0.75, 0.72, 0.7, 0.72, 0.78, 0.88, 0.98, 1.0, 0.97, 0.9, 0.75, 0.58];
+
+/**
+ * Ойлик қабул қилинган газ (м³) — мавсумий шакл: k_m = V_m / V_макс. 1-режим — энг кўп ой чўққи соати.
+ * Ҳар соат учун юклама f = k_m·c_h, тармоқ ҳисобланади; етказилмаган газ соатлар бўйича йиғилади.
+ */
+export function seasonal(M, { scenIndex = 0, step = 0.02 } = {}) {
+  const rows = (M.monthly || []).map((r, i) => ({ m: isNum(r.m) ? num(r.m) : i + 1, V: num(r.V) })).filter(r => r.m >= 1 && r.m <= 12 && Number.isFinite(r.V) && r.V >= 0);
+  if (!rows.length) return null;
+  const Vmax = Math.max(...rows.map(r => r.V));
+  if (!(Vmax > 0)) return null;
+  const base = M.scen[scenIndex] || { src: 'norm', dem: 1, growth: 0 };
+  const dem0 = isNum(base.dem) ? num(base.dem) : 1;
+  const cache = new Map();
+  const at = f => {
+    const q = Math.max(step, Math.round(f / step) * step);
+    if (!cache.has(q)) { const R = solveScenario(M, { ...base, dem: dem0 * q }); cache.set(q, { short: R.short, deliv: R.deliv, tot: R.tot, conv: R.conv }); }
+    return cache.get(q);
+  };
+  const out = rows.sort((a, b) => a.m - b.m).map(r => {
+    const k = r.V / Vmax, days = MONTH_DAYS[r.m - 1];
+    let shortDay = 0, delivDay = 0, peakShort = 0, conv = true;
+    for (const c of HOURLY) { const x = at(k * c); shortDay += x.short; delivDay += x.deliv; peakShort = Math.max(peakShort, x.short); conv = conv && x.conv; }
+    return { m: r.m, name: MONTH_NAMES[r.m - 1], V: r.V, k, days, peakShort, shortDay, shortMonth: shortDay * days, delivMonth: delivDay * days, conv };
+  });
+  const year = out.reduce((t, r) => t + r.shortMonth, 0);
+  const R1 = at(1);
+  return { rows: out, year, upperDay: R1.short * 24, evals: cache.size, conv: out.every(r => r.conv) };
 }
 
 // ---------- §13.6 диаметрларни автоматик танлаш ----------
@@ -1127,6 +1181,9 @@ export function checkModel(M, results) {
   if (M.nodes.length && !M.nodes.some(n => isNum(n.Pmeas))) out.push(card('tip', 'Ўлчанган босимлар йўқ', {
     what: 'Модель ўлчовлар билан солиштирилмаган (калибровка).', why: 'ТТ §9, §14: модель ҳақиқий ўлчовлар билан тасдиқланади.',
     where: 'Назорат нуқталарида манометр кўрсаткичлари (қишки пик).', excel: `${ex.nodes}: «P ўлчанган кПа»`, todo: 'Камида 3–5 нуқтада ўлчанган босимни киритинг.' }));
+  if (M.nodes.length && !(M.monthly || []).some(r => isNum(r.V))) out.push(card('tip', 'Ойлик газ қабули маълумотлари йўқ', {
+    what: 'Етказиб берилмаган газнинг суткалик ва мавсумий ҳажми фақат юқори баҳо (соатлик × 24) сифатида берилади.', why: 'ТТ §3.4, §7: ҳажмни ойлар бўйича баҳолаш.',
+    where: 'ГТС/ГРП ҳисоблагичлари бўйича ойлик қабул ҳисоботи.', excel: 'Excel: «Ойлик сарф» варағи (Ой, Қабул қилинган газ, м³)', todo: '12 ой бўйича қабул қилинган газ ҳажмини киритинг.' }));
   const n1 = (M.scen || []).find(s => /N-1|авария/i.test(s.name || ''));
   if (n1 && !splitIds(n1.closed).length) out.push(card('tip', 'N-1 режими учун элемент танланмаган', {
     what: 'Авария режимида ҳеч қайси қувур ёки ГРП узилмаган.', why: 'ТТ §9: битта элемент ишдан чиққанда таъминот ишончлилиги.',

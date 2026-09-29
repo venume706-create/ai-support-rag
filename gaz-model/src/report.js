@@ -1,10 +1,10 @@
 // PDF ҳисобот (ТТ §17, 15 бўлим) ва етишмаётган маълумотлар бўйича PDF-сўров.
-import { STAGES, STAGE_NAME, num, isNum, fmtP, pUnit, normType, chainDepth, tracePath } from './engine.js';
+import { STAGES, STAGE_NAME, num, isNum, fmtP, pUnit, normType, chainDepth, tracePath, seasonal } from './engine.js';
 import { statusName } from './io.js';
 import { schemeSVG, svgToPng, profileData, profileSVG } from './scheme.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const f1 = x => (Number(x) || 0).toFixed(1), f2 = x => (Number(x) || 0).toFixed(2);
+const f1 = x => (Number(x) || 0).toFixed(1), f2 = x => (Number(x) || 0).toFixed(2), f0 = x => Math.round(Number(x) || 0).toLocaleString('ru-RU');
 const pv = (P, st) => `<span class="pv">${fmtP(P, st)}</span>`;          // босим: ҳеч қачон манфий эмас
 const table = (head, rows, cls = '') => `<table class="${cls}"><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${
   rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
@@ -51,7 +51,7 @@ export function formulasHTML(P) {
   s ≤ 0 — q = 0. Тармоқ ўтказа олмаган газ — <b>етказиб берилмаган газ</b> Σ(q<sub>т</sub> − q). Шу сабабли босим манфий бўлмайди.</p>
   <p><b>Ечиш усули</b>: тугун потенциаллари (паст: φ = P, ўрта/юқори: φ = P<sub>абс</sub>²), Ньютон усули, Якобиан — сийрак симметрик матрица,
   предобуславливателли қўшма градиентлар; ҳалқалар, тупиклар ва параллел қувурлар алоҳида элемент сифатида. ГРП/ШРП: P<sub>чиқ</sub> = P<sub>созл</sub>,
-  агар P<sub>кир</sub> ≥ P<sub>кир.мин</sub>; акс ҳолда P<sub>созл</sub>·P<sub>кир</sub>/P<sub>кир.мин</sub>. Поғоналар пастдан юқорига (сарф) ва юқоридан пастга (босим) ўзаро боғланади.</p>`;
+  ${P.regChar === 'char' ? 'агар сарф регулятор ўтказиш қобилиятидан ошмаса; акс ҳолда тўлиқ очиқ клапан тавсифномаси бўйича: Q = K·√((p<sub>1</sub> − p<sub>2</sub>)·p<sub>2</sub>), критик оқимда Q = K·p<sub>1</sub>/2 (абсолют босимлар), K — паспорт қобилияти (P<sub>кир.мин</sub>, P<sub>созл</sub>) бўйича.' : 'агар P<sub>кир</sub> ≥ P<sub>кир.мин</sub>; акс ҳолда P<sub>созл</sub>·P<sub>кир</sub>/P<sub>кир.мин</sub>.'} Поғоналар пастдан юқорига (сарф) ва юқоридан пастга (босим) ўзаро боғланади.</p>`;
 }
 
 const TERM = { 'тезкор': 'Тезкор (1 йилгача)', 'ўрта': 'Ўрта муддатли (1–3 йил)', 'узоқ': 'Узоқ муддатли (3 йилдан ортиқ)' };
@@ -80,6 +80,7 @@ export async function buildReportHTML(M, results, problems, checks) {
     prof = { id: M.nodes[kw].id, name: M.nodes[kw].name || '', data, imgs };
   }
 
+  const Z = seasonal(M);
   const worst = results.reduce((a, r, i) => (r.short > (a?.short ?? -1) ? { ...r, i } : a), null);
   const verdict = R1.short > 0.01 || R1.riskN > 0
     ? `Амалдаги максимал режимда ${R1.riskN} та истеъмолчи меъёрий босимсиз, етказиб берилмаган газ ${f1(R1.short)} м³/соат.`
@@ -135,7 +136,10 @@ export async function buildReportHTML(M, results, problems, checks) {
     ${table(['Режим', 'Ҳисобий сарф, м³/соат', 'Етказилган, м³/соат', 'Етказиб берилмаган, м³/соат', 'Етказиб берилмаган, м³/сутка*', 'Меъёрий босимсиз истеъмолчилар', 'Паст тармоқ мин. P, кПа', 'Муаммолар'],
       results.map((r, i) => [`${i + 1}. ${esc(r.scen.name)}`, f1(r.tot), f1(r.deliv), `<span class="${r.short > 0.05 ? 'red' : ''}">${f1(r.short)}</span>`, f1(r.short * 24),
         `${r.riskN} (${f1(r.risk)} м³/соат)`, r.minLow === null ? '—' : pv(r.minLow, 'low'), probIn(i)]), 'num')}
-    <p class="muted">* Суткалик ҳажм — юқори баҳо: соатлик етишмовчилик × 24 (пик соатлар бутун сутка давом этади деб фараз қилинган). Аниқ баҳо учун ойлик/суткалик қабул маълумотлари керак (ТТ §3.4).</p>
+    <p class="muted">* Суткалик ҳажм — юқори баҳо: соатлик етишмовчилик × 24 (пик соатлар бутун сутка давом этади деб фараз қилинган).${Z ? ' Ойлик маълумотлар бўйича аниқроқ баҳо — қуйида.' : ' Аниқ баҳо учун ойлик қабул маълумотлари керак (ТТ §3.4).'}</p>
+    ${Z ? `<h3>Етказиб берилмаган газнинг мавсумий ҳажми (ойлик қабул бўйича)</h3>${table(['Ой', 'Қабул, м³', 'Юклама k', 'Чўққи соатда, м³/соат', 'м³/сутка', 'м³/ой'],
+      [...Z.rows.map(r => [r.name, f0(r.V), r.k.toFixed(2), f1(r.peakShort), f0(r.shortDay), f0(r.shortMonth)]), ['<b>Йил</b>', '', '', '', '', `<b>${f0(Z.year)}</b>`]], 'num')}
+      <p class="muted">Ойлик қабул мавсумий шакл сифатида олинган (k = V/V<sub>макс</sub>; энг кўп ой чўққи соати — 1-режим), сутка ичидаги тақсимот — маиший истеъмолнинг типик соатбай профили; ҳар бир соатлик юклама учун тармоқ қайта ҳисобланган.</p>` : ''}
     ${(M.regs || []).length ? `<h3>ГРП/ШРП: кириш босими ва юкланиш бўйича режимлар</h3>${table(['Режим', ...M.regs.map(g => esc(g.id))],
       results.map((r, i) => [`${i + 1}`, ...r.regs.map((g, t) => g.st === 'off' ? '—' : `<span class="${g.lowin || g.dead || g.over ? 'red' : ''}">${pv(g.Pin, 'low')} кПа · ${g.load.toFixed(0)}%</span>`)]), 'num')}` : ''}
     <h3>1-режим схемаси</h3>${png ? `<img src="${png.data}" style="max-height:640px;object-fit:contain">` : '<p>—</p>'}

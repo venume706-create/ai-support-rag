@@ -60,6 +60,7 @@ export function sampleModel() {
   pipe('Q-K02', 'K-00', 'K-02', 'low', 200, 50);
   pipe('Q-L99', 'L-T1', 'L-T2', 'low', 600, 130.8, { mat: 'ПЭ', status: 'таклиф', lay: 'ер ости' });
   M.scen[3].closed = 'Q-M02';
+  M.monthly = [1030, 960, 760, 460, 250, 180, 160, 160, 200, 420, 720, 980].map((v, i) => ({ m: i + 1, V: v * 1000 }));
   return M;
 }
 

@@ -361,3 +361,60 @@ test('§13.4: калибровка — синтетик ўлчовлардан �
   assert.ok(C.rmsAfter < 0.01 && C.rmsBefore > C.rmsAfter * 5, `${C.rmsBefore} ${C.rmsAfter}`);
   assert.equal(calibrate(sampleModel()).ok, false);
 });
+
+import { seasonal } from '../src/engine.js';
+test('§13.2: ойлик маълумотлар бўйича мавсумий етказилмаган газ', () => {
+  const M = chainModel();
+  M.monthly = [1000, 900, 700, 400, 200, 150, 150, 150, 200, 400, 700, 950].map((v, i) => ({ m: i + 1, V: v * 1000 }));
+  const Z = seasonal(M);
+  assert.ok(Z && Z.conv && Z.rows.length === 12);
+  const jan = Z.rows[0], jul = Z.rows[6];
+  assert.ok(jan.shortMonth > jul.shortMonth && jul.shortMonth > 0, `${jan.shortMonth} ${jul.shortMonth}`);
+  assert.ok(jan.shortDay < Z.upperDay, 'соатбай баҳо ×24 юқори баҳодан кичик');
+  near(jan.peakShort, solveScenario(M, NORM).short, 0.03, 'январь чўққи соати ≈ 1-режим');
+  near(Z.year, Z.rows.reduce((t, r) => t + r.shortDay * r.days, 0), 1e-9);
+  assert.equal(seasonal(sampleModel()).year < 1, true, 'намуна: етказилмаган газ йўқ');
+  assert.equal(seasonal(chainModel()), null);
+});
+
+test('§13.3: регулятор тавсифномаси — ўтказиш қобилияти бўйича чиқиш босими', () => {
+  const mk = (load, mode) => {
+    const M = model();
+    M.params.regChar = mode;
+    N(M, 'G', { type: 'ГТС', cat: 'mid', Pnorm: 300, Pmin: 60 });
+    N(M, 'M1', { cat: 'mid' });
+    Pp(M, 'm1', 'G', 'M1', 'mid', 200, 100);
+    M.regs.push({ id: 'ШРП', in: 'M1', out: 'L0', Pset: 3, PinMin: 50, cap: 100 });
+    N(M, 'L0'); N(M, 'L1', { q: load });
+    Pp(M, 'l1', 'L0', 'L1', 'low', 50, 200);
+    return M;
+  };
+  const K = 100 / Math.sqrt((0.151325 - 0.104325) * 0.104325), f = (p1, p2) => p2 >= p1 / 2 ? Math.sqrt((p1 - p2) * p2) : p1 / 2;
+  // сарф қобилиятдан кичик — Pout = Pset
+  let R = solveScenario(mk(200, 'char'), NORM);
+  assert.ok(R.conv); near(R.regs[0].Pout, 3, 1e-9);
+  // 2-режим (Pin ≈ 60 кПа): 200 м³/соат ўтмайди — Pout пасаяди, Q = K·f(p1,p2)
+  R = solveScenario(mk(200, 'char'), MIN);
+  assert.ok(R.conv, 'яқинлашди');
+  const g = R.regs[0], p1 = g.Pin / 1000 + 0.101325, p2 = g.Pout / 1000 + 0.101325;
+  assert.ok(g.Pout < 3 && g.over && g.limited, JSON.stringify(g));
+  near(g.Q, K * f(p1, p2), 1e-4, 'Q = K·f');
+  near(R.supply, R.deliv, 1e-6);
+  // пропорционал қонунда (ТЗ асосий): Pin ≥ PinMin → Pout = Pset
+  R = solveScenario(mk(200, 'prop'), MIN);
+  near(R.regs[0].Pout, 3, 1e-9);
+});
+
+test('§13.3: тавсифнома режимида стресс-тармоқлар — инвариантлар', () => {
+  let bad = 0, n = 0, lim = 0;
+  for (let s = 1; s <= 80; s++) {
+    const M = randomNet(s * 7919, true); M.params.regChar = 'char';
+    const R = solveScenario(M, MIN); n++;
+    if (!R.conv) bad++;
+    if (R.regs.some(g => g.limited)) lim++;
+    assert.ok(R.nodes.every(x => x.P >= 0));
+    assert.ok(Math.abs(R.supply - R.deliv) / Math.max(1, R.deliv) < 1e-3);
+  }
+  console.log(`# тавсифнома: ${n} ҳисоб, қобилият чекланган ${lim}, яқинлашмаган ${bad}`);
+  assert.ok(lim > 0 && bad / n <= 0.02);
+});

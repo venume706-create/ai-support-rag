@@ -1,5 +1,5 @@
 // Excel импорт/экспорт, JSON лойиҳа, файлларни юклаб олиш.
-import { STAGE_NAME, normStage, normType, normStatus, num, blank, emptyModel, defaultParams, defaultScenarios, fmtP, pUnit } from './engine.js';
+import { STAGE_NAME, normStage, normType, normStatus, num, blank, emptyModel, defaultParams, defaultScenarios, fmtP, pUnit, MONTH_NAMES } from './engine.js';
 
 export const SHEETS = {
   nodes: { name: 'Тугунлар', cols: [['id', 'ID'], ['name', 'Номи'], ['type', 'Тури'], ['cat', 'Поғона'], ['N', 'N хонадон'], ['p4', 'Плита 4к'],
@@ -35,6 +35,7 @@ const INSTR = [
   ['3. «ГРП-ШРП»: кириш ва чиқиш тугунлари турли поғоналарда бўлади. Чиқиш босими (уставка), минимал кириш босими, ўтказиш қобилияти — паспортдан.'],
   ['4. «Режимлар»: ТТ §9 бўйича 6 режим. Узилган элементлар — вергул билан ID лар (масалан: Q-M02).'],
   ['5. «Параметрлар»: объект, ижрочи ва ҳисоб параметрлари. «?» белгиси — тўлдирилиши шарт бўлган катак.'],
+  ['6. «Ойлик сарф»: 12 ой бўйича ГТС/ГРП орқали қабул қилинган газ, м³ — етказиб берилмаган газнинг мавсумий ҳажми учун (ихтиёрий).'],
   ['Барча босимлар — ортиқча, кПа. Натижада паст босим кПа да, ўрта ва юқори босим МПа да кўрсатилади.'],
 ];
 
@@ -97,6 +98,17 @@ export function importWorkbook(wb) {
     if (sc.length) M.scen = sc.map(s => ({ name: s.name, src: /мин|min/i.test(String(s.src)) ? 'min' : 'norm', dem: isFinite(num(s.dem)) ? num(s.dem) : 1,
       growth: isFinite(num(s.growth)) ? num(s.growth) : 0, closed: String(s.closed ?? ''), variant: yes(s.variant) }));
   }
+  const ms = find('Ойлик сарф');
+  if (ms) {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[ms], { header: 1, defval: '', raw: true });
+    const h = Math.max(0, rows.findIndex(r => r.some(c => /^ой$/i.test(String(c).trim()))));
+    for (const r of rows.slice(h + 1)) {
+      let m = num(r[0]);
+      if (!Number.isFinite(m)) m = MONTH_NAMES.findIndex(x => hk(x) === hk(r[0])) + 1;
+      const V = num(r[1]);
+      if (m >= 1 && m <= 12 && Number.isFinite(V)) M.monthly.push({ m, V });
+    }
+  }
   const ps = find('Параметрлар');
   if (ps) {
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[ps], { header: 1, defval: '', raw: true });
@@ -107,6 +119,8 @@ export function importWorkbook(wb) {
       M.meta[k] = k === 'chainOk' ? yes(v) : (String(v).trim() === '?' ? '' : String(v).trim());
     }
     for (const [k, t] of PARAM_ROWS) { const v = num(val.get(hk(t))); if (Number.isFinite(v)) setPath(M.params, k, v); }
+    const rc = String(val.get(hk('ГРП модели')) ?? '');
+    if (/тавсиф|char/i.test(rc)) M.params.regChar = 'char';
   }
   M.nodes.forEach((n, k) => { if (blank(n.id)) n.id = 'N-' + (k + 1); });
   M.pipes.forEach((p, k) => { if (blank(p.id)) p.id = 'P-' + (k + 1); });
@@ -207,13 +221,17 @@ export function modelWorkbook(M, missing = null) {
     par.push([t, v]);
   }
   for (const [k, t] of PARAM_ROWS) par.push([t, getPath(M.params, k)]);
+  par.push(['ГРП модели', M.params.regChar === 'char' ? 'тавсифнома' : 'пропорционал']);
+  const mon = [['Ой', 'Қабул қилинган газ, м³', 'Номи']];
+  for (let m = 1; m <= 12; m++) { const r = (M.monthly || []).find(x => num(x.m) === m); mon.push([m, r ? r.V : '', MONTH_NAMES[m - 1]]); }
+  XLSX.utils.book_append_sheet(wb, aoaSheet(mon, [6, 24, 12]), 'Ойлик сарф');
   XLSX.utils.book_append_sheet(wb, aoaSheet(par, [40, 40]), 'Параметрлар');
   XLSX.utils.book_append_sheet(wb, aoaSheet(INSTR, [120]), 'Кўрсатма');
   return wb;
 }
 
 const ST_NAME = { ok: 'меъёрда', warn: 'паст', bad: 'меъёрдан паст', dead: 'газсиз', nosrc: 'манбасиз', fast: 'тезлик юқори', off: 'ўчирилган',
-  invalid: 'нотўғри', lowin: 'кириш босими паст', over: 'ортиқча юкланган' };
+  invalid: 'нотўғри', lowin: 'кириш босими паст', over: 'ортиқча юкланган', limited: 'қобилият етмайди' };
 export const statusName = s => ST_NAME[s] || s;
 
 /** §9.2 натижалар китоби. */
@@ -259,6 +277,7 @@ export function normalizeModel(o) {
   M.pipes = Array.isArray(o.pipes) ? o.pipes : [];
   M.regs = Array.isArray(o.regs) ? o.regs : [];
   M.scen = Array.isArray(o.scen) && o.scen.length ? o.scen : defaultScenarios();
+  M.monthly = Array.isArray(o.monthly) ? o.monthly : [];
   return M;
 }
 

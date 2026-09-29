@@ -1,5 +1,5 @@
 // Ҳолат, текширувлар, интерфейс.
-import { STAGES, STAGE_NAME, solveAll, checkModel, collectProblems, fmtP, pUnit, normType, normStage, num, blank, defaultScenarios, autoSize, tracePath, calibrate } from './engine.js';
+import { STAGES, STAGE_NAME, solveAll, checkModel, collectProblems, fmtP, pUnit, normType, normStage, num, blank, defaultScenarios, autoSize, tracePath, calibrate, seasonal, MONTH_NAMES } from './engine.js';
 import { sampleModel } from './sample.js';
 import { importWorkbook, modelWorkbook, resultsWorkbook, wbToBlob, readWorkbookFile, normalizeModel, inFrame, saveFile, safeName, statusName, toGeoJSON, toKML, toDXF, coordsKind } from './io.js';
 import { mountScheme, legendHTML, describeElement, profileData, profileSVG, layoutNodes } from './scheme.js';
@@ -58,6 +58,7 @@ function calibText() {
 function renderParams() {
   $('#params').innerHTML = PARAMS.map(([k, t]) => `<label class="f">${t}<input inputmode="decimal" data-path="params.${k}" data-num="1" value="${escH(getP(S.M.params, k))}"></label>`).join('') +
     `<div class="small muted" style="grid-column:1/-1">Нормалар: ШНҚ 2.04.08-22, ҚР 05.02-23; тезликлар — СП 42-101 п.3.38. Ўзгартириш барча режимларни қайта ҳисоблайди.</div>
+    <label class="f">ГРП/ШРП модели<select data-path="params.regChar"><option value="prop" ${S.M.params.regChar !== 'char' ? 'selected' : ''}>пропорционал (ТТ: Pчиқ = Pсозл·Pкир/Pкир.мин)</option><option value="char" ${S.M.params.regChar === 'char' ? 'selected' : ''}>тавсифнома (ўтказиш қобилияти ΔP га боғлиқ)</option></select></label>
     <div style="grid-column:1/-1"><button type="button" data-act="calib">Ўлчовлар бўйича калибровка (1-режим)</button> ${calibText()}</div>`;
 }
 
@@ -161,7 +162,7 @@ function regsTab() {
     return `<tr><td>${inp(p + 'id', g.id)}</td><td>${inp(p + 'name', g.name, 'w2')}</td><td>${inp(p + 'type', g.type, 'w0')}</td><td>${inp(p + 'in', g.in)}</td><td>${inp(p + 'out', g.out)}</td>
       <td>${inp(p + 'Pset', g.Pset, 'w0', true)}</td><td>${inp(p + 'PinMin', g.PinMin, 'w0', true)}</td><td>${inp(p + 'cap', g.cap, 'w0', true)}</td>
       <td class="r res">${r ? r.Pin.toFixed(2) : ''}</td><td class="r res">${r ? r.Pout.toFixed(3) : ''}</td><td class="r res">${r ? r.Q.toFixed(1) : ''}</td><td class="r res">${r ? r.load.toFixed(0) : ''}</td>
-      <td class="res">${r ? stCell(r.over && r.st !== 'over' ? r.st : r.st) + (r.over && r.st !== 'over' ? ' ' + stCell('over') : '') : ''}</td><td><button type="button" data-del="regs.${i}" title="Ўчириш">✕</button></td></tr>`;
+      <td class="res">${r ? stCell(r.st) + (r.limited ? ' ' + stCell('limited') : r.over && r.st !== 'over' ? ' ' + stCell('over') : '') : ''}</td><td><button type="button" data-del="regs.${i}" title="Ўчириш">✕</button></td></tr>`;
   }).join('');
   return `<div class="row-actions"><button type="button" data-add="regs">＋ ГРП/ШРП</button><span class="small muted">Босимлар — кПа (ортиқча).</span></div>
     <div class="tw"><table class="t"><thead><tr><th>ID</th><th>Номи</th><th>Тури</th><th>Кириш тугуни</th><th>Чиқиш тугуни</th><th>P чиқ., кПа</th><th>P кир. мин, кПа</th><th>Ўтказиш, м³/соат</th>
@@ -173,12 +174,32 @@ function scenTab() {
     return `<tr><td>${i + 1}</td><td>${inp(p + 'name', s.name, 'w3')}</td><td><select data-path="${p}src"><option value="norm" ${s.src !== 'min' ? 'selected' : ''}>нормал</option><option value="min" ${s.src === 'min' ? 'selected' : ''}>минимал</option></select></td>
       <td>${inp(p + 'dem', s.dem, 'w0', true)}</td><td>${inp(p + 'growth', s.growth, 'w0', true)}</td><td>${inp(p + 'closed', s.closed, 'w2')}</td><td><input type="checkbox" data-path="${p}variant" ${s.variant ? 'checked' : ''}></td>
       <td class="r res">${R ? R.tot.toFixed(1) : ''}</td><td class="r res">${R ? R.short.toFixed(1) : ''}</td><td class="r res">${R ? R.riskN : ''}</td><td class="r res">${R && R.minLow !== null ? fmtP(R.minLow, 'low') : '—'}</td>
-      <td class="res">${R ? (R.conv ? stCell('ok') : '<span class="st bad">яқинлашмади</span>') : ''}</td></tr>`;
+      <td class="res">${R ? (R.conv ? '<span class="st ok">яқинлашди</span>' : '<span class="st bad">яқинлашмади</span>') : ''}</td></tr>`;
   }).join('');
   return `<p class="small muted">ТТ §9: олти режим. «Узилган элементлар» — вергул билан қувур ёки ГРП ID лари (N-1). «Таклиф» белгиланган режимда «таклиф» ҳолатидаги қувурлар ва «d таклиф» ишлатилади.</p>
     <div class="row-actions"><button type="button" data-act="resetScen">Режимларни тиклаш</button></div>
     <div class="tw"><table class="t"><thead><tr><th>№</th><th>Номи</th><th>ГТС босими</th><th>Сарф коэфф.</th><th>Ўсиш, %</th><th>Узилган элементлар</th><th>Таклиф</th>
-    <th>Сарф, м³/соат</th><th>Етказилмаган</th><th>Меъёрсиз ист.</th><th>Мин. P паст, кПа</th><th>Ҳисоб</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    <th>Сарф, м³/соат</th><th>Етказилмаган</th><th>Меъёрсиз ист.</th><th>Мин. P паст, кПа</th><th>Ҳисоб</th></tr></thead><tbody>${rows}</tbody></table></div>${monthlyBlock()}`;
+}
+let seasKey = '', seasVal = null;
+function getSeasonal() {
+  const key = JSON.stringify([S.M.nodes, S.M.pipes, S.M.regs, S.M.params, S.M.scen[0], S.M.monthly]);
+  if (key !== seasKey) { seasKey = key; seasVal = seasonal(S.M); }
+  return seasVal;
+}
+function monthlyBlock() {
+  const Z = getSeasonal(), byM = new Map((S.M.monthly || []).map((r, i) => [num(r.m), i]));
+  const cells = MONTH_NAMES.map((nm, i) => {
+    const j = byM.get(i + 1);
+    return `<label class="f">${i + 1}. ${nm}<input inputmode="decimal" data-month="${i + 1}" value="${escH(j !== undefined ? S.M.monthly[j].V : '')}"></label>`;
+  }).join('');
+  const f0 = x => Math.round(x).toLocaleString('ru-RU');
+  const tbl = Z ? `<div class="tw" style="margin-top:8px"><table class="t"><thead><tr><th>Ой</th><th>Қабул, м³</th><th>Юклама k</th><th>Чўққи соатда етказилмаган, м³/соат</th><th>Етказилмаган, м³/сутка</th><th>Етказилмаган, м³/ой</th></tr></thead><tbody>${
+      Z.rows.map(r => `<tr><td>${r.name}</td><td class="r">${f0(r.V)}</td><td class="r">${r.k.toFixed(2)}</td><td class="r">${r.peakShort.toFixed(1)}</td><td class="r">${f0(r.shortDay)}</td><td class="r"><b>${f0(r.shortMonth)}</b></td></tr>`).join('')}
+      <tr><td><b>Йил</b></td><td></td><td></td><td></td><td></td><td class="r"><b>${f0(Z.year)}</b></td></tr></tbody></table></div>
+      <p class="small muted">Баҳо: ойлик қабул мавсумий шакл сифатида (k = V/V<sub>макс</sub>), суткалик тақсимот — типик соатбай профил; ҳар соат учун тармоқ қайта ҳисобланган (${Z.evals} ҳисоб). 1-режимдаги юқори баҳо (соатлик × 24): ${f0(Z.upperDay)} м³/сутка.</p>` : '';
+  return `<h3 style="font-size:14.5px;margin:18px 0 6px">Ойлик газ қабули ва етказиб берилмаган ҳажм (ТТ §3.4)</h3>
+    <div class="grid">${cells}</div>${tbl}`;
 }
 function probsTab() {
   if (!S.problems.length) return '<p class="status good">Муаммолар аниқланмади.</p>';
@@ -192,7 +213,14 @@ function methodTab() {
     <h3>Режимлар (ТТ §9)</h3><ol>${defaultScenarios().map(s => `<li>${escH(s.name)}: ГТС босими — ${s.src === 'min' ? 'минимал' : 'нормал'}, сарф ×${s.dem}${s.growth ? `, ўсиш +${s.growth}%` : ''}${s.variant ? ', таклиф этилган қувурлар билан' : ''}.</li>`).join('')}</ol>
     <h3>Ҳолатлар</h3><p>Паст босим: меъёрда — P ≥ ${S.M.params.norms.low.exc} кПа; паст — P ≥ ${S.M.params.norms.low.sat} кПа; меъёрдан паст — ундан кам. Ўрта/юқори: P ≥ минимал.
     Газсиз — P ≈ 0 ёки талабнинг 5% дан камини олган. Манбасиз — манбага уланмаган. Қувур: тезлик юқори — v > v<sub>макс</sub>.</p>
-    <h3>Чекловлар</h3><p>Баландлик фарқи, ойлик сарф маълумотлари ва регулятор тавсифномаси ҳисобга олинмаган (кейинги босқичлар).</p></div>`;
+    <h3>Қўшимча имкониятлар (§13)</h3><ul>
+    <li><b>Баландлик</b>: «Тугунлар» даги Z (м) — паст босимда P<sub>о</sub> = P<sub>б</sub> − ΔP + g·(ρ<sub>ҳаво</sub> − ρ)·(z<sub>о</sub> − z<sub>б</sub>).</li>
+    <li><b>Ойлик сарф</b> («Режимлар» вкладкаси) — етказиб берилмаган газ м³/сутка ва м³/ой: ойлик қабул мавсумий шакл, типик соатбай профил, ҳар соат учун қайта ҳисоб.</li>
+    <li><b>ГРП/ШРП тавсифномаси</b> («Ҳисоб параметрлари»): Q = K·√((p<sub>1</sub>−p<sub>2</sub>)·p<sub>2</sub>), критик — K·p<sub>1</sub>/2; K паспорт қобилиятидан.</li>
+    <li><b>Калибровка</b>: «P ўлчанган» бўйича ғадир-будурлик коэффициенти k<sub>n</sub> энг кичик квадратлар усулида.</li>
+    <li><b>Экспорт</b> («Схема»): GeoJSON, KML (WGS84), DXF.</li>
+    <li><b>Диаметрларни автоматик танлаш</b> («Қувурлар»): 6-режимда барча истеъмолчилар меъёрда бўладиган минимал стандарт диаметрлар (пўлат ва ПЭ SDR11 сортаменти).</li>
+    <li><b>Босим профили</b> — манбадан танланган тугунгача, поғоналар бўйича.</li></ul></div>`;
 }
 function helpTab() {
   const crit = S.checks.filter(c => c.lvl === 'crit').length, warn = S.checks.filter(c => c.lvl === 'warn').length;
@@ -392,6 +420,15 @@ function init() {
   recompute(); renderAll();
 
   document.body.addEventListener('change', e => { if (e.target.dataset?.path) onEdit(e); });
+  document.body.addEventListener('change', e => {
+    const m = e.target.dataset?.month;
+    if (!m) return;
+    S.M.monthly = (S.M.monthly || []).filter(r => num(r.m) !== +m);
+    const V = num(e.target.value);
+    if (Number.isFinite(V)) S.M.monthly.push({ m: +m, V });
+    S.M.monthly.sort((a, b) => a.m - b.m);
+    changed();
+  });
   document.body.addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b) return;
