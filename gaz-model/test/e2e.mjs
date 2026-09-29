@@ -127,6 +127,19 @@ try {
     await page.selectOption('#profSel', 'K-02');
     const rows = await page.locator('#panel tbody tr').count();
     assert.ok(nsvg === 3 && rows >= 5, `${nsvg} ${rows}`);
+    // §13.5: DXF экспорт; §13.4: калибровка (ўлчовлар йўқ — хабар)
+    const dl = [];
+    page.on('download', d => dl.push(d));
+    await page.click('[data-tab="scheme"]');
+    await page.click('[data-act="dxf"]');
+    await waitDownloads(dl, 1);
+    const dxf = readFileSync(await dl[0].path(), 'latin1');
+    assert.ok(dxf.includes('ENTITIES') && dxf.trim().endsWith('EOF'), 'DXF');
+    await page.click('#paramsBox summary');
+    await page.click('[data-act="calib"]');
+    assert.ok((await page.textContent('#params')).includes('Ўлчанган босимлар йўқ'));
+    assert.deepEqual(errors, []);
+    ok(`DXF экспорт (${(dxf.match(/\r\nLINE\r\n/g) || []).length} та чизиқ), калибровка тугмаси`);
     assert.deepEqual(errors, []);
     ok(`диаметрлар автоматик танланди (${r.ch.join(', ')}), 6-режимда барча истеъмолчилар меъёрда; бекор қилиш ишлайди; профиль: ${nsvg} график`);
     await ctx.close();

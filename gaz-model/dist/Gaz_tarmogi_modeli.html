@@ -133,7 +133,7 @@ const APPL = { p4: 1.2, p2: 0.6, boil: 2.5, col: 2.2 };   // асбоблар с
 
 function defaultParams() {
   return {
-    rho: 0.73, nu: 14.3, loc: 10, ka: 0.85, kb: -0.28,
+    rho: 0.73, nu: 14.3, loc: 10, ka: 0.85, kb: -0.28, rhoAir: 1.293, nk: 1,
     norms: { low: { exc: 2.0, sat: 1.2 }, mid: { min: 50 }, high2: { min: 150 }, high1: { min: 300 } },
     vmax: { low: 7, mid: 15, high2: 25, high1: 25 },
   };
@@ -257,7 +257,8 @@ function pipeHyd(Lm, dmm, mat, stage, P) {
   const C = stage === 'low' ? 626.1 : 1.2687e-4;
   const K = C * P.rho * Lp / Math.pow(dcm, 5);
   const beta = 0.0354 / (dcm * P.nu * 1e-6);
-  const nd = (isPE(mat) ? 0.0007 : 0.01) / dcm;
+  const nk = isNum(P.nk) && num(P.nk) > 0 ? num(P.nk) : 1;   // §13.4: ғадир-будурлик калибровка коэффициенти
+  const nd = (isPE(mat) ? 0.0007 : 0.01) * nk / dcm;
   const h = { K, beta, nd, dmm, stage };
   h.QX = RE_X / beta;                       // ламинар чегараси
   h.hX = K * 64 * h.QX / beta;
@@ -345,6 +346,7 @@ function demand(qr, Pt, stage, phi) {
  */
 function solveComponent(comp, phi0) {
   const { n, pipes, fixed, qr, Pt, extra, stage } = comp;
+  const off = comp.off || null;                 // баландлик тузатмаси: φ_ҳақиқий = ψ + off (фақат паст)
   const xf = Array.from({ length: n }, () => null);
   for (const [k, fn] of comp.xfn || []) (xf[k] ||= []).push(fn);
   const free = [], loc = new Int32Array(n).fill(-1);
@@ -388,8 +390,9 @@ function solveComponent(comp, phi0) {
     }
     for (let f = 0; f < m; f++) {
       const k = free[f];
-      let [q, d] = demand(qr[k], Pt[k], stage, ph[k]);
-      if (xf[k]) for (const fn of xf[k]) { const [q2, d2] = fn(ph[k]); q += q2; d += d2; }
+      const pt = off ? ph[k] + off[k] : ph[k];
+      let [q, d] = demand(qr[k], Pt[k], stage, pt);
+      if (xf[k]) for (const fn of xf[k]) { const [q2, d2] = fn(pt); q += q2; d += d2; }
       Fout[f] -= q + (extra[k] || 0);
       if (withJac) dq[f] = d;
     }
@@ -605,6 +608,12 @@ function solveScenario(M, sc = {}) {
     Pt[k] = st === 'low' ? P.norms.low.sat : P.norms[st].min;
   }
   const hyd = pipes.map(p => p.active ? pipeHyd(p.L, p.d, p.mat, comps[compOf[p.i]].stage, P) : null);
+  // §13.1: паст босимда баландлик фарқи — ΔP_h = g·(ρ_ҳаво − ρ_газ)·Δz (газ ҳаводан енгил: юқорида босим ортади)
+  const offN = new Float64Array(N);
+  const hz = 9.81 * ((isNum(P.rhoAir) ? num(P.rhoAir) : 1.293) - P.rho);
+  for (let k = 0; k < N; k++) if (comps[compOf[k]].stage === 'low' && isNum(M.nodes[k].z)) offN[k] = hz * num(M.nodes[k].z);
+  const hasZ = offN.some(v => v !== 0);
+  const pk = (k, stage) => pOfPhi(phi[k] + offN[k], stage);      // тугуннинг ҳақиқий босими, кПа
   const phi = new Float64Array(N).fill(NaN), Qe = new Float64Array(pipes.length);
   const Pout = regs.map(g => g.active && powered[g.cin] ? g.Pset : 0);
   const Qreg = regs.map(() => 0);          // регулятор сарфи (чиқиш тугунига етказилган)
@@ -671,17 +680,17 @@ function solveScenario(M, sc = {}) {
     const qrc = cp.nodes.map(k => qr[k]), Ptc = cp.nodes.map(k => Pt[k]);
     for (let round = 0; round <= regs.length; round++) {
       const fixed = new Float64Array(n).fill(NaN);
-      for (const k of cp.nodes) if (Number.isFinite(srcP[k])) fixed[loc.get(k)] = phiOfP(srcP[k], cp.stage);
+      for (const k of cp.nodes) if (Number.isFinite(srcP[k])) fixed[loc.get(k)] = phiOfP(srcP[k], cp.stage) - offN[k];
       const feeders = [];
       for (let r = 0; r < regs.length; r++) {
         const g = regs[r];
         if (!g.active || g.cout !== c || !powered[g.cin] || backClosed[r]) continue;
-        if (!Number.isFinite(srcP[g.o])) fixed[loc.get(g.o)] = phiOfP(Math.max(0, Pout[r]), cp.stage);
+        if (!Number.isFinite(srcP[g.o])) fixed[loc.get(g.o)] = phiOfP(Math.max(0, Pout[r]), cp.stage) - offN[g.o];
         feeders.push(r);
       }
       const phi0 = new Float64Array(n);
       cp.nodes.forEach((k, a) => { phi0[a] = phi[k]; });
-      const res = solveComponent({ n, pipes: cPipes, fixed, qr: qrc, Pt: Ptc, extra, stage: cp.stage, xfn }, phi0);
+      const res = solveComponent({ n, pipes: cPipes, fixed, qr: qrc, Pt: Ptc, extra, stage: cp.stage, xfn, off: hasZ ? cp.nodes.map(k => offN[k]) : null }, phi0);
       compConv[c] = res.conv ? 1 : 0;
       cp.nodes.forEach((k, a) => { phi[k] = res.phi[a]; });
       cp.pipes.forEach((e, t) => { Qe[e] = res.Q[t]; cPipes[t].Q = res.Q[t]; });
@@ -692,7 +701,7 @@ function solveScenario(M, sc = {}) {
       for (const o of supply.keys()) {
         let s = 0;
         cp.pipes.forEach((e, t) => { if (pipes[e].i === o) s += res.Q[t]; else if (pipes[e].j === o) s -= res.Q[t]; });
-        s += demand(qr[o], Pt[o], cp.stage, phi[o])[0] + loadAt(loc.get(o), phi[o]);
+        s += demand(qr[o], Pt[o], cp.stage, phi[o] + offN[o])[0] + loadAt(loc.get(o), phi[o] + offN[o]);
         supply.set(o, s);
       }
       const byOut = new Map();
@@ -709,7 +718,7 @@ function solveScenario(M, sc = {}) {
       break;
     }
     for (let r = 0; r < regs.length; r++) if (regs[r].cout === c && backClosed[r]) Qreg[r] = 0;
-    for (const [a, fn, r] of xfn) Qup[r] = fn(phi[cp.nodes[a]])[0];
+    for (const [a, fn, r] of xfn) Qup[r] = fn(phi[cp.nodes[a]] + offN[cp.nodes[a]])[0];
   }
 
   // Бир ўтиш: берилган Pout да пастдан юқорига ҳисоб; натижа G_r = law(Pin_r) − Pout_r.
@@ -722,7 +731,7 @@ function solveScenario(M, sc = {}) {
     backClosed = regs.map(() => false);
     for (const c of bottomUp) solveComp(c);
     const G = regs.map(() => 0);
-    for (const r of act) G[r] = law(regs[r], pOfPhi(phi[regs[r].i], comps[regs[r].cin].stage)) - p[r];
+    for (const r of act) G[r] = law(regs[r], pk(regs[r].i, comps[regs[r].cin].stage)) - p[r];
     return G;
   }
   const gnorm = G => act.reduce((m, r) => Math.max(m, Math.abs(G[r]) / regs[r].Pset), 0);
@@ -762,7 +771,7 @@ function solveScenario(M, sc = {}) {
       }
       for (const r of feed) {
         if (!backClosed[r]) continue;
-        const Pf = pOfPhi(phi[regs[r].o], comps[c].stage), Ps = regs[r].Pset;
+        const Pf = pk(regs[r].o, comps[c].stage), Ps = regs[r].Pset;
         const s0 = sref > 0 ? sref : Dcap[r] / (0.05 * Ps);
         const dpp = Math.max(1e-4 * Ps, 1e-3 * Math.max(Pf, 0));
         samples[r] = [[Math.max(Pf, 1e-9), 0], [Math.max(Pf, 1e-9) + dpp, s0 * dpp]];
@@ -771,7 +780,7 @@ function solveScenario(M, sc = {}) {
     const pn = p.slice();
     let dmax = 0, qerr = 0;
     for (const r of act) {
-      pn[r] = law(regs[r], pOfPhi(phi[regs[r].i], comps[regs[r].cin].stage));
+      pn[r] = law(regs[r], pk(regs[r].i, comps[regs[r].cin].stage));
       dmax = Math.max(dmax, Math.abs(pn[r] - p[r]) / regs[r].Pset);
       qerr = Math.max(qerr, Math.abs(Qup[r] - Qreg[r]) / Math.max(1, Dcap[r]));
     }
@@ -862,9 +871,9 @@ function solveScenario(M, sc = {}) {
     const c = comps[compOf[k]], stage = c.stage;
     const isFixed = Number.isFinite(srcP[k]) || regs.some((g, r) => g.active && g.o === k && powered[g.cin] && !backClosed[r]);
     if (!powered[compOf[k]]) return { P: 0, Praw: NaN, qReq: qr[k], qGot: 0, st: 'nosrc', stage, comp: c.id, fixed: false };
-    const Praw = pOfPhi(phi[k], stage);
+    const Praw = pk(k, stage);
     const Pk = Math.max(0, Praw);
-    const qGot = demand(qr[k], Pt[k], stage, phi[k])[0];
+    const qGot = demand(qr[k], Pt[k], stage, phi[k] + offN[k])[0];
     let st;
     if (stage === 'low') st = Pk >= P.norms.low.exc ? 'ok' : Pk >= P.norms.low.sat ? 'warn' : 'bad';
     else st = Pk >= P.norms[stage].min ? 'ok' : 'bad';
@@ -974,6 +983,42 @@ function tracePath(M, R, k0) {
   x = 0;
   for (let t = 1; t < path.length; t++) { if (path[t].e !== null) x += num(M.pipes[path[t].e].L) || 0; path[t].x = x; }
   return path;
+}
+
+// ---------- §13.4 ўлчовлар бўйича автокалибровка ----------
+
+/**
+ * Ғадир-будурлик коэффициенти nk (n·nk) ни энг кичик квадратлар усулида танлаш:
+ * min Σ (P_ҳисоб − P_ўлчанган)², nk ∈ [0,1; 30], олтин кесим (log шкала). Модел ўзгармайди.
+ */
+function calibrate(M, { scenIndex = 0, lo = 0.1, hi = 30 } = {}) {
+  const W = JSON.parse(JSON.stringify(M));
+  const sc = W.scen[scenIndex] || { src: 'norm', dem: 1, growth: 0 };
+  const meas = W.nodes.map((n, k) => [k, num(n.Pmeas)]).filter(([, v]) => Number.isFinite(v));
+  const nk0 = isNum(W.params.nk) && num(W.params.nk) > 0 ? num(W.params.nk) : 1;
+  const run = nk => {
+    W.params.nk = nk;
+    const R = solveScenario(W, sc);
+    const used = meas.filter(([k]) => R.nodes[k].st !== 'nosrc');
+    const sse = used.reduce((t, [k, v]) => t + (R.nodes[k].P - v) ** 2, 0);
+    return { sse, n: used.length, R };
+  };
+  if (!meas.length) return { ok: false, reason: 'Ўлчанган босимлар йўқ', n: 0 };
+  const r0 = run(nk0);
+  if (!r0.n) return { ok: false, reason: 'Ўлчов нуқталари манбага уланмаган', n: 0 };
+  let a = Math.log(lo), b = Math.log(hi);
+  const gr = (Math.sqrt(5) - 1) / 2;
+  let c = b - gr * (b - a), d = a + gr * (b - a), fc = run(Math.exp(c)).sse, fd = run(Math.exp(d)).sse, evals = 3;
+  while (b - a > 1e-3 && evals < 60) {
+    if (fc < fd) { b = d; d = c; fd = fc; c = b - gr * (b - a); fc = run(Math.exp(c)).sse; }
+    else { a = c; c = d; fc = fd; d = a + gr * (b - a); fd = run(Math.exp(d)).sse; }
+    evals++;
+  }
+  const nk = Math.exp((a + b) / 2), r1 = run(nk);
+  const rms = x => Math.sqrt(x.sse / x.n);
+  const rows = meas.map(([k, v]) => ({ id: W.nodes[k].id, meas: v, before: r0.R.nodes[k].P, after: r1.R.nodes[k].P }));
+  const atBound = nk < lo * 1.05 || nk > hi / 1.05;
+  return { ok: true, nk, nk0, n: r1.n, rmsBefore: rms(r0), rmsAfter: rms(r1), rows, atBound, evals };
 }
 
 // ---------- §13.6 диаметрларни автоматик танлаш ----------
@@ -1264,9 +1309,9 @@ function fmtP(Pk, stage) {
 }
 function pUnit(stage) { return stage === 'low' || !stage ? 'кПа' : 'МПа'; }
 
-return { P0, STAGES, STAGE_NAME, STAGE_COLOR, APPL, defaultParams, defaultScenarios, emptyModel, num, isNum, blank, normStage, normType, normStatus, isPE, splitIds, Kbir, Qnom, nodeLoad, lambdaRe, reynolds, lambdaQ, pipeHyd, dphiOfQ, qOfDphi, phiOfP, pOfPhi, demandFactor, solveComponent, buildTopology, solveScenario, solveAll, tracePath, SORTAMENT, nextSize, prevSize, autoSize, chainDepth, checkModel, collectProblems, fmtP, pUnit };
+return { P0, STAGES, STAGE_NAME, STAGE_COLOR, APPL, defaultParams, defaultScenarios, emptyModel, num, isNum, blank, normStage, normType, normStatus, isPE, splitIds, Kbir, Qnom, nodeLoad, lambdaRe, reynolds, lambdaQ, pipeHyd, dphiOfQ, qOfDphi, phiOfP, pOfPhi, demandFactor, solveComponent, buildTopology, solveScenario, solveAll, tracePath, calibrate, SORTAMENT, nextSize, prevSize, autoSize, chainDepth, checkModel, collectProblems, fmtP, pUnit };
 })();
-const { P0, STAGES, STAGE_NAME, STAGE_COLOR, APPL, defaultParams, defaultScenarios, emptyModel, num, isNum, blank, normStage, normType, normStatus, isPE, splitIds, Kbir, Qnom, nodeLoad, lambdaRe, reynolds, lambdaQ, pipeHyd, dphiOfQ, qOfDphi, phiOfP, pOfPhi, demandFactor, solveComponent, buildTopology, solveScenario, solveAll, tracePath, SORTAMENT, nextSize, prevSize, autoSize, chainDepth, checkModel, collectProblems, fmtP, pUnit } = __m_engine_js;
+const { P0, STAGES, STAGE_NAME, STAGE_COLOR, APPL, defaultParams, defaultScenarios, emptyModel, num, isNum, blank, normStage, normType, normStatus, isPE, splitIds, Kbir, Qnom, nodeLoad, lambdaRe, reynolds, lambdaQ, pipeHyd, dphiOfQ, qOfDphi, phiOfP, pOfPhi, demandFactor, solveComponent, buildTopology, solveScenario, solveAll, tracePath, calibrate, SORTAMENT, nextSize, prevSize, autoSize, chainDepth, checkModel, collectProblems, fmtP, pUnit } = __m_engine_js;
 
 // ===== sample.js =====
 const __m_sample_js = (() => {
@@ -1357,7 +1402,7 @@ const __m_io_js = (() => {
 const SHEETS = {
   nodes: { name: 'Тугунлар', cols: [['id', 'ID'], ['name', 'Номи'], ['type', 'Тури'], ['cat', 'Поғона'], ['N', 'N хонадон'], ['p4', 'Плита 4к'],
     ['p2', 'Плита 2к'], ['boil', 'Котел/АГВ'], ['col', 'Колонка'], ['q', 'Q қўшимча м³/соат'], ['Pnorm', 'P норм кПа'], ['Pmin', 'P мин кПа'],
-    ['Pmeas', 'P ўлчанган кПа'], ['x', 'X'], ['y', 'Y'], ['zone', 'МФЙ / ҳудуд']] },
+    ['Pmeas', 'P ўлчанган кПа'], ['x', 'X'], ['y', 'Y'], ['z', 'Z м'], ['zone', 'МФЙ / ҳудуд']] },
   pipes: { name: 'Қувурлар', cols: [['id', 'ID'], ['from', 'Бошланғич тугун'], ['to', 'Охирги тугун'], ['cat', 'Поғона'], ['L', 'L м'],
     ['d', 'd ички мм'], ['mat', 'Материал'], ['lay', 'Ётқизилиш'], ['year', 'Қурилган йили'], ['status', 'Ҳолати'], ['dProp', 'd таклиф мм']] },
   regs: { name: 'ГРП-ШРП', cols: [['id', 'ID'], ['name', 'Номи'], ['type', 'Тури'], ['in', 'Кириш тугуни'], ['out', 'Чиқиш тугуни'],
@@ -1365,7 +1410,7 @@ const SHEETS = {
   scen: { name: 'Режимлар', cols: [['name', 'Номи'], ['src', 'ГТС босими (нормал/минимал)'], ['dem', 'Сарф коэффициенти'], ['growth', 'Ўсиш %'],
     ['closed', 'Узилган элементлар'], ['variant', 'Таклиф варианти (ҳа/йўқ)']] },
 };
-const NUMERIC = new Set(['N', 'p4', 'p2', 'boil', 'col', 'q', 'Pnorm', 'Pmin', 'Pmeas', 'x', 'y', 'L', 'd', 'year', 'dProp', 'Pset', 'PinMin', 'cap', 'dem', 'growth']);
+const NUMERIC = new Set(['z', 'N', 'p4', 'p2', 'boil', 'col', 'q', 'Pnorm', 'Pmin', 'Pmeas', 'x', 'y', 'L', 'd', 'year', 'dProp', 'Pset', 'PinMin', 'cap', 'dem', 'growth']);
 
 const META_ROWS = [['obj', 'Объект'], ['dist', 'Вилоят туман'], ['org', 'Ижрочи ташкилот'], ['exec', 'Ҳисобни бажарди'], ['check', 'Текширди'],
   ['date', 'Сана'], ['chainOk', 'Кетма-кет схема тўғри']];
@@ -1373,7 +1418,7 @@ const PARAM_ROWS = [['rho', 'Газ зичлиги ρ, кг/м³'], ['nu', 'Ки
   ['ka', 'Бир вақтлилик коэффициенти a'], ['kb', 'Бир вақтлилик коэффициенти b'], ['norms.low.exc', 'Паст: яхши босим, кПа'],
   ['norms.low.sat', 'Паст: минимал босим, кПа'], ['norms.mid.min', 'Ўрта: минимал босим, кПа'], ['norms.high2.min', 'Юқори II: минимал босим, кПа'],
   ['norms.high1.min', 'Юқори I: минимал босим, кПа'], ['vmax.low', 'Паст: рухсат этилган тезлик, м/с'], ['vmax.mid', 'Ўрта: рухсат этилган тезлик, м/с'],
-  ['vmax.high2', 'Юқори II: рухсат этилган тезлик, м/с'], ['vmax.high1', 'Юқори I: рухсат этилган тезлик, м/с']];
+  ['vmax.high2', 'Юқори II: рухсат этилган тезлик, м/с'], ['vmax.high1', 'Юқори I: рухсат этилган тезлик, м/с'], ['rhoAir', 'Ҳаво зичлиги, кг/м³'], ['nk', 'Ғадир-будурлик коэффициенти (калибровка)']];
 
 const INSTR = [
   ['Excel андозани тўлдириш бўйича кўрсатма'],
@@ -1381,6 +1426,7 @@ const INSTR = [
   ['1. «Тугунлар»: ҳар бир тугун (ГТС, тармоқланиш, кўча, корхона) — ягона ID. Тури: ГТС / тугун / истеъмолчи.'],
   ['   Поғона: паст / ўрта / юқори II / юқори I. Хонадонлар ва асбоблар сони — абонентлар базасидан.'],
   ['   ГТС учун P норм ва P мин (кПа, ортиқча босим) шарт. P ўлчанган — назорат нуқталаридаги манометр кўрсаткичи.'],
+  ['   Z — тугуннинг геодезик баландлиги, м (паст босимда босимга тузатма киритилади; ихтиёрий).'],
   ['2. «Қувурлар»: ҳар бир участка — бошланғич ва охирги тугун ID, узунлик L (м), ички диаметр d (мм), материал (пўлат/ПЭ).'],
   ['   Ҳолати: очиқ / ёпиқ / таклиф. «таклиф» қувурлар фақат «Таклиф варианти» режимида ҳисобга олинади; d таклиф — янги диаметр.'],
   ['   МУҲИМ: ҳар бир кўча қайси магистралдан олинишини тўғри кўрсатинг. Барча кўчаларни занжир қилиб улаш хато натижа беради.'],
@@ -1643,9 +1689,112 @@ function safeName(s) {
   return t.replace(/[^A-Za-z0-9._-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').slice(0, 60) || 'loyiha';
 }
 
-return { SHEETS, importWorkbook, modelWorkbook, statusName, resultsWorkbook, wbToBlob, readWorkbookFile, normalizeModel, inFrame, saveFile, safeName };
+// ---------- §13.5 GeoJSON / KML / DXF ----------
+
+/** Координаталар WGS84 (узунлик X, кенглик Y) кўринишидами. */
+function coordsKind(M) {
+  const withXY = M.nodes.filter(n => Number.isFinite(num(n.x)) && Number.isFinite(num(n.y)));
+  if (!withXY.length) return 'none';
+  const geo = withXY.every(n => Math.abs(num(n.x)) <= 180 && Math.abs(num(n.y)) <= 90);
+  return (geo ? 'lonlat' : 'local') + (withXY.length < M.nodes.length ? '-partial' : '');
+}
+
+function geoProps(M, R) {
+  const r3 = x => Math.round(x * 1000) / 1000;
+  const nodes = M.nodes.map((n, k) => { const r = R?.nodes[k]; return { kind: 'тугун', id: n.id, name: n.name || '', type: n.type || '', stage: r ? STAGE_NAME[r.stage] : '', P: r ? Number(fmtP(r.P, r.stage)) : null, unit: r ? pUnit(r.stage) : '', qReq: r ? r3(r.qReq) : null, qGot: r ? r3(r.qGot) : null, status: r ? statusName(r.st) : '', z: num(n.z) || null }; });
+  const pipes = M.pipes.map((p, e) => { const r = R?.pipes[e]; return { kind: 'қувур', id: p.id, from: p.from, to: p.to, stage: r ? STAGE_NAME[r.stage] || '' : '', L: num(p.L), d: num(p.d), dProp: num(p.dProp) || null, mat: p.mat || '', state: p.status || 'очиқ', Q: r ? r3(Math.abs(r.Q)) : null, v: r ? r3(r.v) : null, dP_kPa: r ? r3(Math.abs(r.dP)) : null, status: r ? statusName(r.st) : '' }; });
+  return { nodes, pipes };
+}
+
+function toGeoJSON(M, R) {
+  const kind = coordsKind(M);
+  const pos = M.nodes.map(n => [num(n.x), num(n.y)]);
+  const idx = new Map(M.nodes.map((n, k) => [String(n.id).trim(), k]));
+  const ok = k => k !== undefined && Number.isFinite(pos[k][0]) && Number.isFinite(pos[k][1]);
+  const P = geoProps(M, R), features = [];
+  M.nodes.forEach((n, k) => { if (ok(k)) features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: pos[k] }, properties: P.nodes[k] }); });
+  M.pipes.forEach((p, e) => { const i = idx.get(String(p.from).trim()), j = idx.get(String(p.to).trim()); if (ok(i) && ok(j)) features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [pos[i], pos[j]] }, properties: P.pipes[e] }); });
+  (M.regs || []).forEach((g, t) => {
+    const i = idx.get(String(g.in).trim()), j = idx.get(String(g.out).trim()), r = R?.regs[t];
+    if (ok(i) && ok(j)) features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [pos[i], pos[j]] }, properties: { kind: 'ГРП/ШРП', id: g.id, name: g.name || '', Pset: num(g.Pset), cap: num(g.cap), Pin: r ? Math.round(r.Pin * 100) / 100 : null, load: r ? Math.round(r.load) : null, status: r ? statusName(r.st) : '' } });
+  });
+  const fc = { type: 'FeatureCollection', name: M.meta?.obj || 'gaz', features };
+  if (!kind.startsWith('lonlat')) fc.note = 'Координаталар маҳаллий тизимда (WGS84 эмас) — ГИСда тегишли проекцияни белгиланг';
+  return JSON.stringify(fc, null, 1);
+}
+
+const KML_STAGE = { high1: 'ff5a2c8e', high2: 'ff7a44c0', mid: 'ffb36d2f', low: 'ff00a1d9', none: 'ff9a9a9a' };   // aabbggrr
+const KML_NODE = { ok: 'ff5b9e2e', warn: 'ff00a1e0', bad: 'ff4145d6', dead: 'ff1f1f7b', nosrc: 'ff9a9a9a' };
+const xe = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function toKML(M, R) {
+  if (!coordsKind(M).startsWith('lonlat')) return null;
+  const P = geoProps(M, R), idx = new Map(M.nodes.map((n, k) => [String(n.id).trim(), k]));
+  const pos = M.nodes.map(n => [num(n.x), num(n.y)]), has = k => k !== undefined && pos[k].every(Number.isFinite);
+  const desc = o => `<![CDATA[${Object.entries(o).filter(([, v]) => v !== null && v !== '').map(([k, v]) => `${k}: ${v}`).join('<br>')}]]>`;
+  const styles = Object.entries(KML_STAGE).map(([k, c]) => `<Style id="p_${k}"><LineStyle><color>${c}</color><width>3</width></LineStyle></Style>`).join('') +
+    Object.entries(KML_NODE).map(([k, c]) => `<Style id="n_${k}"><IconStyle><color>${c}</color><scale>0.8</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>`).join('');
+  const pm = [];
+  M.pipes.forEach((p, e) => {
+    const i = idx.get(String(p.from).trim()), j = idx.get(String(p.to).trim());
+    if (!has(i) || !has(j)) return;
+    const r = R?.pipes[e], st = !r || r.st === 'nosrc' || !r.active ? 'none' : r.stage || 'low';
+    pm.push(`<Placemark><name>${xe(p.id)}</name><description>${desc(P.pipes[e])}</description><styleUrl>#p_${st}</styleUrl><LineString><coordinates>${pos[i].join(',')} ${pos[j].join(',')}</coordinates></LineString></Placemark>`);
+  });
+  M.nodes.forEach((n, k) => {
+    if (!has(k)) return;
+    const st = R?.nodes[k]?.st || 'ok';
+    pm.push(`<Placemark><name>${xe(n.id)}</name><description>${desc(P.nodes[k])}</description><styleUrl>#n_${st}</styleUrl><Point><coordinates>${pos[k].join(',')}</coordinates></Point></Placemark>`);
+  });
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xe(M.meta?.obj || 'Газ тармоғи')}</name>${styles}${pm.join('\n')}</Document></kml>`;
+}
+
+/** DXF (R12, ASCII): қатламлар поғоналар бўйича; координаталар — X,Y ёки схема жойлашуви. */
+function toDXF(M, R, layout) {
+  const kind = coordsKind(M);
+  const pos = kind === 'lonlat' || kind === 'local' ? M.nodes.map(n => [num(n.x), num(n.y)]) : layout.pos.map(([x, y]) => [x, layout.h - y]);
+  const geo = kind === 'lonlat';
+  const scale = geo ? 1 : 1, th = geo ? 0.00005 : (kind === 'local' ? 2 : 6);
+  const t = s => [...String(s ?? '')].map(c => c.charCodeAt(0) < 128 ? c : '\\U+' + c.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
+  const LAY = { high1: ['PIPE_HIGH1', 6], high2: ['PIPE_HIGH2', 221], mid: ['PIPE_MID', 5], low: ['PIPE_LOW', 2], none: ['PIPE_NOSRC', 8], prop: ['PIPE_PROPOSED', 3], nodes: ['NODES', 7], bad: ['NODES_PROBLEM', 1], labels: ['LABELS', 7], regs: ['REGULATORS', 4] };
+  const out = [];
+  const g = (c, v) => out.push(String(c), String(v));
+  g(0, 'SECTION'); g(2, 'HEADER'); g(9, '$ACADVER'); g(1, 'AC1009'); g(0, 'ENDSEC');
+  g(0, 'SECTION'); g(2, 'TABLES'); g(0, 'TABLE'); g(2, 'LAYER'); g(70, Object.keys(LAY).length);
+  for (const [name, col] of Object.values(LAY)) { g(0, 'LAYER'); g(2, name); g(70, 0); g(62, col); g(6, 'CONTINUOUS'); }
+  g(0, 'ENDTAB'); g(0, 'ENDSEC');
+  g(0, 'SECTION'); g(2, 'ENTITIES');
+  const idx = new Map(M.nodes.map((n, k) => [String(n.id).trim(), k]));
+  const ok = k => k !== undefined && pos[k].every(Number.isFinite);
+  const line = (a, b, layer) => { g(0, 'LINE'); g(8, layer); g(10, a[0] * scale); g(20, a[1] * scale); g(30, 0); g(11, b[0] * scale); g(21, b[1] * scale); g(31, 0); };
+  const text = (p, s, h, layer) => { g(0, 'TEXT'); g(8, layer); g(10, p[0] * scale); g(20, p[1] * scale); g(30, 0); g(40, h); g(1, t(s)); };
+  M.pipes.forEach((p, e) => {
+    const i = idx.get(String(p.from).trim()), j = idx.get(String(p.to).trim());
+    if (!ok(i) || !ok(j)) return;
+    const r = R?.pipes[e];
+    const lay = /таклиф/.test(p.status || '') ? LAY.prop[0] : !r || !r.active || r.st === 'nosrc' ? LAY.none[0] : LAY[r.stage || 'low'][0];
+    line(pos[i], pos[j], lay);
+    text([(pos[i][0] + pos[j][0]) / 2, (pos[i][1] + pos[j][1]) / 2], `${p.id} d${num(p.dProp) || num(p.d)} L${num(p.L)}`, th * 0.7, LAY.labels[0]);
+  });
+  (M.regs || []).forEach(gg => {
+    const i = idx.get(String(gg.in).trim()), j = idx.get(String(gg.out).trim());
+    if (!ok(i) || !ok(j)) return;
+    line(pos[i], pos[j], LAY.regs[0]);
+    text([(pos[i][0] + pos[j][0]) / 2, (pos[i][1] + pos[j][1]) / 2 + th], gg.id, th, LAY.regs[0]);
+  });
+  M.nodes.forEach((n, k) => {
+    if (!ok(k)) return;
+    const r = R?.nodes[k], bad = r && ['bad', 'dead', 'nosrc'].includes(r.st);
+    g(0, 'CIRCLE'); g(8, bad ? LAY.bad[0] : LAY.nodes[0]); g(10, pos[k][0] * scale); g(20, pos[k][1] * scale); g(30, 0); g(40, th * 0.6);
+    text([pos[k][0] + th, pos[k][1] - th * 1.5], r ? `${n.id} ${fmtP(r.P, r.stage)} ${pUnit(r.stage)}` : n.id, th, LAY.labels[0]);
+  });
+  g(0, 'ENDSEC'); g(0, 'EOF');
+  return out.join('\r\n') + '\r\n';
+}
+
+return { SHEETS, importWorkbook, modelWorkbook, statusName, resultsWorkbook, wbToBlob, readWorkbookFile, normalizeModel, inFrame, saveFile, safeName, coordsKind, toGeoJSON, toKML, toDXF };
 })();
-const { SHEETS, importWorkbook, modelWorkbook, statusName, resultsWorkbook, wbToBlob, readWorkbookFile, normalizeModel, inFrame, saveFile, safeName } = __m_io_js;
+const { SHEETS, importWorkbook, modelWorkbook, statusName, resultsWorkbook, wbToBlob, readWorkbookFile, normalizeModel, inFrame, saveFile, safeName, coordsKind, toGeoJSON, toKML, toDXF } = __m_io_js;
 
 // ===== scheme.js =====
 const __m_scheme_js = (() => {
@@ -1967,9 +2116,10 @@ function formulasHTML(P) {
   return `<p><b>Ҳисобий сарф</b> (СП 42-101): Q<sub>ном</sub> = 1,2·n<sub>4к</sub> + 0,6·n<sub>2к</sub> + 2,5·n<sub>котел</sub> + 2,2·n<sub>колонка</sub>, м³/соат;
   K<sub>бир</sub>(N) = min(1; a·N<sup>b</sup>), a = ${P.ka}, b = ${P.kb}; Q<sub>тугун</sub> = K<sub>бир</sub>·Q<sub>ном</sub> + Q<sub>қўшимча</sub>; режимда Q·k<sub>сарф</sub>·(1 + ўсиш/100).</p>
   <p><b>Ишқаланиш коэффициенти λ</b>: Re = 0,0354·Q/(d·ν); Re &lt; 2000: λ = 64/Re; 2000–4000: λ = 0,0025·Re<sup>0,333</sup>;
-  Re ≥ 4000: λ = 0,11·(n/d + 68/Re)<sup>0,25</sup>, n = 0,01 см (пўлат), 0,0007 см (ПЭ). d — см, ν = ${P.nu}·10⁻⁶ м²/с.</p>
+  Re ≥ 4000: λ = 0,11·(n·k<sub>n</sub>/d + 68/Re)<sup>0,25</sup>, n = 0,01 см (пўлат), 0,0007 см (ПЭ), k<sub>n</sub> = ${P.nk ?? 1} (калибровка). d — см, ν = ${P.nu}·10⁻⁶ м²/с.</p>
   <p class="formula">Паст босим: ΔP = 626,1·λ·Q²·ρ·L′/d⁵, Па</p>
   <p class="formula">Ўрта ва юқори босим: P<sub>б</sub>² − P<sub>о</sub>² = 1,2687·10⁻⁴·λ·Q²·ρ·L′/d⁵, МПа (абсолют)</p>
+  <p class="formula">Баландлик тузатмаси (паст босим): P<sub>о</sub> = P<sub>б</sub> − ΔP + g·(ρ<sub>ҳаво</sub> − ρ)·(z<sub>о</sub> − z<sub>б</sub>), ρ<sub>ҳаво</sub> = ${P.rhoAir ?? 1.293} кг/м³</p>
   <p>L′ = L·(1 + ${P.loc}/100) — маҳаллий қаршиликлар ҳисобга олинган; ρ = ${P.rho} кг/м³.
   Тезлик v = Q/(3600·πd²/4), ўрта ва юқори босимда ·P<sub>атм</sub>/P<sub>ўрт</sub>.</p>
   <p><b>Босимга боғлиқ истеъмол</b>: s = P/P<sub>т</sub>; s ≥ 1 — тўлиқ сарф; 0 &lt; s &lt; 1 — q = q<sub>т</sub>·(√(s+ε) − √ε)/(√(1+ε) − √ε), ε = 0,01;
@@ -2050,7 +2200,7 @@ async function buildReportHTML(M, results, problems, checks) {
   h.push(`<h2>6. Ўлчовлар ва калибровка</h2>${meas.length ? table(['Тугун', 'Ўлчанган, кПа', 'Ҳисобий, кПа', 'Фарқ, %'], meas.map(([n, r]) => {
       const m = num(n.Pmeas), dev = m ? (r.P - m) / m * 100 : 0;
       return [esc(n.id), f2(m), pv(r.P, 'low'), `<span class="${Math.abs(dev) > 10 ? 'red' : ''}">${dev.toFixed(1)}</span>`];
-    }), 'num') + `<p>Фарқ 10% дан ортиқ бўлган нуқталар қизил рангда; улар учун қувур ҳолати (ички диаметр, ифлосланиш) ва юкламаларни аниқлаштириш тавсия этилади.</p>`
+    }), 'num') + `<p>Ғадир-будурлик коэффициенти k<sub>n</sub> = ${P.nk ?? 1}${Number(P.nk ?? 1) !== 1 ? ' (ўлчовлар бўйича энг кичик квадратлар усулида танланган)' : ''}.</p><p>Фарқ 10% дан ортиқ бўлган нуқталар қизил рангда; улар учун қувур ҳолати (ички диаметр, ифлосланиш) ва юкламаларни аниқлаштириш тавсия этилади.</p>`
     : '<p class="red">Назорат нуқталарида ўлчанган босимлар тақдим этилмаган — модель калибровка қилинмаган (ТТ §9, §14). Натижалар ҳисобий баҳо ҳисобланади.</p>'}`);
   // 8. Модель ва параметрлар
   h.push(`<h2>7. Модель ва ҳисоб параметрлари</h2>${formulasHTML(P)}
@@ -2163,7 +2313,7 @@ const __m_app_js = (() => {
 const DRAFT_KEY = 'gaz-tarmogi-modeli:draft:v1', THEME_KEY = 'gaz-tarmogi-modeli:theme';
 const $ = s => document.querySelector(s);
 const escH = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const S = { M: null, results: [], checks: [], problems: [], si: 0, tab: 'help', isSample: false, fileMsg: null, busy: false, sizing: null, sizingUndo: null, profNode: null };
+const S = { M: null, results: [], checks: [], problems: [], si: 0, tab: 'help', isSample: false, fileMsg: null, busy: false, sizing: null, sizingUndo: null, profNode: null, calib: null };
 
 // ---------- сақлаш ----------
 function saveDraft() {
@@ -2202,11 +2352,18 @@ function renderMeta() {
 }
 const PARAMS = [['rho', 'Газ зичлиги ρ, кг/м³'], ['nu', 'Қовушоқлик ν, ×10⁻⁶ м²/с'], ['loc', 'Маҳаллий қаршиликлар, %'], ['ka', 'K_бир коэффициенти a'], ['kb', 'K_бир даража кўрсаткичи b'],
   ['norms.low.exc', 'Паст: яхши босим, кПа'], ['norms.low.sat', 'Паст: минимал босим, кПа'], ['norms.mid.min', 'Ўрта: минимал, кПа'], ['norms.high2.min', 'Юқори II: минимал, кПа'],
-  ['norms.high1.min', 'Юқори I: минимал, кПа'], ['vmax.low', 'Паст: v макс, м/с'], ['vmax.mid', 'Ўрта: v макс, м/с'], ['vmax.high2', 'Юқори II: v макс, м/с'], ['vmax.high1', 'Юқори I: v макс, м/с']];
+  ['norms.high1.min', 'Юқори I: минимал, кПа'], ['vmax.low', 'Паст: v макс, м/с'], ['vmax.mid', 'Ўрта: v макс, м/с'], ['vmax.high2', 'Юқори II: v макс, м/с'], ['vmax.high1', 'Юқори I: v макс, м/с'], ['rhoAir', 'Ҳаво зичлиги, кг/м³ (баландлик)'], ['nk', 'Ғадир-будурлик коэфф. (калибровка)']];
 const getP = (o, p) => p.split('.').reduce((t, k) => t?.[k], o);
+function calibText() {
+  const C = S.calib;
+  if (!C) return '<span class="small muted">«P ўлчанган» бўйича ғадир-будурлик коэффициентини танлайди.</span>';
+  if (!C.ok) return `<span class="small" style="color:var(--bad)">${escH(C.reason)}</span>`;
+  return `<span class="small">${C.n} нуқта: ўртача квадратик фарқ ${C.rmsBefore.toFixed(3)} → <b>${C.rmsAfter.toFixed(3)} кПа</b>, коэффициент ${C.nk0.toFixed(2)} → <b>${C.nk.toFixed(2)}</b>.${C.atBound ? ' <span style="color:var(--bad)">Чегарага етди — фарқни ғадир-будурлик билан тушунтириб бўлмайди (юклама, диаметр ёки ўлчовни текширинг).</span>' : ''}</span>`;
+}
 function renderParams() {
   $('#params').innerHTML = PARAMS.map(([k, t]) => `<label class="f">${t}<input inputmode="decimal" data-path="params.${k}" data-num="1" value="${escH(getP(S.M.params, k))}"></label>`).join('') +
-    `<div class="small muted" style="grid-column:1/-1">Нормалар: ШНҚ 2.04.08-22, ҚР 05.02-23; тезликлар — СП 42-101 п.3.38. Ўзгартириш барча режимларни қайта ҳисоблайди.</div>`;
+    `<div class="small muted" style="grid-column:1/-1">Нормалар: ШНҚ 2.04.08-22, ҚР 05.02-23; тезликлар — СП 42-101 п.3.38. Ўзгартириш барча режимларни қайта ҳисоблайди.</div>
+    <div style="grid-column:1/-1"><button type="button" data-act="calib">Ўлчовлар бўйича калибровка (1-режим)</button> ${calibText()}</div>`;
 }
 
 // ---------- режимлар ва кўрсаткичлар ----------
@@ -2254,13 +2411,13 @@ function nodesTab() {
   const rows = S.M.nodes.map((n, i) => {
     const r = R?.nodes[i], p = `nodes.${i}.`;
     return `<tr><td>${inp(p + 'id', n.id)}</td><td>${inp(p + 'name', n.name, 'w3')}</td><td>${typeSel(p + 'type', n.type)}</td><td>${stageSel(p + 'cat', n.cat)}</td>
-      ${['N', 'p4', 'p2', 'boil', 'col', 'q', 'Pnorm', 'Pmin', 'Pmeas', 'x', 'y'].map(f => `<td>${inp(p + f, n[f], 'w0', true)}</td>`).join('')}<td>${inp(p + 'zone', n.zone, 'w2')}</td>
+      ${['N', 'p4', 'p2', 'boil', 'col', 'q', 'Pnorm', 'Pmin', 'Pmeas', 'x', 'y', 'z'].map(f => `<td>${inp(p + f, n[f], 'w0', true)}</td>`).join('')}<td>${inp(p + 'zone', n.zone, 'w2')}</td>
       <td class="r res">${r ? r.qReq.toFixed(1) : ''}</td><td class="r res">${r ? r.qGot.toFixed(1) : ''}</td><td class="r res">${r ? `${fmtP(r.P, r.stage)} ${pUnit(r.stage)}` : ''}</td><td class="res">${r ? stCell(r.st) : ''}</td>
       <td><button type="button" data-del="nodes.${i}" title="Ўчириш">✕</button></td></tr>`;
   }).join('');
   return `<div class="row-actions"><button type="button" data-add="nodes">＋ Тугун</button><span class="small muted">Натижалар — фаол режим: ${escH(S.M.scen[S.si]?.name)}</span></div>
     <div class="tw"><table class="t"><thead><tr><th>ID</th><th>Номи</th><th>Тури</th><th>Поғона</th><th>N хонадон</th><th>Плита 4к</th><th>Плита 2к</th><th>Котел/АГВ</th><th>Колонка</th>
-    <th>Q қўш., м³/с</th><th>P норм, кПа</th><th>P мин, кПа</th><th>P ўлч., кПа</th><th>X</th><th>Y</th><th>МФЙ / ҳудуд</th><th>Талаб</th><th>Олинган</th><th>P</th><th>Ҳолат</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    <th>Q қўш., м³/с</th><th>P норм, кПа</th><th>P мин, кПа</th><th>P ўлч., кПа</th><th>X</th><th>Y</th><th>Z, м</th><th>МФЙ / ҳудуд</th><th>Талаб</th><th>Олинган</th><th>P</th><th>Ҳолат</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function pipesTab() {
   const R = S.results[S.si];
@@ -2363,7 +2520,7 @@ function renderPanel() {
     const key = JSON.stringify([S.M.nodes, S.M.pipes, S.M.regs, S.si, S.results[S.si]?.tot, S.results[S.si]?.deliv]);
     if (key === schemeKey && el.querySelector('.sch')) return;
     schemeKey = key;
-    el.innerHTML = `${legendHTML()}<div class="sch"></div><p class="small muted">Ғилдирак ёки тугмалар — масштаб, судраш — суриш, элемент устига олиб боринг ёки босинг — маълумот.</p>`;
+    el.innerHTML = `<div class="row-actions"><button type="button" data-act="geojson">GeoJSON</button><button type="button" data-act="kml">KML</button><button type="button" data-act="dxf">DXF</button><span class="small muted">Экспорт — фаол режим натижалари билан. GeoJSON/KML учун тугунларда X (узунлик) ва Y (кенглик) керак.</span></div>${legendHTML()}<div class="sch"></div><p class="small muted">Ғилдирак ёки тугмалар — масштаб, судраш — суриш, элемент устига олиб боринг ёки босинг — маълумот.</p>`;
     mountScheme(el.querySelector('.sch'), S.M, S.results[S.si], (k, i) => describeElement(S.M, S.results[S.si], k, i));
     return;
   }
@@ -2494,6 +2651,26 @@ async function onAction(act) {
       changed(true);
     });
     return;
+  }
+  if (act === 'geojson' || act === 'kml' || act === 'dxf') {
+    const R = S.results[S.si], kind = coordsKind(S.M);
+    if (act === 'dxf') { await saveFile(`${base()}_sxema.dxf`, new Blob([toDXF(S.M, R, layoutNodes(S.M))], { type: 'application/dxf' })); if (kind === 'none') toast('Координаталар йўқ — DXF схема жойлашуви бўйича', 4000); return; }
+    if (kind === 'none') { toast('Тугунларда X, Y координаталар йўқ — GeoJSON/KML тузиб бўлмайди. DXF схемадан фойдаланинг.', 5000); return; }
+    if (act === 'kml') {
+      const k = toKML(S.M, R);
+      if (!k) { toast('KML учун WGS84 координаталар керак (X — узунлик, Y — кенглик)', 5000); return; }
+      await saveFile(`${base()}.kml`, new Blob([k], { type: 'application/vnd.google-earth.kml+xml' })); return;
+    }
+    await saveFile(`${base()}.geojson`, new Blob([toGeoJSON(S.M, R)], { type: 'application/geo+json' }));
+    if (!kind.startsWith('lonlat')) toast('Координаталар маҳаллий — GeoJSON да проекцияни белгиланг', 4000);
+    return;
+  }
+  if (act === 'calib') {
+    const C = calibrate(S.M, { scenIndex: 0 });
+    S.calib = C;
+    if (C.ok) S.M.params.nk = +C.nk.toFixed(3);
+    $('#paramsBox').open = true;
+    changed(true); return;
   }
   if (act === 'autosizeUndo') {
     if (S.sizingUndo) S.M.pipes.forEach((p, i) => { if (i < S.sizingUndo.length) p.dProp = S.sizingUndo[i]; });

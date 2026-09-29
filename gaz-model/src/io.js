@@ -4,7 +4,7 @@ import { STAGE_NAME, normStage, normType, normStatus, num, blank, emptyModel, de
 export const SHEETS = {
   nodes: { name: 'Тугунлар', cols: [['id', 'ID'], ['name', 'Номи'], ['type', 'Тури'], ['cat', 'Поғона'], ['N', 'N хонадон'], ['p4', 'Плита 4к'],
     ['p2', 'Плита 2к'], ['boil', 'Котел/АГВ'], ['col', 'Колонка'], ['q', 'Q қўшимча м³/соат'], ['Pnorm', 'P норм кПа'], ['Pmin', 'P мин кПа'],
-    ['Pmeas', 'P ўлчанган кПа'], ['x', 'X'], ['y', 'Y'], ['zone', 'МФЙ / ҳудуд']] },
+    ['Pmeas', 'P ўлчанган кПа'], ['x', 'X'], ['y', 'Y'], ['z', 'Z м'], ['zone', 'МФЙ / ҳудуд']] },
   pipes: { name: 'Қувурлар', cols: [['id', 'ID'], ['from', 'Бошланғич тугун'], ['to', 'Охирги тугун'], ['cat', 'Поғона'], ['L', 'L м'],
     ['d', 'd ички мм'], ['mat', 'Материал'], ['lay', 'Ётқизилиш'], ['year', 'Қурилган йили'], ['status', 'Ҳолати'], ['dProp', 'd таклиф мм']] },
   regs: { name: 'ГРП-ШРП', cols: [['id', 'ID'], ['name', 'Номи'], ['type', 'Тури'], ['in', 'Кириш тугуни'], ['out', 'Чиқиш тугуни'],
@@ -12,7 +12,7 @@ export const SHEETS = {
   scen: { name: 'Режимлар', cols: [['name', 'Номи'], ['src', 'ГТС босими (нормал/минимал)'], ['dem', 'Сарф коэффициенти'], ['growth', 'Ўсиш %'],
     ['closed', 'Узилган элементлар'], ['variant', 'Таклиф варианти (ҳа/йўқ)']] },
 };
-const NUMERIC = new Set(['N', 'p4', 'p2', 'boil', 'col', 'q', 'Pnorm', 'Pmin', 'Pmeas', 'x', 'y', 'L', 'd', 'year', 'dProp', 'Pset', 'PinMin', 'cap', 'dem', 'growth']);
+const NUMERIC = new Set(['z', 'N', 'p4', 'p2', 'boil', 'col', 'q', 'Pnorm', 'Pmin', 'Pmeas', 'x', 'y', 'L', 'd', 'year', 'dProp', 'Pset', 'PinMin', 'cap', 'dem', 'growth']);
 
 const META_ROWS = [['obj', 'Объект'], ['dist', 'Вилоят туман'], ['org', 'Ижрочи ташкилот'], ['exec', 'Ҳисобни бажарди'], ['check', 'Текширди'],
   ['date', 'Сана'], ['chainOk', 'Кетма-кет схема тўғри']];
@@ -20,7 +20,7 @@ const PARAM_ROWS = [['rho', 'Газ зичлиги ρ, кг/м³'], ['nu', 'Ки
   ['ka', 'Бир вақтлилик коэффициенти a'], ['kb', 'Бир вақтлилик коэффициенти b'], ['norms.low.exc', 'Паст: яхши босим, кПа'],
   ['norms.low.sat', 'Паст: минимал босим, кПа'], ['norms.mid.min', 'Ўрта: минимал босим, кПа'], ['norms.high2.min', 'Юқори II: минимал босим, кПа'],
   ['norms.high1.min', 'Юқори I: минимал босим, кПа'], ['vmax.low', 'Паст: рухсат этилган тезлик, м/с'], ['vmax.mid', 'Ўрта: рухсат этилган тезлик, м/с'],
-  ['vmax.high2', 'Юқори II: рухсат этилган тезлик, м/с'], ['vmax.high1', 'Юқори I: рухсат этилган тезлик, м/с']];
+  ['vmax.high2', 'Юқори II: рухсат этилган тезлик, м/с'], ['vmax.high1', 'Юқори I: рухсат этилган тезлик, м/с'], ['rhoAir', 'Ҳаво зичлиги, кг/м³'], ['nk', 'Ғадир-будурлик коэффициенти (калибровка)']];
 
 const INSTR = [
   ['Excel андозани тўлдириш бўйича кўрсатма'],
@@ -28,6 +28,7 @@ const INSTR = [
   ['1. «Тугунлар»: ҳар бир тугун (ГТС, тармоқланиш, кўча, корхона) — ягона ID. Тури: ГТС / тугун / истеъмолчи.'],
   ['   Поғона: паст / ўрта / юқори II / юқори I. Хонадонлар ва асбоблар сони — абонентлар базасидан.'],
   ['   ГТС учун P норм ва P мин (кПа, ортиқча босим) шарт. P ўлчанган — назорат нуқталаридаги манометр кўрсаткичи.'],
+  ['   Z — тугуннинг геодезик баландлиги, м (паст босимда босимга тузатма киритилади; ихтиёрий).'],
   ['2. «Қувурлар»: ҳар бир участка — бошланғич ва охирги тугун ID, узунлик L (м), ички диаметр d (мм), материал (пўлат/ПЭ).'],
   ['   Ҳолати: очиқ / ёпиқ / таклиф. «таклиф» қувурлар фақат «Таклиф варианти» режимида ҳисобга олинади; d таклиф — янги диаметр.'],
   ['   МУҲИМ: ҳар бир кўча қайси магистралдан олинишини тўғри кўрсатинг. Барча кўчаларни занжир қилиб улаш хато натижа беради.'],
@@ -288,4 +289,107 @@ const TR = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo', ж:
 export function safeName(s) {
   const t = [...String(s || 'loyiha')].map(c => { const l = c.toLowerCase(), r = TR[l]; return r === undefined ? c : (c !== l && r ? r[0].toUpperCase() + r.slice(1) : r); }).join('');
   return t.replace(/[^A-Za-z0-9._-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').slice(0, 60) || 'loyiha';
+}
+
+// ---------- §13.5 GeoJSON / KML / DXF ----------
+
+/** Координаталар WGS84 (узунлик X, кенглик Y) кўринишидами. */
+export function coordsKind(M) {
+  const withXY = M.nodes.filter(n => Number.isFinite(num(n.x)) && Number.isFinite(num(n.y)));
+  if (!withXY.length) return 'none';
+  const geo = withXY.every(n => Math.abs(num(n.x)) <= 180 && Math.abs(num(n.y)) <= 90);
+  return (geo ? 'lonlat' : 'local') + (withXY.length < M.nodes.length ? '-partial' : '');
+}
+
+function geoProps(M, R) {
+  const r3 = x => Math.round(x * 1000) / 1000;
+  const nodes = M.nodes.map((n, k) => { const r = R?.nodes[k]; return { kind: 'тугун', id: n.id, name: n.name || '', type: n.type || '', stage: r ? STAGE_NAME[r.stage] : '', P: r ? Number(fmtP(r.P, r.stage)) : null, unit: r ? pUnit(r.stage) : '', qReq: r ? r3(r.qReq) : null, qGot: r ? r3(r.qGot) : null, status: r ? statusName(r.st) : '', z: num(n.z) || null }; });
+  const pipes = M.pipes.map((p, e) => { const r = R?.pipes[e]; return { kind: 'қувур', id: p.id, from: p.from, to: p.to, stage: r ? STAGE_NAME[r.stage] || '' : '', L: num(p.L), d: num(p.d), dProp: num(p.dProp) || null, mat: p.mat || '', state: p.status || 'очиқ', Q: r ? r3(Math.abs(r.Q)) : null, v: r ? r3(r.v) : null, dP_kPa: r ? r3(Math.abs(r.dP)) : null, status: r ? statusName(r.st) : '' }; });
+  return { nodes, pipes };
+}
+
+export function toGeoJSON(M, R) {
+  const kind = coordsKind(M);
+  const pos = M.nodes.map(n => [num(n.x), num(n.y)]);
+  const idx = new Map(M.nodes.map((n, k) => [String(n.id).trim(), k]));
+  const ok = k => k !== undefined && Number.isFinite(pos[k][0]) && Number.isFinite(pos[k][1]);
+  const P = geoProps(M, R), features = [];
+  M.nodes.forEach((n, k) => { if (ok(k)) features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: pos[k] }, properties: P.nodes[k] }); });
+  M.pipes.forEach((p, e) => { const i = idx.get(String(p.from).trim()), j = idx.get(String(p.to).trim()); if (ok(i) && ok(j)) features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [pos[i], pos[j]] }, properties: P.pipes[e] }); });
+  (M.regs || []).forEach((g, t) => {
+    const i = idx.get(String(g.in).trim()), j = idx.get(String(g.out).trim()), r = R?.regs[t];
+    if (ok(i) && ok(j)) features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [pos[i], pos[j]] }, properties: { kind: 'ГРП/ШРП', id: g.id, name: g.name || '', Pset: num(g.Pset), cap: num(g.cap), Pin: r ? Math.round(r.Pin * 100) / 100 : null, load: r ? Math.round(r.load) : null, status: r ? statusName(r.st) : '' } });
+  });
+  const fc = { type: 'FeatureCollection', name: M.meta?.obj || 'gaz', features };
+  if (!kind.startsWith('lonlat')) fc.note = 'Координаталар маҳаллий тизимда (WGS84 эмас) — ГИСда тегишли проекцияни белгиланг';
+  return JSON.stringify(fc, null, 1);
+}
+
+const KML_STAGE = { high1: 'ff5a2c8e', high2: 'ff7a44c0', mid: 'ffb36d2f', low: 'ff00a1d9', none: 'ff9a9a9a' };   // aabbggrr
+const KML_NODE = { ok: 'ff5b9e2e', warn: 'ff00a1e0', bad: 'ff4145d6', dead: 'ff1f1f7b', nosrc: 'ff9a9a9a' };
+const xe = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+export function toKML(M, R) {
+  if (!coordsKind(M).startsWith('lonlat')) return null;
+  const P = geoProps(M, R), idx = new Map(M.nodes.map((n, k) => [String(n.id).trim(), k]));
+  const pos = M.nodes.map(n => [num(n.x), num(n.y)]), has = k => k !== undefined && pos[k].every(Number.isFinite);
+  const desc = o => `<![CDATA[${Object.entries(o).filter(([, v]) => v !== null && v !== '').map(([k, v]) => `${k}: ${v}`).join('<br>')}]]>`;
+  const styles = Object.entries(KML_STAGE).map(([k, c]) => `<Style id="p_${k}"><LineStyle><color>${c}</color><width>3</width></LineStyle></Style>`).join('') +
+    Object.entries(KML_NODE).map(([k, c]) => `<Style id="n_${k}"><IconStyle><color>${c}</color><scale>0.8</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>`).join('');
+  const pm = [];
+  M.pipes.forEach((p, e) => {
+    const i = idx.get(String(p.from).trim()), j = idx.get(String(p.to).trim());
+    if (!has(i) || !has(j)) return;
+    const r = R?.pipes[e], st = !r || r.st === 'nosrc' || !r.active ? 'none' : r.stage || 'low';
+    pm.push(`<Placemark><name>${xe(p.id)}</name><description>${desc(P.pipes[e])}</description><styleUrl>#p_${st}</styleUrl><LineString><coordinates>${pos[i].join(',')} ${pos[j].join(',')}</coordinates></LineString></Placemark>`);
+  });
+  M.nodes.forEach((n, k) => {
+    if (!has(k)) return;
+    const st = R?.nodes[k]?.st || 'ok';
+    pm.push(`<Placemark><name>${xe(n.id)}</name><description>${desc(P.nodes[k])}</description><styleUrl>#n_${st}</styleUrl><Point><coordinates>${pos[k].join(',')}</coordinates></Point></Placemark>`);
+  });
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xe(M.meta?.obj || 'Газ тармоғи')}</name>${styles}${pm.join('\n')}</Document></kml>`;
+}
+
+/** DXF (R12, ASCII): қатламлар поғоналар бўйича; координаталар — X,Y ёки схема жойлашуви. */
+export function toDXF(M, R, layout) {
+  const kind = coordsKind(M);
+  const pos = kind === 'lonlat' || kind === 'local' ? M.nodes.map(n => [num(n.x), num(n.y)]) : layout.pos.map(([x, y]) => [x, layout.h - y]);
+  const geo = kind === 'lonlat';
+  const scale = geo ? 1 : 1, th = geo ? 0.00005 : (kind === 'local' ? 2 : 6);
+  const t = s => [...String(s ?? '')].map(c => c.charCodeAt(0) < 128 ? c : '\\U+' + c.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join('');
+  const LAY = { high1: ['PIPE_HIGH1', 6], high2: ['PIPE_HIGH2', 221], mid: ['PIPE_MID', 5], low: ['PIPE_LOW', 2], none: ['PIPE_NOSRC', 8], prop: ['PIPE_PROPOSED', 3], nodes: ['NODES', 7], bad: ['NODES_PROBLEM', 1], labels: ['LABELS', 7], regs: ['REGULATORS', 4] };
+  const out = [];
+  const g = (c, v) => out.push(String(c), String(v));
+  g(0, 'SECTION'); g(2, 'HEADER'); g(9, '$ACADVER'); g(1, 'AC1009'); g(0, 'ENDSEC');
+  g(0, 'SECTION'); g(2, 'TABLES'); g(0, 'TABLE'); g(2, 'LAYER'); g(70, Object.keys(LAY).length);
+  for (const [name, col] of Object.values(LAY)) { g(0, 'LAYER'); g(2, name); g(70, 0); g(62, col); g(6, 'CONTINUOUS'); }
+  g(0, 'ENDTAB'); g(0, 'ENDSEC');
+  g(0, 'SECTION'); g(2, 'ENTITIES');
+  const idx = new Map(M.nodes.map((n, k) => [String(n.id).trim(), k]));
+  const ok = k => k !== undefined && pos[k].every(Number.isFinite);
+  const line = (a, b, layer) => { g(0, 'LINE'); g(8, layer); g(10, a[0] * scale); g(20, a[1] * scale); g(30, 0); g(11, b[0] * scale); g(21, b[1] * scale); g(31, 0); };
+  const text = (p, s, h, layer) => { g(0, 'TEXT'); g(8, layer); g(10, p[0] * scale); g(20, p[1] * scale); g(30, 0); g(40, h); g(1, t(s)); };
+  M.pipes.forEach((p, e) => {
+    const i = idx.get(String(p.from).trim()), j = idx.get(String(p.to).trim());
+    if (!ok(i) || !ok(j)) return;
+    const r = R?.pipes[e];
+    const lay = /таклиф/.test(p.status || '') ? LAY.prop[0] : !r || !r.active || r.st === 'nosrc' ? LAY.none[0] : LAY[r.stage || 'low'][0];
+    line(pos[i], pos[j], lay);
+    text([(pos[i][0] + pos[j][0]) / 2, (pos[i][1] + pos[j][1]) / 2], `${p.id} d${num(p.dProp) || num(p.d)} L${num(p.L)}`, th * 0.7, LAY.labels[0]);
+  });
+  (M.regs || []).forEach(gg => {
+    const i = idx.get(String(gg.in).trim()), j = idx.get(String(gg.out).trim());
+    if (!ok(i) || !ok(j)) return;
+    line(pos[i], pos[j], LAY.regs[0]);
+    text([(pos[i][0] + pos[j][0]) / 2, (pos[i][1] + pos[j][1]) / 2 + th], gg.id, th, LAY.regs[0]);
+  });
+  M.nodes.forEach((n, k) => {
+    if (!ok(k)) return;
+    const r = R?.nodes[k], bad = r && ['bad', 'dead', 'nosrc'].includes(r.st);
+    g(0, 'CIRCLE'); g(8, bad ? LAY.bad[0] : LAY.nodes[0]); g(10, pos[k][0] * scale); g(20, pos[k][1] * scale); g(30, 0); g(40, th * 0.6);
+    text([pos[k][0] + th, pos[k][1] - th * 1.5], r ? `${n.id} ${fmtP(r.P, r.stage)} ${pUnit(r.stage)}` : n.id, th, LAY.labels[0]);
+  });
+  g(0, 'ENDSEC'); g(0, 'EOF');
+  return out.join('\r\n') + '\r\n';
 }

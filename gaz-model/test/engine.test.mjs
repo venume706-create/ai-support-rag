@@ -330,3 +330,34 @@ test('§13.6: намуна тармоқ — паст тармоқдаги «па
   assert.equal(nextSize(50, 'пўлат'), 70);
   assert.equal(nextSize(130.8, 'ПЭ'), 184);
 });
+
+test('§13.1: баландлик фарқи (паст босим)', () => {
+  const M = model();
+  N(M, 'S', { type: 'ГТС', Pnorm: 3, z: 0 });
+  N(M, 'A', { q: 24.3, z: 100 });
+  N(M, 'B', { z: -50 });
+  Pp(M, 'P1', 'S', 'A', 'low', 300, 50);
+  Pp(M, 'P2', 'S', 'B', 'low', 200, 50);
+  const R = solveScenario(M, NORM);
+  const dh = 9.81 * (1.293 - 0.73) / 1000;        // кПа/м
+  near(byId(M, R, 'A').P, 2.0728 + 100 * dh, 0.0005, 'A');   // T1 + 100 м юқорида
+  near(byId(M, R, 'B').P, 3 - 50 * dh, 1e-6, 'B');           // оқимсиз — фақат гидростатика
+  near(R.pipes[0].Q, 24.3, 1e-9);
+  // баландлик кўрсатилмаса — T1 билан бир хил
+  M.nodes.forEach(n => { n.z = ''; });
+  near(byId(M, solveScenario(M, NORM), 'A').P, 2.0728, 0.0005);
+});
+
+import { calibrate } from '../src/engine.js';
+test('§13.4: калибровка — синтетик ўлчовлардан ғадир-будурлик тикланади', () => {
+  const M = sampleModel();
+  M.params.nk = 4;
+  const R = solveScenario(M, M.scen[0]);
+  for (const id of ['L-01', 'L-06', 'L-14', 'L-23', 'L-29', 'K-02']) { const k = M.nodes.findIndex(n => n.id === id); M.nodes[k].Pmeas = +R.nodes[k].P.toFixed(4); }
+  M.params.nk = 1;
+  const C = calibrate(M);
+  assert.ok(C.ok && C.n === 6);
+  near(C.nk, 4, 0.03, 'nk');
+  assert.ok(C.rmsAfter < 0.01 && C.rmsBefore > C.rmsAfter * 5, `${C.rmsBefore} ${C.rmsAfter}`);
+  assert.equal(calibrate(sampleModel()).ok, false);
+});

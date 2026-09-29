@@ -1,14 +1,14 @@
 // Ҳолат, текширувлар, интерфейс.
-import { STAGES, STAGE_NAME, solveAll, checkModel, collectProblems, fmtP, pUnit, normType, normStage, num, blank, defaultScenarios, autoSize, tracePath } from './engine.js';
+import { STAGES, STAGE_NAME, solveAll, checkModel, collectProblems, fmtP, pUnit, normType, normStage, num, blank, defaultScenarios, autoSize, tracePath, calibrate } from './engine.js';
 import { sampleModel } from './sample.js';
-import { importWorkbook, modelWorkbook, resultsWorkbook, wbToBlob, readWorkbookFile, normalizeModel, inFrame, saveFile, safeName, statusName } from './io.js';
-import { mountScheme, legendHTML, describeElement, profileData, profileSVG } from './scheme.js';
+import { importWorkbook, modelWorkbook, resultsWorkbook, wbToBlob, readWorkbookFile, normalizeModel, inFrame, saveFile, safeName, statusName, toGeoJSON, toKML, toDXF, coordsKind } from './io.js';
+import { mountScheme, legendHTML, describeElement, profileData, profileSVG, layoutNodes } from './scheme.js';
 import { buildReportHTML, buildRequestHTML, htmlToPdf, stageSummary, formulasHTML } from './report.js';
 
 const DRAFT_KEY = 'gaz-tarmogi-modeli:draft:v1', THEME_KEY = 'gaz-tarmogi-modeli:theme';
 const $ = s => document.querySelector(s);
 const escH = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const S = { M: null, results: [], checks: [], problems: [], si: 0, tab: 'help', isSample: false, fileMsg: null, busy: false, sizing: null, sizingUndo: null, profNode: null };
+const S = { M: null, results: [], checks: [], problems: [], si: 0, tab: 'help', isSample: false, fileMsg: null, busy: false, sizing: null, sizingUndo: null, profNode: null, calib: null };
 
 // ---------- сақлаш ----------
 function saveDraft() {
@@ -47,11 +47,18 @@ function renderMeta() {
 }
 const PARAMS = [['rho', 'Газ зичлиги ρ, кг/м³'], ['nu', 'Қовушоқлик ν, ×10⁻⁶ м²/с'], ['loc', 'Маҳаллий қаршиликлар, %'], ['ka', 'K_бир коэффициенти a'], ['kb', 'K_бир даража кўрсаткичи b'],
   ['norms.low.exc', 'Паст: яхши босим, кПа'], ['norms.low.sat', 'Паст: минимал босим, кПа'], ['norms.mid.min', 'Ўрта: минимал, кПа'], ['norms.high2.min', 'Юқори II: минимал, кПа'],
-  ['norms.high1.min', 'Юқори I: минимал, кПа'], ['vmax.low', 'Паст: v макс, м/с'], ['vmax.mid', 'Ўрта: v макс, м/с'], ['vmax.high2', 'Юқори II: v макс, м/с'], ['vmax.high1', 'Юқори I: v макс, м/с']];
+  ['norms.high1.min', 'Юқори I: минимал, кПа'], ['vmax.low', 'Паст: v макс, м/с'], ['vmax.mid', 'Ўрта: v макс, м/с'], ['vmax.high2', 'Юқори II: v макс, м/с'], ['vmax.high1', 'Юқори I: v макс, м/с'], ['rhoAir', 'Ҳаво зичлиги, кг/м³ (баландлик)'], ['nk', 'Ғадир-будурлик коэфф. (калибровка)']];
 const getP = (o, p) => p.split('.').reduce((t, k) => t?.[k], o);
+function calibText() {
+  const C = S.calib;
+  if (!C) return '<span class="small muted">«P ўлчанган» бўйича ғадир-будурлик коэффициентини танлайди.</span>';
+  if (!C.ok) return `<span class="small" style="color:var(--bad)">${escH(C.reason)}</span>`;
+  return `<span class="small">${C.n} нуқта: ўртача квадратик фарқ ${C.rmsBefore.toFixed(3)} → <b>${C.rmsAfter.toFixed(3)} кПа</b>, коэффициент ${C.nk0.toFixed(2)} → <b>${C.nk.toFixed(2)}</b>.${C.atBound ? ' <span style="color:var(--bad)">Чегарага етди — фарқни ғадир-будурлик билан тушунтириб бўлмайди (юклама, диаметр ёки ўлчовни текширинг).</span>' : ''}</span>`;
+}
 function renderParams() {
   $('#params').innerHTML = PARAMS.map(([k, t]) => `<label class="f">${t}<input inputmode="decimal" data-path="params.${k}" data-num="1" value="${escH(getP(S.M.params, k))}"></label>`).join('') +
-    `<div class="small muted" style="grid-column:1/-1">Нормалар: ШНҚ 2.04.08-22, ҚР 05.02-23; тезликлар — СП 42-101 п.3.38. Ўзгартириш барча режимларни қайта ҳисоблайди.</div>`;
+    `<div class="small muted" style="grid-column:1/-1">Нормалар: ШНҚ 2.04.08-22, ҚР 05.02-23; тезликлар — СП 42-101 п.3.38. Ўзгартириш барча режимларни қайта ҳисоблайди.</div>
+    <div style="grid-column:1/-1"><button type="button" data-act="calib">Ўлчовлар бўйича калибровка (1-режим)</button> ${calibText()}</div>`;
 }
 
 // ---------- режимлар ва кўрсаткичлар ----------
@@ -99,13 +106,13 @@ function nodesTab() {
   const rows = S.M.nodes.map((n, i) => {
     const r = R?.nodes[i], p = `nodes.${i}.`;
     return `<tr><td>${inp(p + 'id', n.id)}</td><td>${inp(p + 'name', n.name, 'w3')}</td><td>${typeSel(p + 'type', n.type)}</td><td>${stageSel(p + 'cat', n.cat)}</td>
-      ${['N', 'p4', 'p2', 'boil', 'col', 'q', 'Pnorm', 'Pmin', 'Pmeas', 'x', 'y'].map(f => `<td>${inp(p + f, n[f], 'w0', true)}</td>`).join('')}<td>${inp(p + 'zone', n.zone, 'w2')}</td>
+      ${['N', 'p4', 'p2', 'boil', 'col', 'q', 'Pnorm', 'Pmin', 'Pmeas', 'x', 'y', 'z'].map(f => `<td>${inp(p + f, n[f], 'w0', true)}</td>`).join('')}<td>${inp(p + 'zone', n.zone, 'w2')}</td>
       <td class="r res">${r ? r.qReq.toFixed(1) : ''}</td><td class="r res">${r ? r.qGot.toFixed(1) : ''}</td><td class="r res">${r ? `${fmtP(r.P, r.stage)} ${pUnit(r.stage)}` : ''}</td><td class="res">${r ? stCell(r.st) : ''}</td>
       <td><button type="button" data-del="nodes.${i}" title="Ўчириш">✕</button></td></tr>`;
   }).join('');
   return `<div class="row-actions"><button type="button" data-add="nodes">＋ Тугун</button><span class="small muted">Натижалар — фаол режим: ${escH(S.M.scen[S.si]?.name)}</span></div>
     <div class="tw"><table class="t"><thead><tr><th>ID</th><th>Номи</th><th>Тури</th><th>Поғона</th><th>N хонадон</th><th>Плита 4к</th><th>Плита 2к</th><th>Котел/АГВ</th><th>Колонка</th>
-    <th>Q қўш., м³/с</th><th>P норм, кПа</th><th>P мин, кПа</th><th>P ўлч., кПа</th><th>X</th><th>Y</th><th>МФЙ / ҳудуд</th><th>Талаб</th><th>Олинган</th><th>P</th><th>Ҳолат</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    <th>Q қўш., м³/с</th><th>P норм, кПа</th><th>P мин, кПа</th><th>P ўлч., кПа</th><th>X</th><th>Y</th><th>Z, м</th><th>МФЙ / ҳудуд</th><th>Талаб</th><th>Олинган</th><th>P</th><th>Ҳолат</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function pipesTab() {
   const R = S.results[S.si];
@@ -208,7 +215,7 @@ function renderPanel() {
     const key = JSON.stringify([S.M.nodes, S.M.pipes, S.M.regs, S.si, S.results[S.si]?.tot, S.results[S.si]?.deliv]);
     if (key === schemeKey && el.querySelector('.sch')) return;
     schemeKey = key;
-    el.innerHTML = `${legendHTML()}<div class="sch"></div><p class="small muted">Ғилдирак ёки тугмалар — масштаб, судраш — суриш, элемент устига олиб боринг ёки босинг — маълумот.</p>`;
+    el.innerHTML = `<div class="row-actions"><button type="button" data-act="geojson">GeoJSON</button><button type="button" data-act="kml">KML</button><button type="button" data-act="dxf">DXF</button><span class="small muted">Экспорт — фаол режим натижалари билан. GeoJSON/KML учун тугунларда X (узунлик) ва Y (кенглик) керак.</span></div>${legendHTML()}<div class="sch"></div><p class="small muted">Ғилдирак ёки тугмалар — масштаб, судраш — суриш, элемент устига олиб боринг ёки босинг — маълумот.</p>`;
     mountScheme(el.querySelector('.sch'), S.M, S.results[S.si], (k, i) => describeElement(S.M, S.results[S.si], k, i));
     return;
   }
@@ -339,6 +346,26 @@ async function onAction(act) {
       changed(true);
     });
     return;
+  }
+  if (act === 'geojson' || act === 'kml' || act === 'dxf') {
+    const R = S.results[S.si], kind = coordsKind(S.M);
+    if (act === 'dxf') { await saveFile(`${base()}_sxema.dxf`, new Blob([toDXF(S.M, R, layoutNodes(S.M))], { type: 'application/dxf' })); if (kind === 'none') toast('Координаталар йўқ — DXF схема жойлашуви бўйича', 4000); return; }
+    if (kind === 'none') { toast('Тугунларда X, Y координаталар йўқ — GeoJSON/KML тузиб бўлмайди. DXF схемадан фойдаланинг.', 5000); return; }
+    if (act === 'kml') {
+      const k = toKML(S.M, R);
+      if (!k) { toast('KML учун WGS84 координаталар керак (X — узунлик, Y — кенглик)', 5000); return; }
+      await saveFile(`${base()}.kml`, new Blob([k], { type: 'application/vnd.google-earth.kml+xml' })); return;
+    }
+    await saveFile(`${base()}.geojson`, new Blob([toGeoJSON(S.M, R)], { type: 'application/geo+json' }));
+    if (!kind.startsWith('lonlat')) toast('Координаталар маҳаллий — GeoJSON да проекцияни белгиланг', 4000);
+    return;
+  }
+  if (act === 'calib') {
+    const C = calibrate(S.M, { scenIndex: 0 });
+    S.calib = C;
+    if (C.ok) S.M.params.nk = +C.nk.toFixed(3);
+    $('#paramsBox').open = true;
+    changed(true); return;
   }
   if (act === 'autosizeUndo') {
     if (S.sizingUndo) S.M.pipes.forEach((p, i) => { if (i < S.sizingUndo.length) p.dProp = S.sizingUndo[i]; });

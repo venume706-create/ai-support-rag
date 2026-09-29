@@ -6,7 +6,7 @@
   "description": "Газ тақсимлаш тармоқларининг гидравлик модели (бир файлли HTML)",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test test/engine.test.mjs",
+    "test": "node --test test/engine.test.mjs test/io.test.mjs",
     "e2e": "node build.mjs && node test/e2e.mjs"
   },
   "devDependencies": {

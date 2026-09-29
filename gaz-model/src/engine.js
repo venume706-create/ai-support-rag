@@ -10,7 +10,7 @@ export const APPL = { p4: 1.2, p2: 0.6, boil: 2.5, col: 2.2 };   // асбобл
 
 export function defaultParams() {
   return {
-    rho: 0.73, nu: 14.3, loc: 10, ka: 0.85, kb: -0.28,
+    rho: 0.73, nu: 14.3, loc: 10, ka: 0.85, kb: -0.28, rhoAir: 1.293, nk: 1,
     norms: { low: { exc: 2.0, sat: 1.2 }, mid: { min: 50 }, high2: { min: 150 }, high1: { min: 300 } },
     vmax: { low: 7, mid: 15, high2: 25, high1: 25 },
   };
@@ -134,7 +134,8 @@ export function pipeHyd(Lm, dmm, mat, stage, P) {
   const C = stage === 'low' ? 626.1 : 1.2687e-4;
   const K = C * P.rho * Lp / Math.pow(dcm, 5);
   const beta = 0.0354 / (dcm * P.nu * 1e-6);
-  const nd = (isPE(mat) ? 0.0007 : 0.01) / dcm;
+  const nk = isNum(P.nk) && num(P.nk) > 0 ? num(P.nk) : 1;   // §13.4: ғадир-будурлик калибровка коэффициенти
+  const nd = (isPE(mat) ? 0.0007 : 0.01) * nk / dcm;
   const h = { K, beta, nd, dmm, stage };
   h.QX = RE_X / beta;                       // ламинар чегараси
   h.hX = K * 64 * h.QX / beta;
@@ -222,6 +223,7 @@ function demand(qr, Pt, stage, phi) {
  */
 export function solveComponent(comp, phi0) {
   const { n, pipes, fixed, qr, Pt, extra, stage } = comp;
+  const off = comp.off || null;                 // баландлик тузатмаси: φ_ҳақиқий = ψ + off (фақат паст)
   const xf = Array.from({ length: n }, () => null);
   for (const [k, fn] of comp.xfn || []) (xf[k] ||= []).push(fn);
   const free = [], loc = new Int32Array(n).fill(-1);
@@ -265,8 +267,9 @@ export function solveComponent(comp, phi0) {
     }
     for (let f = 0; f < m; f++) {
       const k = free[f];
-      let [q, d] = demand(qr[k], Pt[k], stage, ph[k]);
-      if (xf[k]) for (const fn of xf[k]) { const [q2, d2] = fn(ph[k]); q += q2; d += d2; }
+      const pt = off ? ph[k] + off[k] : ph[k];
+      let [q, d] = demand(qr[k], Pt[k], stage, pt);
+      if (xf[k]) for (const fn of xf[k]) { const [q2, d2] = fn(pt); q += q2; d += d2; }
       Fout[f] -= q + (extra[k] || 0);
       if (withJac) dq[f] = d;
     }
@@ -482,6 +485,12 @@ export function solveScenario(M, sc = {}) {
     Pt[k] = st === 'low' ? P.norms.low.sat : P.norms[st].min;
   }
   const hyd = pipes.map(p => p.active ? pipeHyd(p.L, p.d, p.mat, comps[compOf[p.i]].stage, P) : null);
+  // §13.1: паст босимда баландлик фарқи — ΔP_h = g·(ρ_ҳаво − ρ_газ)·Δz (газ ҳаводан енгил: юқорида босим ортади)
+  const offN = new Float64Array(N);
+  const hz = 9.81 * ((isNum(P.rhoAir) ? num(P.rhoAir) : 1.293) - P.rho);
+  for (let k = 0; k < N; k++) if (comps[compOf[k]].stage === 'low' && isNum(M.nodes[k].z)) offN[k] = hz * num(M.nodes[k].z);
+  const hasZ = offN.some(v => v !== 0);
+  const pk = (k, stage) => pOfPhi(phi[k] + offN[k], stage);      // тугуннинг ҳақиқий босими, кПа
   const phi = new Float64Array(N).fill(NaN), Qe = new Float64Array(pipes.length);
   const Pout = regs.map(g => g.active && powered[g.cin] ? g.Pset : 0);
   const Qreg = regs.map(() => 0);          // регулятор сарфи (чиқиш тугунига етказилган)
@@ -548,17 +557,17 @@ export function solveScenario(M, sc = {}) {
     const qrc = cp.nodes.map(k => qr[k]), Ptc = cp.nodes.map(k => Pt[k]);
     for (let round = 0; round <= regs.length; round++) {
       const fixed = new Float64Array(n).fill(NaN);
-      for (const k of cp.nodes) if (Number.isFinite(srcP[k])) fixed[loc.get(k)] = phiOfP(srcP[k], cp.stage);
+      for (const k of cp.nodes) if (Number.isFinite(srcP[k])) fixed[loc.get(k)] = phiOfP(srcP[k], cp.stage) - offN[k];
       const feeders = [];
       for (let r = 0; r < regs.length; r++) {
         const g = regs[r];
         if (!g.active || g.cout !== c || !powered[g.cin] || backClosed[r]) continue;
-        if (!Number.isFinite(srcP[g.o])) fixed[loc.get(g.o)] = phiOfP(Math.max(0, Pout[r]), cp.stage);
+        if (!Number.isFinite(srcP[g.o])) fixed[loc.get(g.o)] = phiOfP(Math.max(0, Pout[r]), cp.stage) - offN[g.o];
         feeders.push(r);
       }
       const phi0 = new Float64Array(n);
       cp.nodes.forEach((k, a) => { phi0[a] = phi[k]; });
-      const res = solveComponent({ n, pipes: cPipes, fixed, qr: qrc, Pt: Ptc, extra, stage: cp.stage, xfn }, phi0);
+      const res = solveComponent({ n, pipes: cPipes, fixed, qr: qrc, Pt: Ptc, extra, stage: cp.stage, xfn, off: hasZ ? cp.nodes.map(k => offN[k]) : null }, phi0);
       compConv[c] = res.conv ? 1 : 0;
       cp.nodes.forEach((k, a) => { phi[k] = res.phi[a]; });
       cp.pipes.forEach((e, t) => { Qe[e] = res.Q[t]; cPipes[t].Q = res.Q[t]; });
@@ -569,7 +578,7 @@ export function solveScenario(M, sc = {}) {
       for (const o of supply.keys()) {
         let s = 0;
         cp.pipes.forEach((e, t) => { if (pipes[e].i === o) s += res.Q[t]; else if (pipes[e].j === o) s -= res.Q[t]; });
-        s += demand(qr[o], Pt[o], cp.stage, phi[o])[0] + loadAt(loc.get(o), phi[o]);
+        s += demand(qr[o], Pt[o], cp.stage, phi[o] + offN[o])[0] + loadAt(loc.get(o), phi[o] + offN[o]);
         supply.set(o, s);
       }
       const byOut = new Map();
@@ -586,7 +595,7 @@ export function solveScenario(M, sc = {}) {
       break;
     }
     for (let r = 0; r < regs.length; r++) if (regs[r].cout === c && backClosed[r]) Qreg[r] = 0;
-    for (const [a, fn, r] of xfn) Qup[r] = fn(phi[cp.nodes[a]])[0];
+    for (const [a, fn, r] of xfn) Qup[r] = fn(phi[cp.nodes[a]] + offN[cp.nodes[a]])[0];
   }
 
   // Бир ўтиш: берилган Pout да пастдан юқорига ҳисоб; натижа G_r = law(Pin_r) − Pout_r.
@@ -599,7 +608,7 @@ export function solveScenario(M, sc = {}) {
     backClosed = regs.map(() => false);
     for (const c of bottomUp) solveComp(c);
     const G = regs.map(() => 0);
-    for (const r of act) G[r] = law(regs[r], pOfPhi(phi[regs[r].i], comps[regs[r].cin].stage)) - p[r];
+    for (const r of act) G[r] = law(regs[r], pk(regs[r].i, comps[regs[r].cin].stage)) - p[r];
     return G;
   }
   const gnorm = G => act.reduce((m, r) => Math.max(m, Math.abs(G[r]) / regs[r].Pset), 0);
@@ -639,7 +648,7 @@ export function solveScenario(M, sc = {}) {
       }
       for (const r of feed) {
         if (!backClosed[r]) continue;
-        const Pf = pOfPhi(phi[regs[r].o], comps[c].stage), Ps = regs[r].Pset;
+        const Pf = pk(regs[r].o, comps[c].stage), Ps = regs[r].Pset;
         const s0 = sref > 0 ? sref : Dcap[r] / (0.05 * Ps);
         const dpp = Math.max(1e-4 * Ps, 1e-3 * Math.max(Pf, 0));
         samples[r] = [[Math.max(Pf, 1e-9), 0], [Math.max(Pf, 1e-9) + dpp, s0 * dpp]];
@@ -648,7 +657,7 @@ export function solveScenario(M, sc = {}) {
     const pn = p.slice();
     let dmax = 0, qerr = 0;
     for (const r of act) {
-      pn[r] = law(regs[r], pOfPhi(phi[regs[r].i], comps[regs[r].cin].stage));
+      pn[r] = law(regs[r], pk(regs[r].i, comps[regs[r].cin].stage));
       dmax = Math.max(dmax, Math.abs(pn[r] - p[r]) / regs[r].Pset);
       qerr = Math.max(qerr, Math.abs(Qup[r] - Qreg[r]) / Math.max(1, Dcap[r]));
     }
@@ -739,9 +748,9 @@ export function solveScenario(M, sc = {}) {
     const c = comps[compOf[k]], stage = c.stage;
     const isFixed = Number.isFinite(srcP[k]) || regs.some((g, r) => g.active && g.o === k && powered[g.cin] && !backClosed[r]);
     if (!powered[compOf[k]]) return { P: 0, Praw: NaN, qReq: qr[k], qGot: 0, st: 'nosrc', stage, comp: c.id, fixed: false };
-    const Praw = pOfPhi(phi[k], stage);
+    const Praw = pk(k, stage);
     const Pk = Math.max(0, Praw);
-    const qGot = demand(qr[k], Pt[k], stage, phi[k])[0];
+    const qGot = demand(qr[k], Pt[k], stage, phi[k] + offN[k])[0];
     let st;
     if (stage === 'low') st = Pk >= P.norms.low.exc ? 'ok' : Pk >= P.norms.low.sat ? 'warn' : 'bad';
     else st = Pk >= P.norms[stage].min ? 'ok' : 'bad';
@@ -851,6 +860,42 @@ export function tracePath(M, R, k0) {
   x = 0;
   for (let t = 1; t < path.length; t++) { if (path[t].e !== null) x += num(M.pipes[path[t].e].L) || 0; path[t].x = x; }
   return path;
+}
+
+// ---------- §13.4 ўлчовлар бўйича автокалибровка ----------
+
+/**
+ * Ғадир-будурлик коэффициенти nk (n·nk) ни энг кичик квадратлар усулида танлаш:
+ * min Σ (P_ҳисоб − P_ўлчанган)², nk ∈ [0,1; 30], олтин кесим (log шкала). Модел ўзгармайди.
+ */
+export function calibrate(M, { scenIndex = 0, lo = 0.1, hi = 30 } = {}) {
+  const W = JSON.parse(JSON.stringify(M));
+  const sc = W.scen[scenIndex] || { src: 'norm', dem: 1, growth: 0 };
+  const meas = W.nodes.map((n, k) => [k, num(n.Pmeas)]).filter(([, v]) => Number.isFinite(v));
+  const nk0 = isNum(W.params.nk) && num(W.params.nk) > 0 ? num(W.params.nk) : 1;
+  const run = nk => {
+    W.params.nk = nk;
+    const R = solveScenario(W, sc);
+    const used = meas.filter(([k]) => R.nodes[k].st !== 'nosrc');
+    const sse = used.reduce((t, [k, v]) => t + (R.nodes[k].P - v) ** 2, 0);
+    return { sse, n: used.length, R };
+  };
+  if (!meas.length) return { ok: false, reason: 'Ўлчанган босимлар йўқ', n: 0 };
+  const r0 = run(nk0);
+  if (!r0.n) return { ok: false, reason: 'Ўлчов нуқталари манбага уланмаган', n: 0 };
+  let a = Math.log(lo), b = Math.log(hi);
+  const gr = (Math.sqrt(5) - 1) / 2;
+  let c = b - gr * (b - a), d = a + gr * (b - a), fc = run(Math.exp(c)).sse, fd = run(Math.exp(d)).sse, evals = 3;
+  while (b - a > 1e-3 && evals < 60) {
+    if (fc < fd) { b = d; d = c; fd = fc; c = b - gr * (b - a); fc = run(Math.exp(c)).sse; }
+    else { a = c; c = d; fc = fd; d = a + gr * (b - a); fd = run(Math.exp(d)).sse; }
+    evals++;
+  }
+  const nk = Math.exp((a + b) / 2), r1 = run(nk);
+  const rms = x => Math.sqrt(x.sse / x.n);
+  const rows = meas.map(([k, v]) => ({ id: W.nodes[k].id, meas: v, before: r0.R.nodes[k].P, after: r1.R.nodes[k].P }));
+  const atBound = nk < lo * 1.05 || nk > hi / 1.05;
+  return { ok: true, nk, nk0, n: r1.n, rmsBefore: rms(r0), rmsAfter: rms(r1), rows, atBound, evals };
 }
 
 // ---------- §13.6 диаметрларни автоматик танлаш ----------
