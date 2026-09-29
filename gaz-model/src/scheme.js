@@ -201,3 +201,70 @@ export function describeElement(M, R, kind, i) {
   return `<h4>${esc(g.id)} ${esc(g.name || '')}</h4>` + (r ? row('P кириш', `${r.Pin.toFixed(2)} кПа`) + row('P чиқиш', `${r.Pout.toFixed(2)} кПа`) +
     row('Сарф', `${r.Q.toFixed(1)} м³/соат (${r.load.toFixed(0)}%)`) + row('Ҳолат', statusName(r.st)) : '');
 }
+
+// ---------- §13.7 босим профили ----------
+
+/** Йўл бўйлаб нуқталар: [{k, id, x (км), P, stage, st, via}] ва поғона бўлаклари. */
+export function profileData(M, R, path) {
+  const pts = path.map(s => {
+    const r = R.nodes[s.k];
+    const via = s.e !== null ? M.pipes[s.e].id : s.r !== null ? M.regs[s.r].id : '';
+    return { k: s.k, id: M.nodes[s.k].id, name: M.nodes[s.k].name || '', x: s.x / 1000, P: r.P, stage: r.stage, st: r.st, via, viaReg: s.r !== null };
+  });
+  const segs = [];
+  for (const p of pts) {
+    const last = segs[segs.length - 1];
+    if (!last || last.stage !== p.stage || p.viaReg) segs.push({ stage: p.stage, pts: [p] }); else last.pts.push(p);
+  }
+  return { pts, segs, L: pts.length ? pts[pts.length - 1].x : 0 };
+}
+
+function niceStep(span) {
+  const raw = span / 4, p = Math.pow(10, Math.floor(Math.log10(raw || 1))), m = raw / p;
+  return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+}
+
+/**
+ * Кичик кўп графиклар: ҳар бир поғона — алоҳида график (ўз ўқи, ўз бирлиги), X ўқи — манбадан масофа, км.
+ * opts.print — литерал ранглар (PDF).
+ */
+export function profileSVG(M, R, data, opts = {}) {
+  const P = M.params, W = opts.width || 760, H = 150, padL = 58, padR = 16, padT = 26, padB = 26;
+  const ink = opts.print ? '#222' : 'currentColor', grid = opts.print ? '#dde2e8' : 'var(--line)', muted = opts.print ? '#666' : 'var(--muted)';
+  const ring = opts.print ? '#fff' : 'var(--panel)', crit = opts.print ? '#c0262d' : 'var(--bad)';
+  const xMax = Math.max(0.001, data.L), X = x => padL + x / xMax * (W - padL - padR);
+  const xs = niceStep(xMax);
+  return data.segs.map(seg => {
+    const low = seg.stage === 'low', k = low ? 1 : 1 / 1000, unit = low ? 'кПа' : 'МПа';
+    const norm = low ? P.norms.low.sat : P.norms[seg.stage]?.min;
+    const vals = seg.pts.map(p => p.P * k).concat(norm ? [norm * k] : []);
+    const hi = Math.max(...vals) * 1.08, lo = 0, ys = niceStep(hi - lo);
+    const Y = v => padT + (1 - (v - lo) / (hi - lo || 1)) * (H - padT - padB);
+    const g = [];
+    g.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="Arial, sans-serif" font-size="11" role="img" aria-label="Босим профили: ${STAGE_NAME[seg.stage]}">`);
+    if (opts.print) g.push(`<rect width="${W}" height="${H}" fill="#fff"/>`);
+    g.push(`<text x="${padL}" y="15" font-size="12" font-weight="bold" fill="${ink}">${STAGE_NAME[seg.stage]} босим, ${unit}</text>`);
+    for (let v = 0; v <= hi + 1e-12; v += ys) g.push(`<line x1="${padL}" x2="${W - padR}" y1="${Y(v)}" y2="${Y(v)}" stroke="${grid}" stroke-width="1"/><text x="${padL - 6}" y="${Y(v) + 4}" text-anchor="end" fill="${muted}">${+v.toFixed(4)}</text>`);
+    for (let x = 0; x <= xMax + 1e-9; x += xs) g.push(`<text x="${X(x)}" y="${H - 8}" text-anchor="middle" fill="${muted}">${+x.toFixed(3)}</text>`);
+    g.push(`<text x="${W - padR}" y="${H - 8}" text-anchor="end" fill="${muted}">км</text>`);
+    if (norm) g.push(`<line x1="${padL}" x2="${W - padR}" y1="${Y(norm * k)}" y2="${Y(norm * k)}" stroke="${crit}" stroke-width="1.5" stroke-dasharray="6 4"/><text x="${padL + 6}" y="${Y(norm * k) - 5}" text-anchor="start" fill="${ink}">меъёр ${+(norm * k).toFixed(4)} ${unit}</text>`);
+    const col = STAGE_COLOR[seg.stage];
+    g.push(`<polyline fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${seg.pts.map(p => `${X(p.x).toFixed(1)},${Y(p.P * k).toFixed(1)}`).join(' ')}"/>`);
+    seg.pts.forEach((p, i) => {
+      const cx = X(p.x), cy = Y(p.P * k), bad = ['bad', 'dead'].includes(p.st);
+      const tip = `${p.id}${p.name ? ' ' + p.name : ''} · ${p.x.toFixed(3)} км · ${fmtP(p.P, p.stage)} ${unit} · ${statusName(p.st)}`;
+      g.push(`<circle cx="${cx}" cy="${cy}" r="4.5" fill="${bad ? crit : col}" stroke="${ring}" stroke-width="2"/>`);
+      g.push(`<circle cx="${cx}" cy="${cy}" r="11" fill="transparent" data-tip="${esc(tip)}"><title>${esc(tip)}</title></circle>`);
+      const last = i === seg.pts.length - 1;
+      if (i === 0 || last) {
+        // бошланғич ва охирги нуқта ёрлиғи: чегарадан чиқмасин, бир-бирини ёпмасин
+        const anchor = cx > W * 0.55 ? 'end' : 'start', dx = anchor === 'end' ? -7 : 7;
+        const close = last && seg.pts.length > 1 && Math.abs(cx - X(seg.pts[0].x)) < 150;
+        const ty = close ? cy + 17 : cy - 9;
+        g.push(`<text x="${cx + dx}" y="${Math.max(padT + 2, Math.min(H - padB - 2, ty))}" text-anchor="${anchor}" fill="${ink}">${esc(p.id)} ${fmtP(p.P, p.stage)}</text>`);
+      }
+    });
+    g.push('</svg>');
+    return g.join('');
+  }).join('');
+}

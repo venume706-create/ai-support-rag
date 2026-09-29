@@ -52,7 +52,7 @@ try {
   // 1. Очиш: консолда хато йўқ
   {
     const { ctx, page, errors } = await open();
-    for (const t of ['scheme', 'nodes', 'pipes', 'regs', 'scen', 'probs', 'method', 'help']) { await page.click(`[data-tab="${t}"]`); await page.waitForTimeout(150); }
+    for (const t of ['scheme', 'profile', 'nodes', 'pipes', 'regs', 'scen', 'probs', 'method', 'help']) { await page.click(`[data-tab="${t}"]`); await page.waitForTimeout(150); }
     for (let i = 0; i < 6; i++) await page.click(`[data-si="${i}"]`);
     assert.deepEqual(errors, []);
     ok('саҳифа очилди, барча вкладка ва режимлар — консолда хато йўқ');
@@ -105,16 +105,36 @@ try {
     assert.ok(rep.pv.every(t => !/^[−-]/.test(t.trim())), 'манфий босим');
     const negCells = rep.cells.filter(t => /^[−-]\s?\d/.test(t));
     assert.deepEqual(negCells, [], 'манфий қийматли катаклар');
-    for (const h of ['Ижрочилар', 'Норматив база', 'Муаммолар реестри', 'Чоралар дастури', 'Хулоса', 'Иловалар']) assert.ok(rep.text.includes(h), h);
+    for (const h of ['Босим профили', 'Ижрочилар', 'Норматив база', 'Муаммолар реестри', 'Чоралар дастури', 'Хулоса', 'Иловалар']) assert.ok(rep.text.includes(h), h);
     assert.deepEqual(errors, []);
     ok(`намуна модели (объект ва ижрочи тўлдирилган) → тўлиқ PDF ҳисобот, ${pages} саҳифа`);
     ok(`ҳисоботда ${rep.pv.length} та босим қиймати — биронтаси ҳам «−» билан эмас`);
     await ctx.close();
   }
+  // §13.6 / §13.7: диаметрларни танлаш ва профиль
+  {
+    const { ctx, page, errors } = await open();
+    await page.click('[data-tab="pipes"]');
+    await page.click('[data-act="autosize"]');
+    await page.waitForFunction(() => window.__gaz.sizing);
+    const r = await page.evaluate(() => ({ si: __gaz.si, ok: __gaz.sizing.ok, ch: __gaz.sizing.changes.map(c => `${c.id}:${c.d0}→${c.d1}`),
+      bad: __gaz.results[5].nodes.filter(n => n.qReq > 0 && n.st !== 'ok').length, dProp: __gaz.M.pipes.filter(p => p.dProp !== '' && p.dProp !== undefined).length }));
+    assert.ok(r.ok && r.si === 5 && r.bad === 0 && r.ch.length > 0, JSON.stringify(r));
+    await page.click('[data-act="autosizeUndo"]');
+    assert.equal(await page.evaluate(() => __gaz.results[5].nodes.filter(n => n.qReq > 0 && n.st !== 'ok').length) > 0, true);
+    await page.click('[data-tab="profile"]');
+    const nsvg = await page.locator('.prof svg').count();
+    await page.selectOption('#profSel', 'K-02');
+    const rows = await page.locator('#panel tbody tr').count();
+    assert.ok(nsvg === 3 && rows >= 5, `${nsvg} ${rows}`);
+    assert.deepEqual(errors, []);
+    ok(`диаметрлар автоматик танланди (${r.ch.join(', ')}), 6-режимда барча истеъмолчилар меъёрда; бекор қилиш ишлайди; профиль: ${nsvg} график`);
+    await ctx.close();
+  }
   // 5. 400 px: горизонтал айланиш йўқ
   {
     const { ctx, page } = await open({ viewport: { width: 400, height: 860 } });
-    for (const t of ['help', 'scheme', 'nodes', 'probs', 'method']) {
+    for (const t of ['help', 'scheme', 'profile', 'nodes', 'pipes', 'probs', 'method']) {
       await page.click(`[data-tab="${t}"]`); await page.waitForTimeout(150);
       const [sw, iw] = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
       assert.ok(sw <= iw, `${t}: ${sw} > ${iw}`);

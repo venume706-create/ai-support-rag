@@ -804,6 +804,152 @@ export function solveAll(M) {
   return (M.scen || []).map(sc => solveScenario(M, sc));
 }
 
+// ---------- §13.7 манбадан тугунгача йўл ----------
+
+/**
+ * Тугундан манбага қараб юқорига йўл: ҳар қадамда энг катта кирувчи оқимли қувур,
+ * ГРП/ШРП чиқишида — унинг киришига ўтилади. Қайтаради манбадан тугунгача қадамлар:
+ * [{ k (тугун), e (келган қувур|null), r (келган регулятор|null), x (масофа, м) }].
+ */
+export function tracePath(M, R, k0) {
+  const idx = new Map(M.nodes.map((n, k) => [String(n.id ?? '').trim(), k]));
+  const inc = M.nodes.map(() => []);
+  M.pipes.forEach((p, e) => {
+    const i = idx.get(String(p.from ?? '').trim()), j = idx.get(String(p.to ?? '').trim());
+    if (i === undefined || j === undefined || !R.pipes[e]?.active) return;
+    inc[i].push([e, j, -1]); inc[j].push([e, i, 1]);        // [қувур, қўшни, ишора: +1 — қўшнидан бизга]
+  });
+  const regOut = new Map();
+  (M.regs || []).forEach((g, r) => {
+    const o = idx.get(String(g.out ?? '').trim()), i = idx.get(String(g.in ?? '').trim());
+    if (o !== undefined && i !== undefined && R.regs[r] && R.regs[r].st !== 'off' && R.regs[r].st !== 'nosrc' && !R.regs[r].closedBack) regOut.set(o, [r, i]);
+  });
+  // мақсаддан манбага: ҳар тугун учун у юқори қўшнисига қайси элемент орқали уланган
+  const up = [], seen = new Set();
+  let k = k0;
+  while (k !== undefined && !seen.has(k)) {
+    seen.add(k);
+    const step = { k, e: null, r: null };
+    up.push(step);
+    if (normType(M.nodes[k].type) === 'ГТС') break;
+    if (R.nodes[k].fixed && regOut.has(k)) { const [r, i] = regOut.get(k); step.r = r; k = i; continue; }
+    let best = null;
+    for (const [e, j, sg] of inc[k]) { const q = sg * R.pipes[e].Q; if (q > 1e-9 && (!best || q > best[2])) best = [e, j, q]; }
+    if (!best) break;
+    step.e = best[0]; k = best[1];
+  }
+  // манбадан мақсадга; path[t].e / .r — path[t−1] дан path[t] га келган элемент
+  const path = [];
+  let x = 0;
+  for (let t = up.length - 1; t >= 0; t--) {
+    const s = up[t];
+    if (s.e !== null) x += num(M.pipes[s.e].L) || 0;
+    path.push({ k: s.k, e: s.e, r: s.r, x });
+  }
+  if (path.length) { path[0].e = null; path[0].r = null; path[0].x = 0; }
+  // масофа: биринчи элемент манбанинг ўзида ҳисобланмайди
+  x = 0;
+  for (let t = 1; t < path.length; t++) { if (path[t].e !== null) x += num(M.pipes[path[t].e].L) || 0; path[t].x = x; }
+  return path;
+}
+
+// ---------- §13.6 диаметрларни автоматик танлаш ----------
+
+export const SORTAMENT = {
+  steel: [26, 33, 41, 51, 70, 82, 100, 125, 150, 207, 259, 309, 408],
+  pe: [26, 32.6, 40.8, 51.4, 73.6, 90, 130.8, 184, 257.8, 327.4],
+};
+const sizes = mat => isPE(mat) ? SORTAMENT.pe : SORTAMENT.steel;
+export function nextSize(d, mat) { return sizes(mat).find(x => x > d * 1.05) ?? null; }
+export function prevSize(d, mat, min = 0) { const L = sizes(mat).filter(x => x < d * 0.999 && x >= min * 0.999); return L.length ? L[L.length - 1] : null; }
+
+/** Мақсад бажарилганми: барча истеъмолчилар «меъёрда», тезлик ошмаган. */
+function sizingIssues(R) {
+  const nodes = [], pipes = [];
+  R.nodes.forEach((n, k) => { if (n.qReq > 0 && n.st !== 'ok' && n.st !== 'nosrc') nodes.push(k); });
+  R.pipes.forEach((p, e) => { if (p.active && p.st === 'fast') pipes.push(e); });
+  return { nodes, pipes };
+}
+
+/**
+ * 6-режим учун минимал стандарт диаметрлар (сортамент), барча тугунлар «меъёрда» бўлиши учун.
+ * Очкўз катталаштириш (энг катта босим ютуғи / харажат), сўнг ортиқчасини камайтириш.
+ * Модел ўзгармайди; натижа — { dProp: {id: d}, changes, ok, remaining, iters }.
+ */
+export function autoSize(M, { scenIndex = null, maxIter = 600 } = {}) {
+  const W = JSON.parse(JSON.stringify(M));
+  const si = scenIndex ?? Math.max(0, W.scen.findIndex(s => s.variant));
+  const sc = { ...(W.scen[si] || { src: 'norm', dem: 1, growth: 0 }), variant: true };
+  const dOf = p => isNum(p.dProp) && num(p.dProp) > 0 ? num(p.dProp) : num(p.d);
+  const base = W.pipes.map(dOf);
+  const setD = (e, d) => { W.pipes[e].dProp = d; };
+  const target = k => { const R0 = R.nodes[k]; return R0.stage === 'low' ? W.params.norms.low.exc : W.params.norms[R0.stage].min; };
+  let R = solveScenario(W, sc), iters = 0;
+  const before = sizingIssues(R);
+  const tried = new Set();
+  for (; iters < maxIter; iters++) {
+    const is = sizingIssues(R);
+    if (!is.nodes.length && !is.pipes.length) break;
+    let changed = false;
+    // тезлик ошган қувурлар — бир поғона катталаштирилади
+    for (const e of is.pipes) { const d1 = nextSize(dOf(W.pipes[e]), W.pipes[e].mat); if (d1) { setD(e, d1); changed = true; } }
+    // босим етмаган тугунлар: йўлдаги энг самарали қувур
+    const score = new Map();
+    for (const k of is.nodes) {
+      const deficit = Math.max(1e-6, target(k) - R.nodes[k].P) / target(k);
+      for (const st of tracePath(W, R, k)) {
+        if (st.e === null) continue;
+        const p = W.pipes[st.e], d0 = dOf(p), d1 = nextSize(d0, p.mat);
+        if (!d1) continue;
+        const dP = Math.abs(R.pipes[st.e].dP), L = num(p.L) || 1;
+        const gain = dP * (1 - Math.pow(d0 / d1, 4.8)), cost = L * (d1 - d0);
+        score.set(st.e, (score.get(st.e) || 0) + deficit * gain / cost);
+      }
+    }
+    if (score.size) {
+      const [e] = [...score.entries()].sort((a, b) => b[1] - a[1])[0];
+      setD(e, nextSize(dOf(W.pipes[e]), W.pipes[e].mat)); changed = true;
+    }
+    if (!changed) break;
+    const key = W.pipes.map(dOf).join(',');
+    if (tried.has(key)) break;
+    tried.add(key);
+    R = solveScenario(W, sc);
+  }
+  const ok = () => { const is = sizingIssues(R); return !is.nodes.length && !is.pipes.length; };
+  const feasible = ok();
+  // ортиқчасини камайтириш: энг қиммат катталаштиришлардан бошлаб
+  if (feasible) {
+    for (let round = 0; round < 60; round++) {
+      let any = false;
+      const order = W.pipes.map((p, e) => e).filter(e => dOf(W.pipes[e]) > base[e] * 1.001)
+        .sort((a, b) => (num(W.pipes[b].L) * dOf(W.pipes[b])) - (num(W.pipes[a].L) * dOf(W.pipes[a])));
+      for (const e of order) {
+        const p = W.pipes[e], d0 = dOf(p);
+        const d1 = prevSize(d0, p.mat, base[e]) ?? base[e];   // стандарт поғона ёки мавжуд диаметрга қайтиш
+        if (!(d1 < d0)) continue;
+        const keep = p.dProp;
+        setD(e, d1);
+        const R2 = solveScenario(W, sc), is = sizingIssues(R2);
+        if (!is.nodes.length && !is.pipes.length) { R = R2; any = true; } else setD(e, keep);
+      }
+      if (!any) break;
+    }
+  }
+  const changes = [];
+  W.pipes.forEach((p, e) => {
+    const d1 = dOf(p);
+    if (Math.abs(d1 - base[e]) > 1e-9) changes.push({ e, id: p.id, L: num(p.L), d0: base[e], d1, mat: p.mat || 'пўлат' });
+  });
+  const is = sizingIssues(R);
+  const remaining = {
+    nodes: is.nodes.map(k => W.nodes[k].id), pipes: is.pipes.map(e => W.pipes[e].id),
+    regs: (W.regs || []).filter((g, r) => R.regs[r]?.over || R.regs[r]?.lowin || R.regs[r]?.dead).map(g => g.id),
+  };
+  return { scenIndex: si, ok: !is.nodes.length && !is.pipes.length, changes, remaining, iters, before: { nodes: before.nodes.length, pipes: before.pipes.length },
+    dProp: Object.fromEntries(changes.map(c => [c.id, c.d1])), extraMetal: changes.reduce((t, c) => t + c.L * (c.d1 - c.d0) / 1000, 0), result: R };
+}
+
 // ---------- 5. маълумотлар текшируви («Ёрдамчи») ----------
 
 function card(lvl, title, o) {

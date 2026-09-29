@@ -1,14 +1,14 @@
 // Ҳолат, текширувлар, интерфейс.
-import { STAGES, STAGE_NAME, solveAll, checkModel, collectProblems, fmtP, pUnit, normType, normStage, num, blank, defaultScenarios } from './engine.js';
+import { STAGES, STAGE_NAME, solveAll, checkModel, collectProblems, fmtP, pUnit, normType, normStage, num, blank, defaultScenarios, autoSize, tracePath } from './engine.js';
 import { sampleModel } from './sample.js';
 import { importWorkbook, modelWorkbook, resultsWorkbook, wbToBlob, readWorkbookFile, normalizeModel, inFrame, saveFile, safeName, statusName } from './io.js';
-import { mountScheme, legendHTML, describeElement } from './scheme.js';
+import { mountScheme, legendHTML, describeElement, profileData, profileSVG } from './scheme.js';
 import { buildReportHTML, buildRequestHTML, htmlToPdf, stageSummary, formulasHTML } from './report.js';
 
 const DRAFT_KEY = 'gaz-tarmogi-modeli:draft:v1', THEME_KEY = 'gaz-tarmogi-modeli:theme';
 const $ = s => document.querySelector(s);
 const escH = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const S = { M: null, results: [], checks: [], problems: [], si: 0, tab: 'help', isSample: false, fileMsg: null, busy: false };
+const S = { M: null, results: [], checks: [], problems: [], si: 0, tab: 'help', isSample: false, fileMsg: null, busy: false, sizing: null, sizingUndo: null, profNode: null };
 
 // ---------- сақлаш ----------
 function saveDraft() {
@@ -79,7 +79,7 @@ function renderKpis() {
 }
 
 // ---------- вкладкалар ----------
-const TABS = [['help', 'Ёрдамчи'], ['scheme', 'Схема'], ['nodes', 'Тугунлар'], ['pipes', 'Қувурлар'], ['regs', 'ГРП / ШРП'], ['scen', 'Режимлар'], ['probs', 'Муаммолар'], ['method', 'Усул']];
+const TABS = [['help', 'Ёрдамчи'], ['scheme', 'Схема'], ['profile', 'Профиль'], ['nodes', 'Тугунлар'], ['pipes', 'Қувурлар'], ['regs', 'ГРП / ШРП'], ['scen', 'Режимлар'], ['probs', 'Муаммолар'], ['method', 'Усул']];
 function renderTabs() {
   const crit = S.checks.filter(c => c.lvl === 'crit').length;
   $('#tabs').innerHTML = TABS.map(([k, t]) => {
@@ -116,9 +116,36 @@ function pipesTab() {
       <td>${inp(p + 'dProp', q.dProp, 'w0', true)}</td><td class="r res">${r ? Math.abs(r.Q).toFixed(1) + (r.Q < -1e-9 ? ' ←' : '') : ''}</td><td class="r res">${r ? r.v.toFixed(2) : ''}</td><td class="r res">${r ? Math.abs(r.dP).toFixed(3) : ''}</td>
       <td class="res">${r ? stCell(r.st) : ''}</td><td><button type="button" data-del="pipes.${i}" title="Ўчириш">✕</button></td></tr>`;
   }).join('');
-  return `<div class="row-actions"><button type="button" data-add="pipes">＋ Қувур</button><span class="small muted">L — м, d — ички диаметр, мм; «таклиф» фақат 6-режимда.</span></div>
+  return `${sizingBox()}<div class="row-actions"><button type="button" data-add="pipes">＋ Қувур</button><button type="button" data-act="autosize">Диаметрларни автоматик танлаш</button>${S.sizingUndo ? '<button type="button" data-act="autosizeUndo">Танловни бекор қилиш</button>' : ''}<span class="small muted">L — м, d — ички диаметр, мм; «таклиф» ва «d таклиф» фақат 6-режимда.</span></div>
     <div class="tw"><table class="t"><thead><tr><th>ID</th><th>Бошланғич</th><th>Охирги</th><th>Поғона</th><th>L, м</th><th>d, мм</th><th>Материал</th><th>Ётқизилиш</th><th>Йили</th><th>Ҳолати</th><th>d таклиф</th>
     <th>Q, м³/соат</th><th>v, м/с</th><th>ΔP, кПа</th><th>Ҳолат</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function sizingBox() {
+  const A = S.sizing;
+  if (!A) return '';
+  const rem = [...A.remaining.nodes.map(x => 'тугун ' + x), ...A.remaining.pipes.map(x => 'қувур ' + x)];
+  return `<div class="banner ${A.ok ? 'info' : 'red'}"><b>Диаметрлар автоматик танланди (${A.scenIndex + 1}-режим).</b>
+    ${A.changes.length ? `Ўзгартирилган участкалар: ${A.changes.length}; қўшимча «метал» Σ L·Δd = ${A.extraMetal.toFixed(1)} м·м. «d таклиф» устунига ёзилди.` : 'Ўзгартириш талаб этилмади.'}
+    ${A.ok ? 'Барча истеъмолчилар меъёрий босимда, тезлик ошмаган.' : `Диаметр билан ҳал бўлмаган: ${escH(rem.join(', '))}.`}
+    ${A.remaining.regs.length ? `<br>ГРП/ШРП муаммоси диаметр билан ҳал бўлмайди: ${escH(A.remaining.regs.join(', '))} (юкланиш ёки кириш босими — «Муаммолар»).` : ''}
+    ${A.changes.length ? `<div class="tw" style="margin-top:6px"><table class="t"><thead><tr><th>Қувур</th><th>L, м</th><th>d мавжуд, мм</th><th>d таклиф, мм</th><th>Материал</th></tr></thead><tbody>${
+      A.changes.map(c => `<tr><td>${escH(c.id)}</td><td class="r">${c.L}</td><td class="r">${c.d0}</td><td class="r"><b>${c.d1}</b></td><td>${escH(c.mat)}</td></tr>`).join('')}</tbody></table></div>` : ''}</div>`;
+}
+function profileTab() {
+  const R = S.results[S.si];
+  if (!R) return '';
+  const cons = S.M.nodes.map((n, k) => [n, R.nodes[k], k]).filter(([, r]) => r.qReq > 0 && r.st !== 'nosrc');
+  if (!cons.length) return '<p>Истеъмолчилар йўқ.</p>';
+  const worst = cons.slice().sort((a, b) => a[1].P / (a[1].stage === 'low' ? 1 : 100) - b[1].P / (b[1].stage === 'low' ? 1 : 100))[0][2];
+  let k = S.M.nodes.findIndex(n => n.id === S.profNode);
+  if (k < 0 || R.nodes[k].st === 'nosrc') k = worst;
+  const data = profileData(S.M, R, tracePath(S.M, R, k));
+  const opts = cons.map(([n, r, i]) => `<option value="${escH(n.id)}" ${i === k ? 'selected' : ''}>${escH(n.id)} ${escH(n.name || '')} — ${fmtP(r.P, r.stage)} ${pUnit(r.stage)}</option>`).join('');
+  return `<div class="row-actions"><label class="f" style="flex:1 1 260px">Тугун (манбадан шу тугунгача йўл)<select id="profSel">${opts}</select></label></div>
+    <p class="small muted">Ҳар бир босим поғонаси — алоҳида график (ўз бирлиги). X ўқи — манбадан масофа, км. Қизил пунктир — меъёрий минимал босим. Нуқта устига олиб боринг — маълумот.</p>
+    <div class="prof">${profileSVG(S.M, R, data, { width: Math.round(Math.max(300, Math.min(900, ($('#panel').clientWidth || 800) - 30))) })}</div><div class="sch-tip" hidden></div>
+    <div class="tw"><table class="t"><thead><tr><th>Тугун</th><th>Номи</th><th>Келган элемент</th><th>Масофа, км</th><th>Поғона</th><th>P</th><th>Ҳолат</th></tr></thead><tbody>${
+      data.pts.map(p => `<tr><td>${escH(p.id)}</td><td>${escH(p.name)}</td><td>${escH(p.via)}</td><td class="r">${p.x.toFixed(3)}</td><td>${STAGE_NAME[p.stage]}</td><td class="r">${fmtP(p.P, p.stage)} ${pUnit(p.stage)}</td><td>${stCell(p.st)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function regsTab() {
   const R = S.results[S.si];
@@ -186,7 +213,7 @@ function renderPanel() {
     return;
   }
   schemeKey = '';
-  el.innerHTML = { help: helpTab, nodes: nodesTab, pipes: pipesTab, regs: regsTab, scen: scenTab, probs: probsTab, method: methodTab }[S.tab]();
+  el.innerHTML = { help: helpTab, profile: profileTab, nodes: nodesTab, pipes: pipesTab, regs: regsTab, scen: scenTab, probs: probsTab, method: methodTab }[S.tab]();
 }
 
 function renderAll() {
@@ -301,6 +328,22 @@ async function onAction(act) {
   if (act === 'open') { $('#fileJson').click(); return; }
   if (act === 'save') { await saveFile(`${base()}.json`, new Blob([JSON.stringify(S.M, null, 1)], { type: 'application/json' })); return; }
   if (act === 'resetScen') { S.M.scen = defaultScenarios(); changed(true); return; }
+  if (act === 'autosize') {
+    await busy('Диаметрлар танланмоқда…', async () => {
+      await new Promise(r => setTimeout(r, 30));
+      const A = autoSize(S.M);
+      S.sizingUndo = S.M.pipes.map(p => p.dProp ?? '');
+      S.M.pipes.forEach(p => { if (A.dProp[p.id] !== undefined) p.dProp = A.dProp[p.id]; });
+      const { result, ...rest } = A; void result;
+      S.sizing = rest; S.si = A.scenIndex;
+      changed(true);
+    });
+    return;
+  }
+  if (act === 'autosizeUndo') {
+    if (S.sizingUndo) S.M.pipes.forEach((p, i) => { if (i < S.sizingUndo.length) p.dProp = S.sizingUndo[i]; });
+    S.sizingUndo = null; S.sizing = null; changed(true); return;
+  }
   if (!libsOk()) { toast('Excel/PDF кутубхоналари юкланмаган — интернет керак'); return; }
   if (act === 'template') { await busy('Excel тайёрланмоқда…', () => modelXlsx(true)); return; }
   if (act === 'xlsxres') { await busy('Натижалар тайёрланмоқда…', () => saveFile(`${base()}_natijalar.xlsx`, wbToBlob(resultsWorkbook(S.M, S.results, S.problems)))); return; }
@@ -337,6 +380,16 @@ function init() {
   panel.addEventListener('dragover', e => { const d = e.target.closest?.('#drop'); if (d) { e.preventDefault(); d.classList.add('over'); } });
   panel.addEventListener('dragleave', e => { e.target.closest?.('#drop')?.classList.remove('over'); });
   panel.addEventListener('drop', e => { const d = e.target.closest?.('#drop'); if (!d) return; e.preventDefault(); d.classList.remove('over'); handleFile(e.dataTransfer.files[0]); });
+  panel.addEventListener('change', e => { if (e.target.id === 'profSel') { S.profNode = e.target.value; renderPanel(); } });
+  panel.addEventListener('pointermove', e => {
+    const tip = panel.querySelector('.prof ~ .sch-tip');
+    if (!tip) return;
+    const t = e.target.closest?.('[data-tip]');
+    if (!t) { tip.hidden = true; return; }
+    const b = panel.getBoundingClientRect();
+    tip.textContent = t.dataset.tip; tip.hidden = false;
+    tip.style.left = Math.min(b.width - 240, e.clientX - b.left + 12) + 'px'; tip.style.top = (e.clientY - b.top + 12) + 'px';
+  });
   window.__gazHandleFile = handleFile;
 }
 

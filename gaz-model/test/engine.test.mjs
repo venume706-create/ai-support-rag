@@ -287,3 +287,46 @@ test('намуна тармоқ (§11)', () => {
   assert.ok(collectProblems(M, R).length > 0);
   assert.ok(nodeLoad(M.nodes[0], M.params) === 0);
 });
+
+// ---------- §13.6, §13.7 ----------
+import { autoSize, tracePath, nextSize } from '../src/engine.js';
+
+test('§13.7: манбадан тугунгача йўл (ГРП орқали)', () => {
+  const M = cascade();
+  const R = solveScenario(M, NORM);
+  const path = tracePath(M, R, M.nodes.findIndex(n => n.id === 'L1'));
+  assert.deepEqual(path.map(s => M.nodes[s.k].id), ['G', 'H1', 'M0', 'M1', 'L0', 'L1']);
+  assert.equal(path.at(-1).x, 3000 + 1500 + 400);
+  assert.ok(path.some(s => s.r !== null));
+});
+
+test('§13.6: занжир (T9) учун диаметрлар танланади — барча тугунлар меъёрда', () => {
+  const M = chainModel();
+  const A = autoSize(M, { scenIndex: 5 });
+  assert.ok(A.ok, JSON.stringify(A.remaining));
+  assert.ok(A.changes.length > 0);
+  const M2 = JSON.parse(JSON.stringify(M));
+  M2.pipes.forEach(p => { if (A.dProp[p.id]) p.dProp = A.dProp[p.id]; });
+  const R = solveScenario(M2, { ...NORM, variant: true });
+  assert.ok(R.nodes.every(n => !(n.qReq > 0) || n.st === 'ok'));
+  assert.ok(R.short < 1e-6);
+  // минималлик: бирорта қувурни бир поғона кичрайтирсак, мақсад бузилади
+  for (const c of A.changes.slice(0, 8)) {
+    const M3 = JSON.parse(JSON.stringify(M2));
+    const p = M3.pipes.find(q => q.id === c.id);
+    const smaller = [26, 33, 41, 51, 70, 82, 100, 125, 150, 207, 259, 309, 408].filter(x => x < c.d1 && x >= c.d0 * 0.999).pop();
+    if (!smaller) continue;
+    p.dProp = smaller;
+    const R3 = solveScenario(M3, { ...NORM, variant: true });
+    assert.ok(R3.nodes.some(n => n.qReq > 0 && n.st !== 'ok') || R3.pipes.some(q => q.st === 'fast'), `${c.id} ${smaller} ҳам етарли`);
+  }
+});
+
+test('§13.6: намуна тармоқ — паст тармоқдаги «паст» тугунлар тузатилади', () => {
+  const M = sampleModel();
+  const A = autoSize(M);
+  assert.ok(A.ok, JSON.stringify(A.remaining));
+  assert.ok(A.remaining.regs.includes('ШРП-3'), 'ШРП-3 юкланиши диаметр билан ҳал бўлмайди');
+  assert.equal(nextSize(50, 'пўлат'), 70);
+  assert.equal(nextSize(130.8, 'ПЭ'), 184);
+});

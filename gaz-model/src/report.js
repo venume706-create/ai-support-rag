@@ -1,7 +1,7 @@
 // PDF ҳисобот (ТТ §17, 15 бўлим) ва етишмаётган маълумотлар бўйича PDF-сўров.
-import { STAGES, STAGE_NAME, num, isNum, fmtP, pUnit, normType, chainDepth } from './engine.js';
+import { STAGES, STAGE_NAME, num, isNum, fmtP, pUnit, normType, chainDepth, tracePath } from './engine.js';
 import { statusName } from './io.js';
-import { schemeSVG, svgToPng } from './scheme.js';
+import { schemeSVG, svgToPng, profileData, profileSVG } from './scheme.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const f1 = x => (Number(x) || 0).toFixed(1), f2 = x => (Number(x) || 0).toFixed(2);
@@ -65,6 +65,19 @@ export async function buildReportHTML(M, results, problems, checks) {
   const probIn = i => problems.filter(p => p.scen.includes(i + 1)).length;
   let png = null;
   try { png = await svgToPng(schemeSVG(M, R1, { print: true }), 2400); } catch { png = null; }
+  // §13.7: энг паст нисбий босимли истеъмолчигача профиль
+  let prof = null;
+  const cons = M.nodes.map((n, k) => [k, R1.nodes[k]]).filter(([, r]) => r.qReq > 0 && r.st !== 'nosrc');
+  if (cons.length) {
+    const rel = r => r.P / (r.stage === 'low' ? P.norms.low.sat : P.norms[r.stage].min);
+    const [kw] = cons.sort((a, b) => rel(a[1]) - rel(b[1]))[0];
+    const data = profileData(M, R1, tracePath(M, R1, kw));
+    const imgs = [];
+    for (const svg of profileSVG(M, R1, data, { print: true, width: 900 }).split('</svg>').filter(x => x.trim())) {
+      try { imgs.push((await svgToPng(svg + '</svg>', 1800)).data); } catch { /* ўтказиб юборамиз */ }
+    }
+    prof = { id: M.nodes[kw].id, name: M.nodes[kw].name || '', data, imgs };
+  }
 
   const worst = results.reduce((a, r, i) => (r.short > (a?.short ?? -1) ? { ...r, i } : a), null);
   const verdict = R1.short > 0.01 || R1.riskN > 0
@@ -125,6 +138,9 @@ export async function buildReportHTML(M, results, problems, checks) {
     ${(M.regs || []).length ? `<h3>ГРП/ШРП: кириш босими ва юкланиш бўйича режимлар</h3>${table(['Режим', ...M.regs.map(g => esc(g.id))],
       results.map((r, i) => [`${i + 1}`, ...r.regs.map((g, t) => g.st === 'off' ? '—' : `<span class="${g.lowin || g.dead || g.over ? 'red' : ''}">${pv(g.Pin, 'low')} кПа · ${g.load.toFixed(0)}%</span>`)]), 'num')}` : ''}
     <h3>1-режим схемаси</h3>${png ? `<img src="${png.data}" style="max-height:640px;object-fit:contain">` : '<p>—</p>'}
+    ${prof ? `<h3>Босим профили: манбадан ${esc(prof.id)} ${esc(prof.name)} гача (энг паст нисбий босим)</h3>
+      ${prof.imgs.map(src => `<img src="${src}" style="width:760px;display:block">`).join('')}
+      ${table(['Тугун', 'Келган элемент', 'Масофа, км', 'P', 'Бирлик'], prof.data.pts.map(p => [esc(p.id), esc(p.via), p.x.toFixed(3), pv(p.P, p.stage), pUnit(p.stage)]), 'num')}` : ''}
     <p class="muted">Қувур ранги — босим поғонаси (юқори I — тўқ қизил-бинафша, юқори II — пушти, ўрта — кўк, паст — сариқ, кулранг — манбасиз); тугун ранги — ҳолат (яшил — меъёрда, сариқ — паст, қизил — меъёрдан паст, тўқ қизил — газсиз). Пунктир — таклиф ёки ёпиқ.</p>`);
   // 11. Муаммолар
   h.push(`<h2 class="pb">9. Муаммолар реестри</h2>${problems.length ? table(['№', 'Тури', 'Элемент', 'Энг ёмон қиймат', 'Режимлар', 'Чора', 'Муддат'],
