@@ -14,6 +14,8 @@ import { expect, test } from "./fixtures";
  * Скриншоты ключевых страниц сохраняются в out/screenshots/<устройство>/.
  */
 
+const DEMO_ALERT_LOGIN = "devices-demo";
+
 interface PageSpec {
   key: string;
   url: string;
@@ -26,6 +28,11 @@ async function pagesFor(role: "admin" | "teacher" | "student"): Promise<PageSpec
   const s = await db.student.findFirstOrThrow({ where: { user: { login: "student1" } } });
   const profile = { key: "profile", url: "/profile", shot: true };
   if (role === "admin") {
+    // Для проверки вёрстки нужна открытая тревога безопасности (карточка с кнопками решения)
+    if ((await db.securityAlert.count({ where: { login: DEMO_ALERT_LOGIN } })) === 0) {
+      const now = new Date();
+      await db.securityAlert.create({ data: { userId: s.userId, login: DEMO_ALERT_LOGIN, attempts: 5, firstAt: now, lastAt: now, device: "Safari · iPhone", ip: "203.0.113.7" } });
+    }
     return [
       { key: "home", url: "/admin", shot: true },
       { key: "teachers", url: "/admin/teachers", shot: true },
@@ -35,6 +42,8 @@ async function pagesFor(role: "admin" | "teacher" | "student"): Promise<PageSpec
       { key: "groups", url: "/admin/groups" },
       { key: "group", url: `/admin/groups/${g.id}` },
       { key: "schedule", url: "/admin/schedule", shot: true },
+      { key: "journal", url: "/admin/journal", shot: true },
+      { key: "security", url: "/admin/security", shot: true },
       profile,
     ];
   }
@@ -45,7 +54,7 @@ async function pagesFor(role: "admin" | "teacher" | "student"): Promise<PageSpec
       { key: "journal", url: `/teacher/groups/${g.id}`, shot: true },
       { key: "students", url: `/teacher/groups/${g.id}?tab=students` },
       { key: "homework", url: `/teacher/groups/${g.id}?tab=homework`, shot: true },
-      { key: "student", url: `/teacher/students/${g.students[0].studentId}` },
+      { key: "student", url: `/teacher/students/${g.students[0].studentId}`, shot: true },
       { key: "schedule", url: "/teacher/schedule" },
       profile,
     ];
@@ -53,7 +62,7 @@ async function pagesFor(role: "admin" | "teacher" | "student"): Promise<PageSpec
   return [
     { key: "home", url: "/student", shot: true },
     { key: "grades", url: "/student/grades", shot: true },
-    { key: "attendance", url: "/student/attendance" },
+    { key: "attendance", url: "/student/attendance", shot: true },
     { key: "homework", url: "/student/homework", shot: true },
     { key: "schedule", url: "/student/schedule" },
     profile,
@@ -119,6 +128,10 @@ async function audit(page: Page) {
     return problems;
   });
 }
+
+test.afterAll(async () => {
+  await db.securityAlert.deleteMany({ where: { login: DEMO_ALERT_LOGIN } });
+});
 
 for (const role of ["admin", "teacher", "student"] as const) {
   test(`вёрстка: ${role}`, async ({ page, safeArea }, info) => {

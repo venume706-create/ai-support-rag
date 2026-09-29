@@ -15,7 +15,8 @@
 
 # next.js
 /.next/
-/out/
+/out/*
+!/out/screenshots/
 
 # production
 /build
@@ -50,4 +51,3 @@ prisma/*.db-journal
 prisma/e2e.db*
 /storage
 /storage-e2e
-/out

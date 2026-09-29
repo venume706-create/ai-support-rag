@@ -5,9 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Нормализация строки поиска под userSearchKey. */
+/**
+ * Нормализация строки поиска под userSearchKey.
+ * «%» вырезается: в ников, имён и логинов его не бывает, а в LIKE он означает «что угодно».
+ * «_» оставлен, он бывает в никах; в поиске он заменяет один любой символ, что безвредно.
+ */
 export function searchTerm(q: string): string {
-  return q.trim().toLowerCase().replace(/ё/g, "е");
+  return q.trim().toLowerCase().replace(/ё/g, "е").replace(/%/g, "");
 }
 
 /** Склонение по числу: plural(1, "балл", "балла", "баллов"). Дробные числа — «балла». */
