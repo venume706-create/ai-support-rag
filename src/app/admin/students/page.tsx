@@ -6,6 +6,7 @@ import { StudentForm } from "@/components/admin/student-form";
 import { ActiveBadge, RatingBadge } from "@/components/common/badges";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { PageHeader } from "@/components/common/page-header";
+import { PersonName } from "@/components/common/person-name";
 import { Pagination } from "@/components/common/pagination";
 import { EmptyState } from "@/components/common/status-views";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { paginate } from "@/lib/pagination";
+import { PERSON_SELECT } from "@/lib/person";
 import { getStudentRatings } from "@/lib/rating-data";
 import { searchTerm } from "@/lib/utils";
 import { parseListQuery } from "@/lib/validation";
@@ -39,12 +41,12 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
   const info = paginate(total, query.page);
   const students = await db.student.findMany({
     where,
-    orderBy: { user: { fullName: "asc" } },
+    orderBy: [{ user: { nicknameKey: "asc" } }, { user: { fullName: "asc" } }],
     skip: info.skip,
     take: info.take,
     select: {
       id: true,
-      user: { select: { fullName: true, login: true, isActive: true } },
+      user: { select: { ...PERSON_SELECT, isActive: true } },
       groups: { select: { group: { select: { id: true, name: true } } } },
     },
   });
@@ -87,7 +89,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
             <Table data-testid="students-table">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{ru.common.fullName}</TableHead>
+                  <TableHead>{ru.common.student}</TableHead>
                   <TableHead className="hidden md:table-cell">{ru.common.groups}</TableHead>
                   <TableHead className="hidden sm:table-cell">{ru.common.status}</TableHead>
                   <TableHead className="text-right">{ru.common.rating}</TableHead>
@@ -97,11 +99,11 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
                 {students.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell>
-                      <Link href={`/admin/students/${s.id}`} className="font-bold hover:underline">
-                        {s.user.fullName}
+                      <Link href={`/admin/students/${s.id}`} className="hover:underline">
+                        <PersonName user={s.user} avatar="sm" />
                       </Link>
-                      <p className="text-xs text-muted-foreground">
-                        {s.user.login}
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {ru.admin.login}: {s.user.login}
                         <span className="md:hidden">{s.groups.length > 0 && ` · ${s.groups.map((g) => g.group.name).join(", ")}`}</span>
                       </p>
                     </TableCell>

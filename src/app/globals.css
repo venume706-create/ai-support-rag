@@ -508,3 +508,35 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- Фото профиля: рамки и цвета карточек ---------- */
+@layer components {
+  .avatar-frame {
+    box-shadow: 0 0 0 2px rgb(0 0 0 / 0.18);
+  }
+  .avatar-frame-none {
+    box-shadow: 0 0 0 2px var(--border), 0 2px 4px rgb(0 0 0 / 0.25);
+  }
+  .avatar-frame-brass {
+    box-shadow: 0 0 0 3px var(--brass), 0 0 0 5px var(--brass-dark), 0 3px 6px rgb(0 0 0 / 0.4);
+  }
+  .avatar-frame-wood {
+    box-shadow: 0 0 0 4px #7a4a26, 0 0 0 5px #3a2415, 0 3px 6px rgb(0 0 0 / 0.45);
+  }
+  .avatar-frame-rope {
+    box-shadow: 0 0 0 3px #d9c08a, 0 0 0 5px #8a6a35, 0 0 0 6px #d9c08a, 0 3px 6px rgb(0 0 0 / 0.4);
+  }
+  .avatar-frame-royal {
+    box-shadow: 0 0 0 3px #f0d596, 0 0 0 5px #5a2a7a, 0 0 0 7px #f0d596, 0 4px 8px rgb(0 0 0 / 0.45);
+  }
+
+  /* Цвет карточки ученика: переопределяет бумагу внутри блока */
+  .tint-sky { --paper: #e3eef7; --paper-shade: #d4e3f0; }
+  .tint-mint { --paper: #e2f1e6; --paper-shade: #d2e6d8; }
+  .tint-rose { --paper: #f7e4e4; --paper-shade: #efd3d3; }
+  .tint-lilac { --paper: #ece4f5; --paper-shade: #ded3ee; }
+  .dark .tint-sky { --paper: #26333f; --paper-shade: #2f3f4e; }
+  .dark .tint-mint { --paper: #26362b; --paper-shade: #2f4536; }
+  .dark .tint-rose { --paper: #3b2a2a; --paper-shade: #4a3535; }
+  .dark .tint-lilac { --paper: #322a3d; --paper-shade: #3f3550; }
+}

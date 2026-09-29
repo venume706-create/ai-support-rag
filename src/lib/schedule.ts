@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { addDays, parseDateOnly, startOfWeek, toDateOnly, today } from "@/lib/dates";
 import { ensureLessons } from "@/lib/lessons";
+import { nickOf } from "@/lib/person";
 
 export interface PlannerLesson {
   id: string;
@@ -41,7 +42,7 @@ export async function getWeekLessons(groupIds: string[], start: Date): Promise<P
         endTime: true,
         topic: true,
         group: {
-          select: { id: true, name: true, subject: { select: { name: true } }, teacher: { select: { user: { select: { fullName: true } } } } },
+          select: { id: true, name: true, subject: { select: { name: true } }, teacher: { select: { user: { select: { nickname: true, login: true } } } } },
         },
       },
     }),
@@ -59,7 +60,7 @@ export async function getWeekLessons(groupIds: string[], start: Date): Promise<P
       groupId: l.group.id,
       groupName: l.group.name,
       subject: l.group.subject.name,
-      teacher: l.group.teacher?.user.fullName ?? null,
+      teacher: l.group.teacher ? nickOf(l.group.teacher.user) : null,
       room: slot?.room ?? "",
     };
   });

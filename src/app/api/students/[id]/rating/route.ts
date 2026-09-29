@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiForbidden, apiNotFound, apiUser, canAccessStudent } from "@/lib/access";
 import { db } from "@/lib/db";
+import { nickOf } from "@/lib/person";
 import { getStudentRating } from "@/lib/rating-data";
 
 /** Рейтинг ученика. Админ — любого, учитель — только своих учеников (по своим группам), ученик — только свой. */
@@ -8,7 +9,7 @@ export async function GET(req: Request, ctx: RouteContext<"/api/students/[id]/ra
   const user = await apiUser();
   if (user instanceof NextResponse) return user;
   const { id } = await ctx.params;
-  const student = await db.student.findUnique({ where: { id }, select: { id: true, user: { select: { fullName: true } } } });
+  const student = await db.student.findUnique({ where: { id }, select: { id: true, user: { select: { nickname: true, login: true, fullName: true } } } });
   if (!student) return apiNotFound();
   if (!(await canAccessStudent(user, id))) return apiForbidden();
 
@@ -19,5 +20,5 @@ export async function GET(req: Request, ctx: RouteContext<"/api/students/[id]/ra
     groupIds = groups.map((g) => g.id);
   }
   const rating = await getStudentRating(id, { period, groupIds });
-  return NextResponse.json({ studentId: id, fullName: student.user.fullName, period, rating });
+  return NextResponse.json({ studentId: id, nickname: nickOf(student.user), fullName: student.user.fullName, period, rating });
 }

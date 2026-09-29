@@ -11,6 +11,7 @@ import { RatingBadge } from "@/components/common/badges";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { Pagination } from "@/components/common/pagination";
 import { PageHeader } from "@/components/common/page-header";
+import { PersonName } from "@/components/common/person-name";
 import { PeriodSwitch } from "@/components/common/rating-card";
 import { EmptyState } from "@/components/common/status-views";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import { today } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { pageParam, searchAndPage } from "@/lib/pagination";
+import { PERSON_SELECT, nickOf } from "@/lib/person";
 import { getStudentRatings } from "@/lib/rating-data";
 import { parseListQuery } from "@/lib/validation";
 
@@ -37,11 +39,11 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
       subjectId: true,
       teacherId: true,
       subject: { select: { name: true } },
-      teacher: { select: { id: true, user: { select: { fullName: true } } } },
+      teacher: { select: { id: true, user: { select: PERSON_SELECT } } },
       slots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
       students: {
-        orderBy: { student: { user: { fullName: "asc" } } },
-        select: { student: { select: { id: true, user: { select: { fullName: true, login: true } } } } },
+        orderBy: [{ student: { user: { nicknameKey: "asc" } } }, { student: { user: { fullName: "asc" } } }],
+        select: { student: { select: { id: true, user: { select: PERSON_SELECT } } } },
       },
       _count: { select: { lessons: { where: { date: { lt: today() } } }, homework: true } },
     },
@@ -49,14 +51,14 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
   if (!group) notFound();
   const [subjects, teachers, freeStudents] = await Promise.all([
     db.subject.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    db.teacher.findMany({ orderBy: { user: { fullName: "asc" } }, select: { id: true, user: { select: { fullName: true } }, subjects: { select: { id: true } } } }),
+    db.teacher.findMany({ orderBy: [{ user: { nicknameKey: "asc" } }, { user: { fullName: "asc" } }], select: { id: true, user: { select: { nickname: true, login: true } }, subjects: { select: { id: true } } } }),
     db.student.findMany({
       where: { groups: { none: { groupId: id } } },
-      orderBy: { user: { fullName: "asc" } },
-      select: { id: true, user: { select: { fullName: true } } },
+      orderBy: [{ user: { nicknameKey: "asc" } }, { user: { fullName: "asc" } }],
+      select: { id: true, user: { select: { nickname: true, login: true, firstName: true, lastName: true } } },
     }),
   ]);
-  const members = searchAndPage(group.students, q, pageParam(sp.sp), (s) => `${s.student.user.fullName} ${s.student.user.login}`);
+  const members = searchAndPage(group.students, q, pageParam(sp.sp), (s) => `${s.student.user.nickname ?? ""} ${s.student.user.firstName} ${s.student.user.lastName} ${s.student.user.login}`);
   const ratings = await getStudentRatings(members.rows.map((s) => s.student.id), { period, groupIds: [id] });
   const hrefFor = (p: string) => (p === "all" ? `/admin/groups/${id}` : `/admin/groups/${id}?period=${p}`);
 
@@ -64,7 +66,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
     <>
       <PageHeader
         title={group.name}
-        description={`${group.subject.name}${group.level ? ` · ${group.level}` : ""} · ${group.teacher?.user.fullName ?? ru.common.notAssigned}`}
+        description={`${group.subject.name}${group.level ? ` · ${group.level}` : ""} · ${group.teacher ? nickOf(group.teacher.user) : ru.common.notAssigned}`}
         backHref="/admin/groups"
         backLabel={ru.admin.groupsTitle}
         actions={
@@ -72,7 +74,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
             <DialogForm trigger={ru.common.edit} title={ru.admin.groupEdit} icon={<Pencil />} variant="outline" testId="edit-group">
               <GroupForm
                   subjects={subjects}
-                  teachers={teachers.map((t) => ({ id: t.id, name: t.user.fullName, subjectIds: t.subjects.map((s) => s.id) }))}
+                  teachers={teachers.map((t) => ({ id: t.id, name: nickOf(t.user), subjectIds: t.subjects.map((s) => s.id) }))}
                                     initial={{ id: group.id, name: group.name, subjectId: group.subjectId, teacherId: group.teacherId ?? "", level: group.level }}
                 />
             </DialogForm>
@@ -107,16 +109,15 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
                   {members.rows.map(({ student }) => (
                     <TableRow key={student.id}>
                       <TableCell>
-                        <Link href={`/admin/students/${student.id}`} className="font-bold hover:underline">
-                          {student.user.fullName}
+                        <Link href={`/admin/students/${student.id}`} className="hover:underline">
+                          <PersonName user={student.user} avatar="sm" />
                         </Link>
-                        <p className="text-xs text-muted-foreground">{student.user.login}</p>
                       </TableCell>
                       <TableCell className="text-right">
                         <RatingBadge value={ratings.get(student.id)?.total ?? null} />
                       </TableCell>
                       <TableCell>
-                        <RemoveMemberButton groupId={group.id} studentId={student.id} label={student.user.fullName} />
+                        <RemoveMemberButton groupId={group.id} studentId={student.id} label={nickOf(student.user)} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -126,7 +127,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
             <Pagination info={members.info} pathname={`/admin/groups/${id}`} params={{ q, period: period === "month" ? period : undefined }} pageKey="sp" />
             <div>
               <p className="mb-2 text-sm font-bold">{ru.admin.addStudent}</p>
-              <MembershipForm fixed={{ groupId: group.id }} options={freeStudents.map((s) => ({ id: s.id, name: s.user.fullName }))} />
+              <MembershipForm fixed={{ groupId: group.id }} options={freeStudents.map((s) => ({ id: s.id, name: `${nickOf(s.user)} · ${s.user.firstName} ${s.user.lastName}` }))} />
             </div>
           </CardContent>
         </Card>

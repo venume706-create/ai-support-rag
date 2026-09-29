@@ -6,6 +6,7 @@ import { DialogForm } from "@/components/admin/dialog-form";
 import { ActiveBadge, RatingBadge } from "@/components/common/badges";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { PageHeader } from "@/components/common/page-header";
+import { PersonName } from "@/components/common/person-name";
 import { Pagination } from "@/components/common/pagination";
 import { EmptyState } from "@/components/common/status-views";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { paginate } from "@/lib/pagination";
+import { PERSON_SELECT, nickOf } from "@/lib/person";
 import { searchTerm } from "@/lib/utils";
 import { getTeacherRatings } from "@/lib/rating-data";
 import { parseListQuery } from "@/lib/validation";
@@ -32,7 +34,7 @@ export default async function TeachersPage({ searchParams }: PageProps<"/admin/t
     },
     select: {
       id: true,
-      user: { select: { fullName: true, login: true, phone: true, isActive: true } },
+      user: { select: { ...PERSON_SELECT, isActive: true } },
       subjects: { select: { name: true } },
       _count: { select: { groups: true } },
     },
@@ -41,7 +43,7 @@ export default async function TeachersPage({ searchParams }: PageProps<"/admin/t
   const rows = teachers
     .map((t) => ({ ...t, rating: ratings.get(t.id)?.rating ?? null }))
     .sort((a, b) =>
-      query.sort === "name" ? a.user.fullName.localeCompare(b.user.fullName, "ru") : (b.rating ?? -1) - (a.rating ?? -1),
+      query.sort === "name" ? nickOf(a.user).localeCompare(nickOf(b.user), "ru") : (b.rating ?? -1) - (a.rating ?? -1),
     );
   const info = paginate(rows.length, query.page);
   const pageRows = rows.slice(info.skip, info.skip + info.take);
@@ -88,7 +90,7 @@ export default async function TeachersPage({ searchParams }: PageProps<"/admin/t
             <Table data-testid="teachers-table">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{ru.common.fullName}</TableHead>
+                  <TableHead>{ru.common.teacher}</TableHead>
                   <TableHead className="hidden md:table-cell">{ru.common.subjects}</TableHead>
                   <TableHead className="hidden sm:table-cell text-center">{ru.admin.groupsCount}</TableHead>
                   <TableHead className="hidden sm:table-cell">{ru.common.status}</TableHead>
@@ -99,11 +101,11 @@ export default async function TeachersPage({ searchParams }: PageProps<"/admin/t
                 {pageRows.map((t) => (
                   <TableRow key={t.id}>
                     <TableCell>
-                      <Link href={`/admin/teachers/${t.id}`} className="font-bold hover:underline">
-                        {t.user.fullName}
+                      <Link href={`/admin/teachers/${t.id}`} className="hover:underline">
+                        <PersonName user={t.user} avatar="sm" />
                       </Link>
-                      <p className="text-xs text-muted-foreground">
-                        {t.user.login}
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {ru.admin.login}: {t.user.login}
                         <span className="md:hidden"> · {t.subjects.map((s) => s.name).join(", ")}</span>
                       </p>
                     </TableCell>

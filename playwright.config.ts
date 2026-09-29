@@ -27,6 +27,6 @@ export default defineConfig({
     url: `http://localhost:${PORT}/login`,
     timeout: 300_000,
     reuseExistingServer: false,
-    env: { DATABASE_URL: E2E_DB, AUTH_SECRET: process.env.AUTH_SECRET ?? "e2e-secret-e2e-secret-e2e-secret-123", APP_TIMEZONE: process.env.APP_TIMEZONE ?? "Asia/Tashkent" },
+    env: { DATABASE_URL: E2E_DB, STORAGE_DIR: "storage-e2e", AUTH_SECRET: process.env.AUTH_SECRET ?? "e2e-secret-e2e-secret-e2e-secret-123", APP_TIMEZONE: process.env.APP_TIMEZONE ?? "Asia/Tashkent" },
   },
 });

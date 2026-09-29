@@ -54,7 +54,7 @@ export default async function TeacherDashboard({ searchParams }: PageProps<"/tea
 
   return (
     <>
-      <PageHeader title={ru.teacher.dashboardTitle} description={`${user.fullName} · ${formatDayMonth(now)}`} />
+      <PageHeader title={ru.teacher.dashboardTitle} description={`${user.nick} · ${formatDayMonth(now)}`} />
       <div className="mb-6 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <Card>
           <CardHeader>

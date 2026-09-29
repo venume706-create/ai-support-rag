@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { db, login, uid } from "./helpers";
+import { completeWizard, db, login, uid } from "./helpers";
 
 test.describe("Администратор", () => {
   test("создаёт учителя, группу и ученика и видит их в списках", async ({ page }, info) => {
@@ -67,11 +67,15 @@ test.describe("Администратор", () => {
     expect(group.teacherId).toBe(teacher.id);
     expect(group.students.map((s) => s.student.user.login)).toContain(studentLogin);
 
-    // Новый учитель видит свою группу
+    // Новый учитель входит с временным паролем и проходит мастер, после чего видит свою группу
     await page.getByTestId("logout").filter({ visible: true }).first().click();
     await expect(page).toHaveURL(/\/login/);
     await login(page, teacherLogin, "secret123");
+    await completeWizard(page, `Учитель_${teacherLogin.slice(-4)}`, "my-own-pass1");
     await expect(page.getByTestId("my-groups")).toContainText(groupName);
+    const fresh = await db.user.findUniqueOrThrow({ where: { login: teacherLogin } });
+    expect(fresh.mustChangePassword).toBe(false);
+    expect(fresh.nickname).toBe(`Учитель_${teacherLogin.slice(-4)}`);
   });
 
   test("валидация: занятый логин не принимается", async ({ page }) => {
@@ -98,7 +102,7 @@ test.describe("Администратор", () => {
     await page.goto(`/admin/students/${student.id}`);
     await page.getByTestId("toggle-active").click();
     await page.getByTestId("confirm-action").click();
-    await expect(page.getByText("Пользователь отключён")).toBeVisible();
+    await expect(page.getByText("Аккаунт заблокирован").first()).toBeVisible();
 
     const ctx = await browser.newContext();
     const other = await ctx.newPage();
@@ -106,7 +110,7 @@ test.describe("Администратор", () => {
     await other.fill("#login", target);
     await other.fill("#password", "student123");
     await other.click("button[type=submit]");
-    await expect(other.getByTestId("login-error")).toHaveText("Учётная запись отключена. Обратитесь к администратору.");
+    await expect(other.getByTestId("login-error")).toHaveText("Аккаунт заблокирован. Обратитесь к администратору.");
     await ctx.close();
     await db.user.update({ where: { login: target }, data: { isActive: true } });
   });

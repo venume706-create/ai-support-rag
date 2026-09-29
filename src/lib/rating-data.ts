@@ -1,5 +1,6 @@
 import type { AttendanceStatus, HomeworkStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import { PERSON_SELECT, type PersonLike } from "@/lib/person";
 import { startOfMonth, startOfNextMonth, today } from "@/lib/dates";
 import {
   calculateStudentRating,
@@ -91,7 +92,7 @@ export async function getStudentRating(studentId: string, scope: RatingScope): P
 
 export interface TeacherRatingRow {
   teacherId: string;
-  fullName: string;
+  person: PersonLike;
   isActive: boolean;
   groups: number;
   students: number;
@@ -105,7 +106,7 @@ export async function getTeacherRatings(period: RatingPeriod, teacherIds?: strin
     where: teacherIds ? { id: { in: teacherIds } } : undefined,
     select: {
       id: true,
-      user: { select: { fullName: true, isActive: true } },
+      user: { select: { ...PERSON_SELECT, isActive: true } },
       groups: { select: { id: true, students: { select: { studentId: true } } } },
     },
   });
@@ -117,7 +118,7 @@ export async function getTeacherRatings(period: RatingPeriod, teacherIds?: strin
     const { rating, studentsCounted } = calculateTeacherRating([...ratings.values()].map((r) => r.total));
     rows.push({
       teacherId: t.id,
-      fullName: t.user.fullName,
+      person: t.user,
       isActive: t.user.isActive,
       groups: groupIds.length,
       students: studentIds.length,

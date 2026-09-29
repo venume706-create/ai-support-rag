@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { ru } from "@/lib/i18n/ru";
 import { isValidTime } from "@/lib/dates";
+import { AVATAR_FRAMES, CARD_COLORS } from "@/lib/appearance";
+import { checkNicknameFormat } from "@/lib/profile";
 
 const v = ru.validation;
 
@@ -30,10 +32,6 @@ const loginField = z
   .toLowerCase()
   .regex(/^[a-z0-9._-]{3,32}$/, v.loginFormat);
 const passwordField = z.string().min(6, v.passwordMin).max(128, v.tooLong);
-const optionalPassword = z
-  .union([z.literal(""), passwordField])
-  .optional()
-  .transform((s) => (s ? s : null));
 const nameField = trimmed(60).pipe(z.string().min(2, v.nameMin));
 
 export const teacherCreateSchema = z.object({
@@ -41,17 +39,6 @@ export const teacherCreateSchema = z.object({
   password: passwordField,
   firstName: nameField,
   lastName: nameField,
-  phone,
-  subjectIds: z.array(idSchema).min(1, v.subjectRequired),
-});
-
-export const teacherUpdateSchema = z.object({
-  id: idSchema,
-  login: loginField,
-  password: optionalPassword,
-  firstName: nameField,
-  lastName: nameField,
-  phone,
   subjectIds: z.array(idSchema).min(1, v.subjectRequired),
 });
 
@@ -60,21 +47,8 @@ export const studentCreateSchema = z.object({
   password: passwordField,
   firstName: nameField,
   lastName: nameField,
-  phone,
-  parentPhone: phone,
-  birthDate: optionalDate,
+  parentPhone: phone.default(""),
   groupIds: z.array(idSchema).default([]),
-});
-
-export const studentUpdateSchema = z.object({
-  id: idSchema,
-  login: loginField,
-  password: optionalPassword,
-  firstName: nameField,
-  lastName: nameField,
-  phone,
-  parentPhone: phone,
-  birthDate: optionalDate,
 });
 
 export const groupSchema = z.object({
@@ -139,6 +113,50 @@ export const submissionSchema = z.object({
   studentId: idSchema,
   status: z.enum(["DONE", "PARTIAL", "NOT_DONE"]),
 });
+
+export const nicknameField = z
+  .string()
+  .trim()
+  .superRefine((value, ctx) => {
+    const problem = checkNicknameFormat(value);
+    if (problem) ctx.addIssue({ code: "custom", message: v.nickname[problem] });
+  });
+
+const checkbox = z
+  .union([z.literal("on"), z.literal("true"), z.literal("false"), z.literal("")])
+  .optional()
+  .transform((s) => s === "on" || s === "true");
+
+const profileFields = {
+  firstName: nameField,
+  lastName: nameField,
+  bio: trimmed(300).default(""),
+  phone,
+  email: z.union([z.literal(""), z.string().trim().max(120, v.tooLong).email(v.email)]).default(""),
+  birthDate: optionalDate,
+  avatarFrame: z.enum(AVATAR_FRAMES).catch("none").default("none"),
+  cardColor: z.enum(CARD_COLORS).catch("cream").default("cream"),
+  showInLeaderboard: checkbox,
+};
+
+/** Свой профиль (любая роль). Оформление и доска почёта применяются только к ученикам. */
+export const profileSchema = z.object({ nickname: nicknameField, ...profileFields });
+
+/** Профиль глазами администратора: плюс логин, ник может быть пустым (если человек ещё не выбрал). */
+export const adminProfileSchema = z.object({
+  userId: idSchema,
+  login: loginField,
+  nickname: z.union([z.literal(""), nicknameField]).default(""),
+  parentPhone: phone.default(""),
+  subjectIds: z.array(idSchema).default([]),
+  ...profileFields,
+});
+
+export const nicknameOnlySchema = z.object({ nickname: nicknameField });
+
+export const initialPasswordSchema = z
+  .object({ next: passwordField, confirm: z.string().min(1, v.required) })
+  .refine((d) => d.next === d.confirm, { message: ru.account.mismatch, path: ["confirm"] });
 
 export const passwordChangeSchema = z
   .object({

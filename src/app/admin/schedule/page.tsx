@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { WeekPlanner } from "@/components/common/week-planner";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
+import { nickOf } from "@/lib/person";
 import { getWeekLessons, resolveWeek } from "@/lib/schedule";
 import { parseListQuery } from "@/lib/validation";
 
@@ -24,7 +25,7 @@ export default async function AdminSchedulePage({ searchParams }: PageProps<"/ad
       select: { id: true, name: true },
     }),
     db.subject.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    db.teacher.findMany({ orderBy: { user: { fullName: "asc" } }, select: { id: true, user: { select: { fullName: true } } } }),
+    db.teacher.findMany({ orderBy: [{ user: { nicknameKey: "asc" } }, { user: { fullName: "asc" } }], select: { id: true, user: { select: { nickname: true, login: true } } } }),
   ]);
   const allGroups = await db.group.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } });
   const lessons = await getWeekLessons(groups.map((g) => g.id), week.start);
@@ -53,7 +54,7 @@ export default async function AdminSchedulePage({ searchParams }: PageProps<"/ad
         filters={[
           { name: "groupId", value: query.groupId, allLabel: ru.common.allGroups, options: allGroups.map((g) => ({ value: g.id, label: g.name })) },
           { name: "subjectId", value: query.subjectId, allLabel: ru.common.allSubjects, options: subjects.map((s) => ({ value: s.id, label: s.name })) },
-          { name: "teacherId", value: query.teacherId, allLabel: ru.admin.filterTeacher, options: teachers.map((t) => ({ value: t.id, label: t.user.fullName })) },
+          { name: "teacherId", value: query.teacherId, allLabel: ru.admin.filterTeacher, options: teachers.map((t) => ({ value: t.id, label: nickOf(t.user) })) },
         ]}
       />
       <WeekPlanner

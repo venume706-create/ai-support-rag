@@ -9,10 +9,23 @@ import { ru } from "@/lib/i18n/ru";
 export interface CurrentUser {
   id: string;
   login: string;
+  /** Главное имя: ник, а пока его нет — логин */
+  nick: string;
+  nickname: string | null;
+  firstName: string;
+  lastName: string;
   fullName: string;
   role: Role;
   teacherId: string | null;
   studentId: string | null;
+  avatarKey: string | null;
+  avatarVersion: number;
+  avatarFrame: string;
+  cardColor: string;
+  /** Пароль ещё временный (выдан администратором) */
+  mustChangePassword: boolean;
+  /** Нужен мастер первого входа: нет ника или пароль ещё временный */
+  needsOnboarding: boolean;
 }
 
 /**
@@ -25,24 +38,58 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   if (!id) return null;
   const user = await db.user.findUnique({
     where: { id },
-    select: { id: true, login: true, fullName: true, role: true, isActive: true, teacher: { select: { id: true } }, student: { select: { id: true } } },
+    select: {
+      id: true,
+      login: true,
+      nickname: true,
+      firstName: true,
+      lastName: true,
+      fullName: true,
+      role: true,
+      isActive: true,
+      avatarKey: true,
+      avatarVersion: true,
+      avatarFrame: true,
+      cardColor: true,
+      mustChangePassword: true,
+      teacher: { select: { id: true } },
+      student: { select: { id: true } },
+    },
   });
   if (!user || !user.isActive) return null;
   return {
     id: user.id,
     login: user.login,
+    nick: user.nickname ?? user.login,
+    nickname: user.nickname,
+    firstName: user.firstName,
+    lastName: user.lastName,
     fullName: user.fullName,
     role: user.role,
     teacherId: user.teacher?.id ?? null,
     studentId: user.student?.id ?? null,
+    avatarKey: user.avatarKey,
+    avatarVersion: user.avatarVersion,
+    avatarFrame: user.avatarFrame,
+    cardColor: user.cardColor,
+    mustChangePassword: user.mustChangePassword,
+    needsOnboarding: user.mustChangePassword || !user.nickname,
   };
 });
 
-/** Для страниц: нет входа → /login, чужая роль → 403. */
+/** Для страниц: нет входа → /login, не прошёл мастер → /welcome, чужая роль → 403. */
 export async function requirePageUser(...roles: Role[]): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.needsOnboarding) redirect("/welcome");
   if (roles.length && !roles.includes(user.role)) forbidden();
+  return user;
+}
+
+/** Страница мастера первого входа: нужен только вход, без требования завершённого профиля. */
+export async function requireOnboardingPageUser(): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   return user;
 }
 
@@ -103,7 +150,15 @@ export class ActionError extends Error {
 export async function requireActionUser(...roles: Role[]): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) throw new ActionError(ru.errors.unauthorized);
+  if (user.needsOnboarding) throw new ActionError(ru.errors.finishProfileFirst);
   if (roles.length && !roles.includes(user.role)) throw new ActionError(ru.errors.forbidden);
+  return user;
+}
+
+/** Действия мастера первого входа и профиля: достаточно быть вошедшим. */
+export async function requireSessionUser(): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) throw new ActionError(ru.errors.unauthorized);
   return user;
 }
 
@@ -130,7 +185,15 @@ export async function runAction<T>(fn: () => Promise<ActionResult<T>>): Promise<
 export async function apiUser(...roles: Role[]): Promise<CurrentUser | NextResponse> {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: ru.errors.unauthorized }, { status: 401 });
+  if (user.needsOnboarding) return NextResponse.json({ error: ru.errors.finishProfileFirst }, { status: 403 });
   if (roles.length && !roles.includes(user.role)) return NextResponse.json({ error: ru.errors.forbidden }, { status: 403 });
+  return user;
+}
+
+/** API профиля и мастера: достаточно быть вошедшим. */
+export async function apiSession(): Promise<CurrentUser | NextResponse> {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: ru.errors.unauthorized }, { status: 401 });
   return user;
 }
 

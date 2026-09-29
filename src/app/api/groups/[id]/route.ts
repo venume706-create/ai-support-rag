@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiForbidden, apiNotFound, apiUser, canAccessGroup } from "@/lib/access";
 import { db } from "@/lib/db";
+import { nickOf } from "@/lib/person";
 
 /** Состав группы. Админ — любая, учитель — только свои группы, ученик — только группы, где он учится. */
 export async function GET(_req: Request, ctx: RouteContext<"/api/groups/[id]">) {
@@ -14,8 +15,8 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/groups/[id]">) 
       name: true,
       level: true,
       subject: { select: { name: true } },
-      teacher: { select: { user: { select: { fullName: true } } } },
-      students: { select: { student: { select: { id: true, user: { select: { fullName: true } } } } } },
+      teacher: { select: { user: { select: { nickname: true, login: true } } } },
+      students: { select: { student: { select: { id: true, user: { select: { nickname: true, login: true, fullName: true } } } } } },
     },
   });
   if (!group) return apiNotFound();
@@ -25,9 +26,9 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/groups/[id]">) 
     name: group.name,
     level: group.level,
     subject: group.subject.name,
-    teacher: group.teacher?.user.fullName ?? null,
+    teacher: group.teacher ? nickOf(group.teacher.user) : null,
     // Ученику не показываем состав группы — только сведения о группе
     students:
-      user.role === "STUDENT" ? undefined : group.students.map((s) => ({ id: s.student.id, fullName: s.student.user.fullName })),
+      user.role === "STUDENT" ? undefined : group.students.map((s) => ({ id: s.student.id, nickname: nickOf(s.student.user), fullName: s.student.user.fullName })),
   });
 }

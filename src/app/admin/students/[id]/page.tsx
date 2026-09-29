@@ -1,20 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil } from "lucide-react";
 import { RemoveMemberButton } from "@/components/admin/buttons";
-import { DialogForm } from "@/components/admin/dialog-form";
+import { AdminProfileCard, AdminUserActions } from "@/components/admin/admin-user-panel";
 import { MembershipForm } from "@/components/admin/membership-form";
-import { StudentForm } from "@/components/admin/student-form";
-import { UserActions } from "@/components/admin/user-actions";
-import { ActiveBadge } from "@/components/common/badges";
 import { PageHeader } from "@/components/common/page-header";
 import { StudentOverview } from "@/components/common/student-overview";
 import { EmptyState } from "@/components/common/status-views";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDate, toDateOnly } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
+import { ADMIN_USER_SELECT, PERSON_SELECT, nickOf, realNameOf } from "@/lib/person";
 import { parseListQuery } from "@/lib/validation";
 
 export const metadata: Metadata = { title: ru.admin.profile };
@@ -28,12 +24,13 @@ export default async function StudentProfile({ params, searchParams }: PageProps
     select: {
       id: true,
       parentPhone: true,
-      user: { select: { id: true, login: true, firstName: true, lastName: true, fullName: true, birthDate: true, phone: true, isActive: true, createdAt: true } },
+      showInLeaderboard: true,
+      user: { select: ADMIN_USER_SELECT },
       groups: {
         orderBy: { group: { name: "asc" } },
         select: {
           group: {
-            select: { id: true, name: true, subject: { select: { name: true } }, teacher: { select: { user: { select: { fullName: true } } } } },
+            select: { id: true, name: true, subject: { select: { name: true } }, teacher: { select: { user: { select: PERSON_SELECT } } } },
           },
         },
       },
@@ -47,53 +44,16 @@ export default async function StudentProfile({ params, searchParams }: PageProps
   return (
     <>
       <PageHeader
-        title={student.user.fullName}
-        description={ru.roles.STUDENT}
+        title={nickOf(student.user)}
+        description={`${realNameOf(student.user)} · ${ru.roles.STUDENT}`}
         backHref="/admin/students"
         backLabel={ru.admin.studentsTitle}
         actions={
-          <>
-            <DialogForm trigger={ru.common.edit} title={ru.admin.studentEdit} icon={<Pencil />} variant="outline" testId="edit-student">
-              <StudentForm
-                                    initial={{
-                    id: student.id,
-                    login: student.user.login,
-                    firstName: student.user.firstName,
-                    lastName: student.user.lastName,
-                    phone: student.user.phone,
-                    parentPhone: student.parentPhone,
-                    birthDate: student.user.birthDate ? toDateOnly(student.user.birthDate) : "",
-                  }}
-                />
-            </DialogForm>
-            <UserActions userId={student.user.id} isActive={student.user.isActive} name={student.user.fullName} kind="student" entityId={student.id} />
-          </>
+          <AdminUserActions user={student.user} role="STUDENT" entityId={student.id} parentPhone={student.parentPhone} showInLeaderboard={student.showInLeaderboard} />
         }
       />
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{ru.admin.profile}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-              <dt className="text-muted-foreground">{ru.common.login}</dt>
-              <dd className="font-bold">{student.user.login}</dd>
-              <dt className="text-muted-foreground">{ru.common.phone}</dt>
-              <dd>{student.user.phone || ru.common.dash}</dd>
-              <dt className="text-muted-foreground">{ru.common.parentPhone}</dt>
-              <dd>{student.parentPhone || ru.common.dash}</dd>
-              <dt className="text-muted-foreground">{ru.common.birthDate}</dt>
-              <dd>{student.user.birthDate ? formatDate(student.user.birthDate) : ru.common.dash}</dd>
-              <dt className="text-muted-foreground">{ru.common.status}</dt>
-              <dd>
-                <ActiveBadge active={student.user.isActive} />
-              </dd>
-              <dt className="text-muted-foreground">{ru.common.createdAt}</dt>
-              <dd>{formatDate(student.user.createdAt)}</dd>
-            </dl>
-          </CardContent>
-        </Card>
+        <AdminProfileCard user={student.user} role="STUDENT" parentPhone={student.parentPhone} />
         <Card>
           <CardHeader>
             <CardTitle>{ru.admin.studentGroups}</CardTitle>
@@ -110,7 +70,7 @@ export default async function StudentProfile({ params, searchParams }: PageProps
                         {group.name}
                       </Link>
                       <p className="text-xs text-muted-foreground">
-                        {group.subject.name} · {group.teacher?.user.fullName ?? ru.common.notAssigned}
+                        {group.subject.name} · {group.teacher ? nickOf(group.teacher.user) : ru.common.notAssigned}
                       </p>
                     </div>
                     <RemoveMemberButton groupId={group.id} studentId={student.id} label={group.name} />

@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { GraduationCap, KeyRound } from "lucide-react";
+import { GraduationCap, UserCog } from "lucide-react";
 import type { CurrentUser } from "@/lib/access";
+import { Avatar } from "@/components/common/avatar";
+import { PersonName } from "@/components/common/person-name";
 import { ru } from "@/lib/i18n/ru";
 import { ROLE_HOME } from "@/lib/roles";
 import { NAV } from "./nav-config";
@@ -31,23 +33,25 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
         </div>
         <div className="relative z-10 border-t border-dashed border-stitch/40 px-4 pt-3 pb-5">
           <div className="mb-2 flex items-center justify-between gap-2 px-2">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-on-wood" data-testid="current-user">
-                {user.fullName}
-              </p>
-              <p className="text-xs text-on-wood-muted">{ru.roles[user.role]}</p>
-            </div>
+            <Link href="/profile" className="flex min-w-0 items-center gap-3 rounded-md py-1 hover:opacity-90" aria-label={ru.profile.title}>
+              <Avatar user={user} size="md" />
+              <span className="min-w-0" data-testid="current-user">
+                <PersonName user={user} nickClassName="text-base text-on-wood" hideRealName />
+                <span className="block truncate text-xs text-on-wood-muted">{user.firstName} {user.lastName}</span>
+                <span className="block text-[11px] text-on-wood-muted/80">{ru.roles[user.role]}</span>
+              </span>
+            </Link>
             <div className="text-on-wood">
               <ThemeToggle />
             </div>
           </div>
           <div className="grid text-on-wood-muted">
             <Link
-              href="/account"
+              href="/profile"
               className="flex h-10 items-center gap-3 rounded-md px-3 text-sm font-bold hover:bg-black/20 hover:text-on-wood"
               data-testid="account-link"
             >
-              <KeyRound className="size-4" />
+              <UserCog className="size-4" />
               {ru.account.link}
             </Link>
             <LogoutButton />
@@ -62,8 +66,8 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
         </Link>
         <div className="flex items-center text-on-wood">
           <ThemeToggle />
-          <Link href="/account" aria-label={ru.account.link} className="flex size-10 items-center justify-center rounded-md hover:bg-black/20" data-testid="account-link">
-            <KeyRound className="size-5" />
+          <Link href="/profile" aria-label={ru.account.link} className="flex size-11 items-center justify-center rounded-md hover:bg-black/20" data-testid="account-link">
+            <Avatar user={user} size="xs" />
           </Link>
           <LogoutButton compact />
         </div>

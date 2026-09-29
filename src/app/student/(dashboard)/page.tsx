@@ -46,7 +46,7 @@ export default async function StudentDashboard({ searchParams }: PageProps<"/stu
 
   return (
     <>
-      <PageHeader title={ru.student.dashboardTitle} description={`${user.fullName} · ${groups.map((g) => g.name).join(", ") || ru.student.noGroups}`} />
+      <PageHeader title={ru.student.dashboardTitle} description={`${user.nick} · ${groups.map((g) => g.name).join(", ") || ru.student.noGroups}`} />
       <div className="mb-6">
         <RatingCard rating={rating} title={ru.student.myRating} period={period} hrefFor={hrefFor} />
       </div>

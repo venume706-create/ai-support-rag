@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef } from "react";
-import { changeOwnPassword } from "@/app/actions/account";
+import { changeOwnPassword } from "@/app/actions/profile";
 import { FormError, FormField, SubmitButton, submitWith, fieldError, useActionFeedback, type FormState } from "@/components/forms/form-kit";
 import { Input } from "@/components/ui/input";
 import { ru } from "@/lib/i18n/ru";

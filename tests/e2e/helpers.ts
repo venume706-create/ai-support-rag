@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
+import sharp from "sharp";
 
 export const db = new PrismaClient({ datasources: { db: { url: "file:./e2e.db" } } });
 
@@ -21,4 +22,22 @@ export async function ratingTotal(page: Page, studentId: string): Promise<number
 /** Уникальный суффикс, чтобы desktop- и mobile-прогоны не конфликтовали. */
 export function uid(prefix: string, project: string) {
   return `${prefix}${project === "mobile" ? "m" : "d"}${Date.now().toString(36).slice(-5)}`;
+}
+
+/** Настоящая картинка PNG для проверки загрузки фото. */
+export function pngBuffer(width = 900, height = 600) {
+  return sharp({ create: { width, height, channels: 3, background: "#4a72b0" } }).png().toBuffer();
+}
+
+/** Проходит мастер первого входа: ник → свой пароль → пропустить фото. */
+export async function completeWizard(page: Page, nick: string, password: string) {
+  await expect(page).toHaveURL(/\/welcome/);
+  await page.getByTestId("nickname-input").fill(nick);
+  await expect(page.getByTestId("nickname-status")).toHaveText("Ник свободен");
+  await page.getByRole("button", { name: "Дальше" }).click();
+  await page.locator("#w-next").fill(password);
+  await page.locator("#w-confirm").fill(password);
+  await page.getByRole("button", { name: "Дальше" }).click();
+  await page.getByTestId("wizard-finish").click();
+  await expect(page).not.toHaveURL(/\/welcome/);
 }

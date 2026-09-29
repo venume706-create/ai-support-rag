@@ -5,7 +5,7 @@ test("пользователь меняет свой пароль и входи�
   const user = info.project.name === "mobile" ? "student27" : "student28";
   await login(page, user, "student123");
   await page.getByTestId("account-link").filter({ visible: true }).first().click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/profile$/);
   const form = page.getByTestId("password-form");
 
   // Неверный текущий пароль
@@ -48,7 +48,7 @@ test("история ученика листается, в группе рабо
   await expect(page.locator("#attendance").getByTestId("pagination")).toContainText(`11–${Math.min(20, total)} из ${total}`);
 
   const group = await db.group.findFirstOrThrow({ where: { students: { some: { studentId: student.id } } } });
-  await page.goto(`/admin/groups/${group.id}?q=${encodeURIComponent(student.user.fullName.split(" ")[1])}`);
+  await page.goto(`/admin/groups/${group.id}?q=${encodeURIComponent(student.user.lastName)}`);
   await expect(page.getByTestId("group-students").getByRole("row")).toHaveCount(2);
-  await expect(page.getByTestId("group-students")).toContainText(student.user.fullName);
+  await expect(page.getByTestId("group-students")).toContainText(student.user.nickname!);
 });

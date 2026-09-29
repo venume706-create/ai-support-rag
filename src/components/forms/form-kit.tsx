@@ -58,16 +58,19 @@ export function SubmitButton({
   className,
   variant,
   pending: pendingProp,
+  disabledWhen = false,
 }: {
   children: React.ReactNode;
   className?: string;
   variant?: "default" | "destructive" | "outline";
   pending?: boolean;
+  /** Дополнительное условие блокировки (например, ник ещё не проверен) */
+  disabledWhen?: boolean;
 }) {
   const status = useFormStatus();
   const pending = pendingProp ?? status.pending;
   return (
-    <Button type="submit" disabled={pending} className={className} variant={variant}>
+    <Button type="submit" disabled={pending || disabledWhen} className={className} variant={variant}>
       {pending && <Loader2 className="animate-spin" />}
       {pending ? ru.common.saving : children}
     </Button>

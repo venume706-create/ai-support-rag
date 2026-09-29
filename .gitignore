@@ -48,3 +48,5 @@ prisma/*.db-journal
 /playwright-report
 /.tools
 prisma/e2e.db*
+/storage
+/storage-e2e

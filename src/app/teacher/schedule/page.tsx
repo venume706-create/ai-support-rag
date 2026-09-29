@@ -15,7 +15,7 @@ export default async function TeacherSchedulePage({ searchParams }: PageProps<"/
   const lessons = await getWeekLessons(await teacherGroupIds(user.teacherId), week.start);
   return (
     <>
-      <PageHeader title={ru.teacher.weekSchedule} description={user.fullName} />
+      <PageHeader title={ru.teacher.weekSchedule} description={user.nick} />
       <WeekPlanner
         start={week.start}
         lessons={lessons}

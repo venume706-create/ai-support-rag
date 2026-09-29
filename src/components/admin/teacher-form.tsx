@@ -1,8 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { createTeacher, updateTeacher } from "@/app/actions/admin";
-import { FormError, FormField, SubmitButton, submitWith, fieldError, useActionFeedback, type FormState } from "@/components/forms/form-kit";
+import { createTeacher } from "@/app/actions/admin";
+import { FormError, FormField, SubmitButton, fieldError, submitWith, useActionFeedback, type FormState } from "@/components/forms/form-kit";
 import { Input } from "@/components/ui/input";
 import { ru } from "@/lib/i18n/ru";
 import { useDialogClose } from "./dialog-form";
@@ -12,54 +12,36 @@ interface Subject {
   name: string;
 }
 
-export interface TeacherFormValues {
-  id: string;
-  login: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  subjectIds: string[];
-}
-
-export function TeacherForm({ subjects, initial, onDone }: { subjects: Subject[]; initial?: TeacherFormValues; onDone?: () => void }) {
-  const editing = Boolean(initial);
-  const [state, action, pending] = useActionState<FormState, FormData>(editing ? updateTeacher : createTeacher, null);
+/** Создание аккаунта учителя: имя, фамилия, логин, временный пароль, предметы. Ник человек выберет сам при первом входе. */
+export function TeacherForm({ subjects }: { subjects: Subject[] }) {
+  const [state, action, pending] = useActionState<FormState, FormData>(createTeacher, null);
   const closeDialog = useDialogClose();
-  useActionFeedback(state, onDone ?? closeDialog);
+  useActionFeedback(state, closeDialog);
   const err = (name: string) => fieldError(state, name);
   return (
     <form onSubmit={submitWith(action)} className="grid gap-4" noValidate data-testid="teacher-form">
-      {initial && <input type="hidden" name="id" value={initial.id} />}
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label={ru.common.firstName} htmlFor="t-firstName" error={err("firstName")}>
-          <Input id="t-firstName" name="firstName" defaultValue={initial?.firstName} autoComplete="off" required aria-invalid={Boolean(err("firstName"))} />
+          <Input id="t-firstName" name="firstName" autoComplete="off" required aria-invalid={Boolean(err("firstName"))} />
         </FormField>
         <FormField label={ru.common.lastName} htmlFor="t-lastName" error={err("lastName")}>
-          <Input id="t-lastName" name="lastName" defaultValue={initial?.lastName} autoComplete="off" required aria-invalid={Boolean(err("lastName"))} />
+          <Input id="t-lastName" name="lastName" autoComplete="off" required aria-invalid={Boolean(err("lastName"))} />
         </FormField>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label={ru.common.login} htmlFor="t-login" error={err("login")}>
-          <Input id="t-login" name="login" defaultValue={initial?.login} autoCapitalize="none" required aria-invalid={Boolean(err("login"))} />
+        <FormField label={ru.common.login} htmlFor="t-login" error={err("login")} hint={ru.admin.loginHint}>
+          <Input id="t-login" name="login" autoCapitalize="none" autoComplete="off" required aria-invalid={Boolean(err("login"))} />
         </FormField>
-        <FormField
-          label={editing ? ru.common.newPassword : ru.common.tempPassword}
-          htmlFor="t-password"
-          error={err("password")}
-          hint={editing ? ru.common.passwordHint : ru.common.tempPasswordHint}
-        >
-          <Input id="t-password" name="password" type="password" autoComplete="new-password" aria-invalid={Boolean(err("password"))} />
+        <FormField label={ru.common.tempPassword} htmlFor="t-password" error={err("password")} hint={ru.common.tempPasswordHint}>
+          <Input id="t-password" name="password" type="text" autoComplete="off" autoCapitalize="none" required aria-invalid={Boolean(err("password"))} />
         </FormField>
       </div>
-      <FormField label={ru.common.phone} htmlFor="t-phone" error={err("phone")}>
-        <Input id="t-phone" name="phone" type="tel" defaultValue={initial?.phone} aria-invalid={Boolean(err("phone"))} />
-      </FormField>
       <fieldset className="grid gap-2">
         <legend className="mb-1.5 text-sm font-bold">{ru.common.subjects}</legend>
         <div className="flex flex-wrap gap-2">
           {subjects.map((s) => (
-            <label key={s.id} className="inset-field flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm has-checked:ring-2 has-checked:ring-brass">
-              <input type="checkbox" name="subjectIds" value={s.id} defaultChecked={initial?.subjectIds.includes(s.id)} className="size-4 accent-[#b8893a]" />
+            <label key={s.id} className="inset-field flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-sm has-checked:ring-2 has-checked:ring-brass">
+              <input type="checkbox" name="subjectIds" value={s.id} className="size-5 accent-[#b8893a]" />
               {s.name}
             </label>
           ))}
@@ -67,7 +49,9 @@ export function TeacherForm({ subjects, initial, onDone }: { subjects: Subject[]
         {err("subjectIds") && <p className="text-sm font-bold text-ink-red" role="alert">{err("subjectIds")}</p>}
       </fieldset>
       <FormError state={state} />
-      <SubmitButton pending={pending} className="w-full sm:w-auto sm:justify-self-end">{editing ? ru.common.save : ru.common.create}</SubmitButton>
+      <SubmitButton pending={pending} className="w-full sm:w-auto sm:justify-self-end">
+        {ru.common.create}
+      </SubmitButton>
     </form>
   );
 }

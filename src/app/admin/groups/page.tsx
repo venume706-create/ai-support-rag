@@ -6,6 +6,7 @@ import { GroupForm } from "@/components/admin/group-form";
 import { SubjectsManager } from "@/components/admin/subjects-manager";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { PageHeader } from "@/components/common/page-header";
+import { PersonName } from "@/components/common/person-name";
 import { Pagination } from "@/components/common/pagination";
 import { EmptyState } from "@/components/common/status-views";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { paginate } from "@/lib/pagination";
+import { PERSON_SELECT, nickOf } from "@/lib/person";
 import { searchTerm } from "@/lib/utils";
 import { parseListQuery } from "@/lib/validation";
 
@@ -23,8 +25,8 @@ export default async function GroupsPage({ searchParams }: PageProps<"/admin/gro
   const [subjects, teachers, allGroups] = await Promise.all([
     db.subject.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, _count: { select: { groups: true } } } }),
     db.teacher.findMany({
-      orderBy: { user: { fullName: "asc" } },
-      select: { id: true, user: { select: { fullName: true } }, subjects: { select: { id: true } } },
+      orderBy: [{ user: { nicknameKey: "asc" } }, { user: { fullName: "asc" } }],
+      select: { id: true, user: { select: { nickname: true, login: true } }, subjects: { select: { id: true } } },
     }),
     db.group.findMany({
       where: { subjectId: query.subjectId || undefined, teacherId: query.teacherId || undefined },
@@ -34,7 +36,7 @@ export default async function GroupsPage({ searchParams }: PageProps<"/admin/gro
         name: true,
         level: true,
         subject: { select: { name: true } },
-        teacher: { select: { id: true, user: { select: { fullName: true } } } },
+        teacher: { select: { id: true, user: { select: PERSON_SELECT } } },
         _count: { select: { students: true, slots: true } },
       },
     }),
@@ -44,7 +46,7 @@ export default async function GroupsPage({ searchParams }: PageProps<"/admin/gro
   const groups = term ? allGroups.filter((g) => searchTerm(`${g.name} ${g.level}`).includes(term)) : allGroups;
   const info = paginate(groups.length, query.page);
   const rows = groups.slice(info.skip, info.skip + info.take);
-  const teacherOptions = teachers.map((t) => ({ id: t.id, name: t.user.fullName, subjectIds: t.subjects.map((s) => s.id) }));
+  const teacherOptions = teachers.map((t) => ({ id: t.id, name: nickOf(t.user), subjectIds: t.subjects.map((s) => s.id) }));
   const params = { q: query.q, subjectId: query.subjectId, teacherId: query.teacherId };
 
   return (
@@ -64,7 +66,7 @@ export default async function GroupsPage({ searchParams }: PageProps<"/admin/gro
         searchPlaceholder={ru.common.search}
         filters={[
           { name: "subjectId", value: query.subjectId, allLabel: ru.common.allSubjects, options: subjects.map((s) => ({ value: s.id, label: s.name })) },
-          { name: "teacherId", value: query.teacherId, allLabel: ru.admin.filterTeacher, options: teachers.map((t) => ({ value: t.id, label: t.user.fullName })) },
+          { name: "teacherId", value: query.teacherId, allLabel: ru.admin.filterTeacher, options: teachers.map((t) => ({ value: t.id, label: nickOf(t.user) })) },
         ]}
       />
       <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
@@ -91,13 +93,13 @@ export default async function GroupsPage({ searchParams }: PageProps<"/admin/gro
                         <p className="text-xs text-muted-foreground">
                           {g.subject.name}
                           {g.level && ` · ${g.level}`}
-                          <span className="sm:hidden"> · {g.teacher?.user.fullName ?? ru.common.notAssigned}</span>
+                          <span className="sm:hidden"> · {g.teacher ? nickOf(g.teacher.user) : ru.common.notAssigned}</span>
                         </p>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         {g.teacher ? (
                           <Link href={`/admin/teachers/${g.teacher.id}`} className="hover:underline">
-                            {g.teacher.user.fullName}
+                            <PersonName user={g.teacher.user} avatar="xs" />
                           </Link>
                         ) : (
                           <span className="text-muted-foreground">{ru.common.notAssigned}</span>

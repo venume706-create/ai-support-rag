@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CalendarClock, Pencil, Plus } from "lucide-react";
 import type { AttendanceStatus, HomeworkStatus } from "@prisma/client";
 import { DialogForm } from "@/components/admin/dialog-form";
+import { PersonName } from "@/components/common/person-name";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { Pagination } from "@/components/common/pagination";
 import { RatingBadge } from "@/components/common/badges";
@@ -25,12 +26,21 @@ import { addDays, formatDate, formatWeekday, toDateOnly, today } from "@/lib/dat
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { ensureLessons } from "@/lib/lessons";
+import { PERSON_SELECT, nickOf, realNameOf, type PersonLike } from "@/lib/person";
 import { pageParam, searchAndPage } from "@/lib/pagination";
 import { getStudentRatings } from "@/lib/rating-data";
 import { cn } from "@/lib/utils";
 import { parseListQuery } from "@/lib/validation";
 
 export const metadata: Metadata = { title: ru.teacher.journal };
+
+/** Ученик группы: ник — главное имя, person — для показа фото и имени */
+export interface GroupStudent {
+  id: string;
+  name: string;
+  search: string;
+  person: PersonLike;
+}
 
 const TABS = ["journal", "students", "homework", "schedule"] as const;
 type Tab = (typeof TABS)[number];
@@ -54,13 +64,18 @@ export default async function TeacherGroupPage({ params, searchParams }: PagePro
       subject: { select: { name: true } },
       slots: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
       students: {
-        orderBy: { student: { user: { fullName: "asc" } } },
-        select: { student: { select: { id: true, user: { select: { fullName: true } } } } },
+        orderBy: [{ student: { user: { nicknameKey: "asc" } } }, { student: { user: { fullName: "asc" } } }],
+        select: { student: { select: { id: true, user: { select: PERSON_SELECT } } } },
       },
     },
   });
   if (!group) notFound();
-  const students = group.students.map((s) => ({ id: s.student.id, name: s.student.user.fullName }));
+  const students: GroupStudent[] = group.students.map((s) => ({
+    id: s.student.id,
+    name: nickOf(s.student.user),
+    search: `${nickOf(s.student.user)} ${realNameOf(s.student.user)}`,
+    person: s.student.user,
+  }));
   const base = `/teacher/groups/${id}`;
   const tabHref = (t: Tab, extra: Record<string, string> = {}) => {
     const p = new URLSearchParams({ ...(t === "journal" ? {} : { tab: t }), ...extra });
@@ -129,7 +144,7 @@ async function JournalTab({
   base,
 }: {
   groupId: string;
-  students: { id: string; name: string }[];
+  students: GroupStudent[];
   selected?: string;
   base: string;
 }) {
@@ -201,9 +216,9 @@ async function JournalTab({
           <ol className="mt-4 grid" data-testid="journal-rows">
             {students.map((s, i) => (
               <li key={`${current.id}-${s.id}`} className="grid gap-2 border-b border-paper-line py-3 md:grid-cols-[minmax(10rem,14rem)_1fr_minmax(12rem,1fr)] md:items-center md:gap-4">
-                <span className="font-bold">
-                  <span className="mr-2 font-serif text-xs text-muted-foreground">{i + 1}.</span>
-                  {s.name}
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="w-5 shrink-0 font-serif text-xs text-muted-foreground">{i + 1}.</span>
+                  <PersonName user={s.person} avatar="sm" />
                 </span>
                 <AttendanceStamps lessonId={current.id} studentId={s.id} studentName={s.name} initial={attMap.get(key(current.id, s.id)) ?? null} disabled={isFuture} />
                 <GradeInput
@@ -243,13 +258,13 @@ async function StudentsTab({
   page,
 }: {
   groupId: string;
-  students: { id: string; name: string }[];
+  students: GroupStudent[];
   period: "month" | "all";
   base: string;
   q: string;
   page: number;
 }) {
-  const { info, rows: students } = searchAndPage(all, q, page, (s) => s.name);
+  const { info, rows: students } = searchAndPage(all, q, page, (s) => s.search);
   const ratings = await getStudentRatings(students.map((s) => s.id), { period, groupIds: [groupId] });
   const hrefFor = (p: string) => (p === "all" ? `${base}?tab=students` : `${base}?tab=students&period=${p}`);
   return (
@@ -282,8 +297,8 @@ async function StudentsTab({
                 return (
                   <TableRow key={s.id}>
                     <TableCell>
-                      <Link href={`/teacher/students/${s.id}`} className="font-bold hover:underline">
-                        {s.name}
+                      <Link href={`/teacher/students/${s.id}`} className="hover:underline">
+                        <PersonName user={s.person} avatar="sm" />
                       </Link>
                     </TableCell>
                     <TableCell className="hidden text-sm sm:table-cell">{pts(r.grades.points, r.grades.max)}</TableCell>
@@ -304,7 +319,7 @@ async function StudentsTab({
   );
 }
 
-async function HomeworkTab({ groupId, students }: { groupId: string; students: { id: string; name: string }[] }) {
+async function HomeworkTab({ groupId, students }: { groupId: string; students: GroupStudent[] }) {
   const homework = await db.homework.findMany({
     where: { groupId },
     orderBy: { dueDate: "desc" },

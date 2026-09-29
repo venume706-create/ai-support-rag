@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CalendarCheck, GraduationCap, UserRound, UsersRound } from "lucide-react";
 import { RatingBadge } from "@/components/common/badges";
 import { PageHeader } from "@/components/common/page-header";
+import { PersonName } from "@/components/common/person-name";
 import { PeriodSwitch } from "@/components/common/rating-card";
 import { StatCard } from "@/components/common/stat-card";
 import { EmptyState } from "@/components/common/status-views";
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
+import { PERSON_SELECT } from "@/lib/person";
 import { getStudentRatings, getTeacherRatings, monthAttendancePercent } from "@/lib/rating-data";
 import { parseListQuery } from "@/lib/validation";
 
@@ -18,7 +20,7 @@ export const metadata: Metadata = { title: ru.admin.dashboardTitle };
 export default async function AdminDashboard({ searchParams }: PageProps<"/admin">) {
   const { period } = parseListQuery(await searchParams);
   const [students, teachers, groups, attendance, teacherRatings] = await Promise.all([
-    db.student.findMany({ select: { id: true, user: { select: { fullName: true, isActive: true } }, groups: { select: { group: { select: { name: true } } } } } }),
+    db.student.findMany({ select: { id: true, user: { select: PERSON_SELECT }, groups: { select: { group: { select: { name: true } } } } } }),
     db.teacher.count(),
     db.group.count(),
     monthAttendancePercent(),
@@ -69,10 +71,10 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
                     <TableRow key={s.id}>
                       <TableCell className="handwritten text-xl text-ink-blue">{i + 1}</TableCell>
                       <TableCell>
-                        <Link href={`/admin/students/${s.id}`} className="font-bold hover:underline">
-                          {s.user.fullName}
+                        <Link href={`/admin/students/${s.id}`} className="hover:underline">
+                          <PersonName user={s.user} avatar="sm" />
                         </Link>
-                        <p className="text-xs text-muted-foreground">{s.groups.map((g) => g.group.name).join(", ")}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{s.groups.map((g) => g.group.name).join(", ")}</p>
                       </TableCell>
                       <TableCell className="text-right">
                         <RatingBadge value={s.rating} />
@@ -105,10 +107,10 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
                   {teacherRatings.map((t) => (
                     <TableRow key={t.teacherId}>
                       <TableCell>
-                        <Link href={`/admin/teachers/${t.teacherId}`} className="font-bold hover:underline">
-                          {t.fullName}
+                        <Link href={`/admin/teachers/${t.teacherId}`} className="hover:underline">
+                          <PersonName user={t.person} avatar="sm" />
                         </Link>
-                        <p className="text-xs text-muted-foreground">{ru.rating.studentsCounted(t.studentsCounted)}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{ru.rating.studentsCounted(t.studentsCounted)}</p>
                       </TableCell>
                       <TableCell className="text-center tabular-nums">{t.groups}</TableCell>
                       <TableCell className="text-right">

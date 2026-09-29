@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { AttendanceStatus } from "@prisma/client";
+import { PersonName } from "@/components/common/person-name";
 import { formatDate } from "@/lib/dates";
+import type { PersonLike } from "@/lib/person";
 import { ru } from "@/lib/i18n/ru";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +22,7 @@ export function JournalGrid({
   selectedId,
 }: {
   lessons: GridLesson[];
-  students: { id: string; name: string }[];
+  students: { id: string; name: string; person: PersonLike }[];
   attendance: Map<string, AttendanceStatus>;
   grades: Map<string, number[]>;
   hrefFor: (lessonId: string) => string;
@@ -47,7 +49,7 @@ export function JournalGrid({
           {students.map((s, i) => (
             <tr key={s.id} className="h-11">
               <td className="pl-2 font-serif text-xs text-muted-foreground">{i + 1}</td>
-              <td className="truncate pl-3 font-bold">{s.name}</td>
+              <td className="max-w-44 truncate pl-3"><PersonName user={s.person} nickClassName="text-sm" hideRealName /></td>
               {lessons.map((l) => {
                 const a = attendance.get(key(l.id, s.id));
                 const g = grades.get(key(l.id, s.id)) ?? [];

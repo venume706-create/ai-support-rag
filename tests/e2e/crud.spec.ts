@@ -71,12 +71,12 @@ test.describe("Остальные действия сохраняются в Б�
 
     // Убрать ученика из группы и вернуть обратно
     const member = group.students[info.project.name === "mobile" ? 1 : 0].student;
-    await page.getByTestId("group-students").getByRole("row").filter({ hasText: member.user.fullName }).getByRole("button", { name: "Убрать" }).click();
+    await page.getByTestId("group-students").getByRole("row").filter({ hasText: member.user.nickname! }).getByRole("button", { name: "Убрать" }).click();
     await page.getByTestId("confirm-action").click();
-    await expect(page.getByTestId("group-students")).not.toContainText(member.user.fullName);
+    await expect(page.getByTestId("group-students")).not.toContainText(member.user.nickname!);
     await page.getByTestId("membership-form").locator("select").selectOption(member.id);
     await page.getByTestId("membership-form").locator("button[type=submit]").click();
-    await expect(page.getByTestId("group-students")).toContainText(member.user.fullName);
+    await expect(page.getByTestId("group-students")).toContainText(member.user.nickname!);
 
     // Предмет: создать, переименовать, удалить
     const subject = `Физика ${uid("s", info.project.name)}`;

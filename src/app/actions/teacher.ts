@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { z } from "zod";
+import { parse } from "@/lib/action-utils";
 import {
   ActionError,
   assertGroupAction,
@@ -16,7 +16,6 @@ import { ru } from "@/lib/i18n/ru";
 import {
   attendanceBulkSchema,
   attendanceSchema,
-  fieldErrors,
   gradeSchema,
   homeworkSchema,
   idOnlySchema,
@@ -25,12 +24,6 @@ import {
 } from "@/lib/validation";
 
 type State = ActionResult<unknown> | null;
-
-function parse<S extends z.ZodType>(schema: S, data: unknown): z.infer<S> {
-  const result = schema.safeParse(data);
-  if (!result.success) throw new ActionError(ru.errors.validation, fieldErrors(result.error));
-  return result.data;
-}
 
 /** Урок существует, доступен пользователю и уже начался (будущие уроки не отмечаются). */
 async function loadLesson(user: CurrentUser, lessonId: string, requirePast = true) {
