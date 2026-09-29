@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node build.mjs",
     "test": "node --test test/engine.test.mjs",
-    "e2e": "node build.mjs --local && node test/e2e.mjs"
+    "e2e": "node build.mjs && node test/e2e.mjs"
   },
   "devDependencies": {
     "html2pdf.js": "0.10.1",
