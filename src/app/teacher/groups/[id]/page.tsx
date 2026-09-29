@@ -100,7 +100,7 @@ export default async function TeacherGroupPage({ params, searchParams }: PagePro
             href={tabHref(t)}
             aria-current={tab === t ? "page" : undefined}
             className={cn(
-              "key shrink-0 rounded-md px-4 py-2 text-sm font-bold",
+              "key inline-flex min-h-11 shrink-0 items-center rounded-md px-4 text-sm font-bold",
               tab === t ? "key-brass" : "key-paper",
             )}
           >
@@ -185,7 +185,7 @@ async function JournalTab({
               href={lessonHref(l.id)}
               aria-current={active ? "true" : undefined}
               className={cn(
-                "key flex shrink-0 flex-col items-center rounded-md px-3 py-1.5 text-xs font-bold",
+                "key flex min-h-11 shrink-0 flex-col items-center justify-center rounded-md px-3 py-1.5 text-xs font-bold",
                 active ? "key-brass" : "key-paper",
                 l.date > now && !active && "opacity-60",
               )}
@@ -314,10 +314,10 @@ async function StudentsTab({
                         <PersonName user={s.person} avatar="sm" />
                       </Link>
                     </TableCell>
-                    <TableCell className="hidden text-sm sm:table-cell">{pts(r.grades.points, r.grades.max)}</TableCell>
-                    <TableCell className="hidden text-sm sm:table-cell">{pts(r.attendance.points, r.attendance.max)}</TableCell>
-                    <TableCell className="hidden text-sm sm:table-cell">{pts(r.homework.points, r.homework.max)}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell label={ru.rating.grades} className="hidden text-sm sm:table-cell">{pts(r.grades.points, r.grades.max)}</TableCell>
+                    <TableCell label={ru.rating.attendance} className="hidden text-sm sm:table-cell">{pts(r.attendance.points, r.attendance.max)}</TableCell>
+                    <TableCell label={ru.rating.homework} className="hidden text-sm sm:table-cell">{pts(r.homework.points, r.homework.max)}</TableCell>
+                    <TableCell label={ru.common.rating} className="text-right">
                       <RatingBadge value={r.total} />
                     </TableCell>
                   </TableRow>
@@ -375,7 +375,7 @@ async function HomeworkTab({ groupId, students }: { groupId: string; students: G
                   </div>
                   {h.description && <p className="mb-3 text-sm whitespace-pre-line">{h.description}</p>}
                   <details className="group border-t border-dotted border-border pt-2">
-                    <summary className="cursor-pointer text-sm font-bold">
+                    <summary className="flex min-h-11 cursor-pointer items-center text-sm font-bold">
                       {ru.teacher.submissions}: {done}/{students.length}
                     </summary>
                     <div className="mt-2 grid">

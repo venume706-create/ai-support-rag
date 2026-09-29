@@ -93,10 +93,9 @@ export default async function GroupsPage({ searchParams }: PageProps<"/admin/gro
                         <p className="text-xs text-muted-foreground">
                           {g.subject.name}
                           {g.level && ` · ${g.level}`}
-                          <span className="sm:hidden"> · {g.teacher ? nickOf(g.teacher.user) : ru.common.notAssigned}</span>
                         </p>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">
+                      <TableCell label={ru.common.teacher} className="hidden sm:table-cell">
                         {g.teacher ? (
                           <Link href={`/admin/teachers/${g.teacher.id}`} className="hover:underline">
                             <PersonName user={g.teacher.user} avatar="xs" />
@@ -105,7 +104,7 @@ export default async function GroupsPage({ searchParams }: PageProps<"/admin/gro
                           <span className="text-muted-foreground">{ru.common.notAssigned}</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-center tabular-nums">{g._count.students}</TableCell>
+                      <TableCell label={ru.admin.studentsCount} className="text-center tabular-nums">{g._count.students}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

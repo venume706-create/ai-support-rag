@@ -23,7 +23,7 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
   return (
     <div className="min-h-dvh">
       {/* Сайдбар — кожаная обложка с прострочкой */}
-      <aside className="leather stitched fixed inset-y-0 left-0 z-30 hidden w-64 flex-col md:flex">
+      <aside className="leather stitched fixed inset-y-0 left-0 z-30 hidden w-64 flex-col lg:flex">
         <Link href={ROLE_HOME[user.role]} className="relative z-10 flex h-20 items-center gap-3 px-6">
           <Emblem />
           <span className="font-serif text-lg leading-tight font-bold text-on-wood">{ru.app.name}</span>
@@ -59,7 +59,7 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
         </div>
       </aside>
 
-      <header className="leather sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b-2 border-dashed border-stitch/60 px-4 md:hidden">
+      <header className="leather sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b-2 border-dashed border-stitch/60 pt-[env(safe-area-inset-top)] pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] lg:hidden">
         <Link href={ROLE_HOME[user.role]} className="flex min-w-0 items-center gap-2">
           <Emblem small />
           <span className="truncate font-serif font-bold text-on-wood">{ru.app.name}</span>
@@ -73,8 +73,8 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
         </div>
       </header>
 
-      <main className="px-4 pt-5 pb-28 md:ml-64 md:px-8 md:pt-8 md:pb-10">
-        <div className="settle mx-auto w-full max-w-6xl">{children}</div>
+      <main className="pt-5 pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(6.5rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] sm:px-6 lg:ml-64 lg:px-8 lg:pt-8 lg:pb-10">
+        <div className="settle mx-auto w-full max-w-6xl 2xl:max-w-[1440px]">{children}</div>
       </main>
       <BottomNav items={items} />
     </div>

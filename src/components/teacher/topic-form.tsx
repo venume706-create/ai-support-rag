@@ -17,7 +17,7 @@ export function TopicForm({ lessonId, topic }: { lessonId: string; topic: string
         maxLength={200}
         placeholder={ru.teacher.topicPlaceholder}
         aria-label={ru.common.topic}
-        className="handwritten min-w-0 flex-1 border-0 border-b-2 border-dotted border-ink-blue/50 bg-transparent px-1 text-2xl text-ink-blue outline-none placeholder:text-ink-blue/40 focus:border-solid"
+        className="handwritten min-h-11 min-w-0 flex-1 border-0 border-b-2 border-dotted border-ink-blue/50 bg-transparent px-1 text-2xl text-ink-blue outline-none placeholder:text-ink-blue/40 focus:border-solid"
       />
       <SubmitButton pending={pending} variant="outline">{ru.teacher.saveTopic}</SubmitButton>
     </form>

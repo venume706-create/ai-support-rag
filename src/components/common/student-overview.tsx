@@ -105,13 +105,13 @@ export async function StudentOverview({
                   {grades.map((g) => (
                     <TableRow key={g.id}>
                       <TableCell className="whitespace-nowrap tabular-nums">{formatDate(g.date)}</TableCell>
-                      <TableCell>
+                      <TableCell label={ru.common.group}>
                         {g.group.name}
                         {(g.lesson?.topic || g.comment) && (
                           <p className="text-xs text-muted-foreground">{[g.lesson?.topic, g.comment].filter(Boolean).join(" · ")}</p>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell label={ru.teacher.gradeValue} className="text-right">
                         <GradeBadge value={g.value} />
                       </TableCell>
                     </TableRow>
@@ -144,8 +144,8 @@ export async function StudentOverview({
                       <TableCell className="whitespace-nowrap tabular-nums">
                         {formatDate(a.lesson.date)} <span className="text-xs text-muted-foreground">{a.lesson.startTime}</span>
                       </TableCell>
-                      <TableCell>{a.lesson.group.name}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell label={ru.common.group}>{a.lesson.group.name}</TableCell>
+                      <TableCell label={ru.common.status} className="text-right">
                         <AttendanceBadge status={a.status} />
                       </TableCell>
                     </TableRow>
@@ -182,8 +182,8 @@ export async function StudentOverview({
                         {h.title}
                         <p className="text-xs text-muted-foreground">{h.group.name}</p>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap tabular-nums">{formatDate(h.dueDate)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell label={ru.teacher.dueDate} className="whitespace-nowrap tabular-nums">{formatDate(h.dueDate)}</TableCell>
+                      <TableCell label={ru.common.status} className="text-right">
                         <HomeworkBadge status={status} />
                       </TableCell>
                     </TableRow>

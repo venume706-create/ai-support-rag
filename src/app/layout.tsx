@@ -17,6 +17,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Экран целиком, включая область «чёлки» iPhone: отступы задаём сами через safe-area-inset
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#4a2916" },
     { media: "(prefers-color-scheme: dark)", color: "#2e190d" },

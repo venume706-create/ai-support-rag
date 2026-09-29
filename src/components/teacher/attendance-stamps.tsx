@@ -59,7 +59,7 @@ export function AttendanceStamps({
           aria-pressed={status === s.value}
           aria-label={ru.teacher.markStatus(studentName, ru.attendanceStatusFull[s.value])}
           data-status={s.value}
-          className={cn("stamp stamp-button min-h-9 min-w-[4.2rem] cursor-pointer disabled:cursor-not-allowed", s.color)}
+          className={cn("stamp stamp-button min-h-11 min-w-[4.6rem] cursor-pointer disabled:cursor-not-allowed", s.color)}
         >
           {ru.attendanceStatus[s.value]}
         </button>

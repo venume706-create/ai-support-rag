@@ -59,7 +59,7 @@ export async function StudentRatingSections({
                     href={`${withParams(pathname, flat, { board: m.group.id })}#board`}
                     scroll={false}
                     aria-current={m.group.id === current.group.id ? "true" : undefined}
-                    className={cn("key rounded-md px-3 py-2 text-sm font-bold", m.group.id === current.group.id ? "key-brass" : "key-paper")}
+                    className={cn("key inline-flex min-h-11 items-center rounded-md px-3 text-sm font-bold", m.group.id === current.group.id ? "key-brass" : "key-paper")}
                   >
                     {m.group.name}
                   </Link>

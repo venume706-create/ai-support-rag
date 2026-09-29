@@ -71,8 +71,8 @@ export default async function TeacherGroupsPage({ searchParams }: PageProps<"/te
                         {g.level && ` · ${g.level}`}
                       </p>
                     </TableCell>
-                    <TableCell className="text-center tabular-nums">{g.students.length}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell label={ru.admin.studentsCount} className="text-center tabular-nums">{g.students.length}</TableCell>
+                    <TableCell label={ru.teacher.groupRating} className="text-right">
                       <RatingBadge value={ratings.get(g.id) ?? null} />
                     </TableCell>
                   </TableRow>

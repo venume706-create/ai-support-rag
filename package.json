@@ -9,7 +9,7 @@
     "lint": "eslint --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=desktop --project=mobile",
     "db:provider": "node --env-file-if-exists=.env scripts/db-provider.mjs",
     "db:setup": "node --env-file-if-exists=.env scripts/db-provider.mjs setup",
     "db:migrate": "prisma migrate dev",
@@ -17,7 +17,8 @@
     "db:reset": "npm run db:setup && npm run db:seed",
     "postinstall": "prisma generate",
     "db:seed-if-empty": "tsx prisma/seed-if-empty.ts",
-    "vercel-build": "node scripts/db-provider.mjs setup && tsx prisma/seed-if-empty.ts && npm run build"
+    "vercel-build": "node scripts/db-provider.mjs setup && tsx prisma/seed-if-empty.ts && npm run build",
+    "test:devices": "playwright test --project=\"dev-*\""
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

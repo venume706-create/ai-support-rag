@@ -68,7 +68,7 @@ export function GradeInput({
                 onClick={() => remove(g.id)}
                 disabled={pending}
                 aria-label={ru.teacher.removeGrade(g.value)}
-                className="-ml-0.5 rounded-full p-0.5 text-muted-foreground opacity-60 hover:bg-black/10 hover:opacity-100"
+                className="-ml-1 flex size-11 items-center justify-center rounded-full text-muted-foreground opacity-70 hover:bg-black/10 hover:opacity-100"
               >
                 <X className="size-3" />
               </button>
@@ -87,7 +87,7 @@ export function GradeInput({
               onClick={() => add(v)}
               aria-label={ru.teacher.gradeFor(studentName, v)}
               data-grade-key={v}
-              className="key key-paper handwritten size-9 rounded-md text-2xl disabled:opacity-50"
+              className="key key-paper handwritten size-11 rounded-md text-2xl disabled:opacity-50"
             >
               {v}
             </button>
@@ -95,7 +95,7 @@ export function GradeInput({
           <button
             type="button"
             onClick={() => setShowComment((s) => !s)}
-            className="ml-1 text-xs font-bold text-muted-foreground underline decoration-dotted"
+            className="ml-1 inline-flex min-h-11 items-center px-2 text-sm font-bold text-muted-foreground underline decoration-dotted"
             aria-expanded={showComment}
           >
             {ru.common.comment}
@@ -107,7 +107,7 @@ export function GradeInput({
               maxLength={200}
               placeholder={ru.teacher.commentPlaceholder}
               aria-label={ru.common.comment}
-              className="inset-field h-9 w-full rounded-md px-2 text-sm sm:w-56"
+              className="inset-field h-11 w-full rounded-md px-2 text-base sm:w-56"
             />
           )}
         </div>

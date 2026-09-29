@@ -108,17 +108,16 @@ export default async function TeachersPage({ searchParams }: PageProps<"/admin/t
                       </Link>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {ru.admin.login}: {t.user.login}
-                        <span className="md:hidden"> · {t.subjects.map((s) => s.name).join(", ")}</span>
                       </p>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{t.subjects.map((s) => s.name).join(", ")}</TableCell>
-                    <TableCell className="hidden sm:table-cell text-center tabular-nums">{t._count.groups}</TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell label={ru.common.subjects} className="hidden md:table-cell">{t.subjects.map((s) => s.name).join(", ")}</TableCell>
+                    <TableCell label={ru.admin.groupsCount} className="hidden sm:table-cell text-center tabular-nums">{t._count.groups}</TableCell>
+                    <TableCell label={ru.common.status} className="hidden sm:table-cell">
                       <ActiveBadge active={t.user.isActive} />
                     </TableCell>
-                    <TableCell className="hidden text-center tabular-nums lg:table-cell">{t.attendancePercent === null ? ru.common.dash : ru.rating.percent(t.attendancePercent)}</TableCell>
-                    <TableCell className="hidden text-center tabular-nums lg:table-cell">{t.homeworkPercent === null ? ru.common.dash : ru.rating.percent(t.homeworkPercent)}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell label={ru.rating.teacherAttendanceShort} className="hidden text-center tabular-nums lg:table-cell">{t.attendancePercent === null ? ru.common.dash : ru.rating.percent(t.attendancePercent)}</TableCell>
+                    <TableCell label={ru.rating.teacherHomeworkShort} className="hidden text-center tabular-nums lg:table-cell">{t.homeworkPercent === null ? ru.common.dash : ru.rating.percent(t.homeworkPercent)}</TableCell>
+                    <TableCell label={ru.common.rating} className="text-right">
                       <RatingBadge value={t.rating} />
                     </TableCell>
                   </TableRow>

@@ -83,11 +83,11 @@ export default async function StudentAttendancePage({ searchParams }: PageProps<
                     <TableCell className="whitespace-nowrap tabular-nums">
                       {formatDate(a.lesson.date)} <span className="text-xs text-muted-foreground">{a.lesson.startTime}</span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell label={ru.common.group}>
                       {a.lesson.group.name}
                       {a.lesson.topic && <p className="text-xs text-muted-foreground">{a.lesson.topic}</p>}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell label={ru.common.status} className="text-right">
                       <AttendanceBadge status={a.status} />
                     </TableCell>
                   </TableRow>

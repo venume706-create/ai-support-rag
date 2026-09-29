@@ -150,7 +150,7 @@ export default async function TeacherProfile({ params, searchParams }: PageProps
                             <PersonName user={s.user} avatar="sm" />
                           </Link>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell label={ru.common.rating} className="text-right">
                           <RatingBadge value={s.rating} />
                         </TableCell>
                       </TableRow>

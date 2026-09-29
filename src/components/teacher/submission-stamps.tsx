@@ -51,7 +51,7 @@ export function SubmissionStamps({
             aria-pressed={status === o.value}
             aria-label={`${studentName}: ${ru.homeworkStatus[o.value]}`}
             title={ru.homeworkStatus[o.value]}
-            className={cn("stamp stamp-button min-h-8 min-w-8 cursor-pointer px-1.5 text-sm", o.color)}
+            className={cn("stamp stamp-button min-h-11 min-w-11 cursor-pointer px-1.5 text-base", o.color)}
           >
             {o.short}
           </button>

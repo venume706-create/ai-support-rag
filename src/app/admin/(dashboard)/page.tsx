@@ -70,13 +70,13 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
                   {top.map((s, i) => (
                     <TableRow key={s.id}>
                       <TableCell className="handwritten text-xl text-ink-blue">{i + 1}</TableCell>
-                      <TableCell>
+                      <TableCell label={ru.common.student}>
                         <Link href={`/admin/students/${s.id}`} className="hover:underline">
                           <PersonName user={s.user} avatar="sm" />
                         </Link>
                         <p className="mt-0.5 text-xs text-muted-foreground">{s.groups.map((g) => g.group.name).join(", ")}</p>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell label={ru.common.rating} className="text-right">
                         <RatingBadge value={s.rating} />
                       </TableCell>
                     </TableRow>
@@ -115,8 +115,8 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
                           {t.homeworkPercent === null ? ru.common.dash : ru.rating.percent(t.homeworkPercent)}
                         </p>
                       </TableCell>
-                      <TableCell className="text-center tabular-nums">{t.groups}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell label={ru.admin.groupsCount} className="text-center tabular-nums">{t.groups}</TableCell>
+                      <TableCell label={ru.common.rating} className="text-right">
                         <RatingBadge value={t.rating} />
                       </TableCell>
                     </TableRow>

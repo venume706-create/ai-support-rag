@@ -552,3 +552,68 @@
 @keyframes chart-draw {
   to { stroke-dashoffset: 0; }
 }
+
+/* ---------- Таблицы на телефоне превращаются в карточки ---------- */
+@layer components {
+  @media (max-width: 767px) {
+    .rtable thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+    .rtable,
+    .rtable tbody,
+    .rtable tr {
+      display: block;
+      width: 100%;
+    }
+    .rtable tr {
+      margin-bottom: 0.75rem;
+      padding: 0.6rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: color-mix(in oklab, var(--paper-shade) 55%, transparent);
+    }
+    .rtable tr:last-child {
+      margin-bottom: 0;
+    }
+    /* Скрытые на планшете столбцы в карточке показываются все */
+    .rtable td {
+      display: flex !important;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.35rem 0 !important;
+      border: 0;
+      text-align: right !important;
+    }
+    .rtable td::before {
+      content: attr(data-label);
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--muted-foreground);
+      text-align: left;
+    }
+    .rtable td[data-label=""]::before,
+    .rtable td:not([data-label])::before {
+      display: none;
+    }
+    /* Первая ячейка — заголовок карточки: слева, на всю ширину */
+    .rtable td:first-child {
+      display: block !important;
+      padding-bottom: 0.5rem !important;
+      margin-bottom: 0.25rem;
+      border-bottom: 1px dotted var(--border);
+      text-align: left !important;
+    }
+    .rtable td:first-child::before {
+      display: none;
+    }
+  }
+}

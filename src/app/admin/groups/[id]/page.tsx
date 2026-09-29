@@ -125,7 +125,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
                           <PersonName user={student.user} avatar="sm" />
                         </Link>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell label={ru.common.rating} className="text-right">
                         <RatingBadge value={ratings.get(student.id)?.total ?? null} />
                       </TableCell>
                       <TableCell>

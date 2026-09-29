@@ -50,3 +50,4 @@ prisma/*.db-journal
 prisma/e2e.db*
 /storage
 /storage-e2e
+/out

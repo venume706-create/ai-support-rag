@@ -104,16 +104,15 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
                       </Link>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {ru.admin.login}: {s.user.login}
-                        <span className="md:hidden">{s.groups.length > 0 && ` · ${s.groups.map((g) => g.group.name).join(", ")}`}</span>
                       </p>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell label={ru.common.groups} className="hidden md:table-cell">
                       {s.groups.length === 0 ? ru.common.dash : s.groups.map((g) => g.group.name).join(", ")}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell label={ru.common.status} className="hidden sm:table-cell">
                       <ActiveBadge active={s.user.isActive} />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell label={ru.common.rating} className="text-right">
                       <RatingBadge value={ratings.get(s.id)?.total ?? null} />
                     </TableCell>
                   </TableRow>

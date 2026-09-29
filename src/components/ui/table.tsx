@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div data-slot="table-container" className="relative w-full overflow-x-auto">
-      <table data-slot="table" className={cn("w-full caption-bottom text-sm", className)} {...props} />
+      <table data-slot="table" className={cn("rtable w-full caption-bottom text-sm", className)} {...props} />
     </div>
   );
 }
@@ -20,8 +20,9 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
 function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return <th data-slot="table-head" className={cn("h-10 px-3 text-left align-middle font-serif text-xs font-bold tracking-wide whitespace-nowrap text-muted-foreground uppercase", className)} {...props} />;
 }
-function TableCell({ className, ...props }: React.ComponentProps<"td">) {
-  return <td data-slot="table-cell" className={cn("p-3 align-middle", className)} {...props} />;
+/** label — подпись ячейки в режиме карточки (на телефоне); у первой ячейки (заголовок карточки) не нужна. */
+function TableCell({ className, label, ...props }: React.ComponentProps<"td"> & { label?: string }) {
+  return <td data-slot="table-cell" data-label={label ?? ""} className={cn("p-3 align-middle", className)} {...props} />;
 }
 
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell };

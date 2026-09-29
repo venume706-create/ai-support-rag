@@ -45,7 +45,7 @@ export function PeriodSwitch({ period, hrefFor }: { period: RatingPeriod; hrefFo
           role="tab"
           aria-selected={period === item.value}
           className={cn(
-            "rounded px-3 py-1.5 font-bold text-muted-foreground transition-colors",
+            "inline-flex min-h-11 items-center rounded px-4 font-bold text-muted-foreground transition-colors",
             period === item.value && "brass text-[#2b1d14]",
           )}
           scroll={false}

@@ -36,7 +36,7 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2.5 text-[15px] font-bold text-on-wood-muted transition-colors hover:bg-black/20 hover:text-on-wood",
+              "flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-[15px] font-bold text-on-wood-muted transition-colors hover:bg-black/20 hover:text-on-wood",
               active && "brass brass-plate py-2.5 text-[#2b1d14] hover:bg-transparent hover:text-[#2b1d14]",
             )}
           >
@@ -54,7 +54,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
   const root = items[0]?.href ?? "/";
   return (
     <nav
-      className="leather fixed inset-x-0 bottom-0 z-40 border-t-2 border-dashed border-stitch/60 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="leather fixed inset-x-0 bottom-0 z-40 border-t-2 border-dashed border-stitch/60 pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] lg:hidden"
       aria-label="mobile"
     >
       <ul className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
@@ -67,7 +67,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-bold text-on-wood-muted",
+                  "flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-bold text-on-wood-muted",
                   active && "text-brass-light",
                 )}
               >
