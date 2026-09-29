@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpenCheck, CalendarDays, ClipboardCheck, GraduationCap, House, Star, UserRound, UsersRound } from "lucide-react";
+import { BookOpenCheck, CalendarDays, ClipboardCheck, GraduationCap, House, ScrollText, Star, UserRound, UsersRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { NavIcon, NavItem } from "./nav-config";
 
@@ -15,6 +15,7 @@ const ICONS: Record<NavIcon, React.ComponentType<{ className?: string }>> = {
   grades: Star,
   attendance: ClipboardCheck,
   homework: BookOpenCheck,
+  journal: ScrollText,
 };
 
 function isActive(pathname: string, href: string, rootHref: string) {

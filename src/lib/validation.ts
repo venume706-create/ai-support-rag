@@ -98,6 +98,8 @@ export const gradeSchema = z.object({
   comment: trimmed(200).default(""),
 });
 
+export const noteSchema = z.object({ studentId: idSchema, text: trimmed(500).pipe(z.string().min(1, v.required)) });
+
 export const lessonTopicSchema = z.object({ lessonId: idSchema, topic: trimmed(200) });
 
 export const homeworkSchema = z.object({
@@ -178,6 +180,7 @@ export const listQuerySchema = z.object({
   period: z.enum(["month", "all"]).catch("all").default("all"),
   sort: z.enum(["rating", "name"]).catch("rating").default("rating"),
   status: z.enum(["", "active", "inactive"]).catch("").default(""),
+  hw: z.enum(["", "open", "done", "overdue"]).catch("").default(""),
 });
 
 export type ListQuery = z.infer<typeof listQuerySchema>;

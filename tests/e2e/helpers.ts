@@ -41,3 +41,14 @@ export async function completeWizard(page: Page, nick: string, password: string)
   await page.getByTestId("wizard-finish").click();
   await expect(page).not.toHaveURL(/\/welcome/);
 }
+
+/** Выход через меню и ожидание, пока сессия действительно закрыта (повторный заход на /login не перекинет в кабинет). */
+export async function logout(page: Page) {
+  await page.waitForLoadState("networkidle"); // страница догружена и «оживлена» — кнопка выхода точно сработает
+  await page.getByTestId("logout").filter({ visible: true }).first().click();
+  await expect(page).toHaveURL(/\/login/);
+  await page.waitForLoadState("networkidle");
+  // Фоновые предзагрузки страниц кабинета, дошедшие после выхода, могут заново выдать cookie (обновление сессии Auth.js) —
+  // для тестов выход считается завершённым, когда cookie сессии точно нет
+  await page.context().clearCookies({ name: "authjs.session-token" });
+}

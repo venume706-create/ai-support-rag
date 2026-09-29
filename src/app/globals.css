@@ -373,7 +373,8 @@
   .stamp-button:hover {
     background-color: color-mix(in oklab, currentColor 8%, transparent);
   }
-  .stamp-button[aria-pressed="true"] {
+  .stamp-button[aria-pressed="true"],
+  .stamp-button[aria-current="true"] {
     border-style: solid;
     border-color: currentColor;
     transform: rotate(-4deg) scale(1.04);

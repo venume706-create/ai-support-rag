@@ -21,6 +21,7 @@ import {
   homeworkSchema,
   idOnlySchema,
   lessonTopicSchema,
+  noteSchema,
   submissionSchema,
 } from "@/lib/validation";
 
@@ -196,5 +197,34 @@ export async function saveSubmission(input: { homeworkId: string; studentId: str
     await syncAchievements(data.studentId);
     refresh(homework.groupId);
     return { ok: true };
+  });
+}
+
+/* ---------------- Заметки об ученике (видны автору и администратору) ---------------- */
+
+export async function addTeacherNote(input: { studentId: string; text: string }): Promise<ActionResult<{ id: string }>> {
+  return runAction(async () => {
+    const user = await requireActionUser("TEACHER");
+    const data = parse(noteSchema, input);
+    if (!user.teacherId) throw new ActionError(ru.errors.forbidden);
+    // Писать можно только об ученике из своей группы
+    const link = await db.groupStudent.findFirst({ where: { studentId: data.studentId, group: { teacherId: user.teacherId } }, select: { id: true } });
+    if (!link) throw new ActionError(ru.errors.studentNotInGroup);
+    const note = await db.teacherNote.create({ data: { teacherId: user.teacherId, studentId: data.studentId, text: data.text }, select: { id: true } });
+    revalidatePath(`/teacher/students/${data.studentId}`);
+    return { ok: true, message: ru.notes.added, data: { id: note.id } };
+  });
+}
+
+export async function deleteTeacherNote(id: string): Promise<ActionResult> {
+  return runAction(async () => {
+    const user = await requireActionUser("TEACHER");
+    const { id: noteId } = parse(idOnlySchema, { id });
+    const note = await db.teacherNote.findUnique({ where: { id: noteId }, select: { id: true, teacherId: true, studentId: true } });
+    // Чужая заметка для учителя выглядит как несуществующая
+    if (!note || note.teacherId !== user.teacherId) throw new ActionError(ru.errors.notFound);
+    await db.teacherNote.delete({ where: { id: note.id } });
+    revalidatePath(`/teacher/students/${note.studentId}`);
+    return { ok: true, message: ru.notes.deleted };
   });
 }

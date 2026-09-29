@@ -83,7 +83,7 @@ test.describe("Графика и анимации", () => {
     await page.goto("/student/attendance");
     for (const s of ["PRESENT", "LATE", "ABSENT", "EXCUSED"] as const) {
       const n = marks.filter((m) => m.status === s).length;
-      if (n > 0) await expect(page.locator(`[data-status="${s}"]`).first()).toHaveAttribute("data-count", String(n));
+      if (n > 0) await expect(page.getByTestId("attendance-summary").locator(`[data-status="${s}"]`).first()).toHaveAttribute("data-count", String(n));
     }
     await expect(page.getByTestId("attendance-ring")).toBeVisible();
   });

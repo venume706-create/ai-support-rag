@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import type { AttendanceStatus } from "@prisma/client";
+import { AttendanceCalendar } from "@/components/student/attendance-calendar";
 import { AttendanceBadge } from "@/components/common/badges";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { PageHeader } from "@/components/common/page-header";
@@ -8,7 +10,8 @@ import { EmptyState } from "@/components/common/status-views";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requirePageUser } from "@/lib/access";
-import { formatDate } from "@/lib/dates";
+import { parseMonth } from "@/lib/calendar";
+import { formatDate, startOfMonth, startOfNextMonth, toDateOnly, today } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { paginate } from "@/lib/pagination";
@@ -22,7 +25,9 @@ export const metadata: Metadata = { title: ru.student.attendanceTitle };
 
 export default async function StudentAttendancePage({ searchParams }: PageProps<"/student/attendance">) {
   const user = await requirePageUser("STUDENT");
-  const query = parseListQuery(await searchParams);
+  const sp = await searchParams;
+  const query = parseListQuery(sp);
+  const month = parseMonth(typeof sp.month === "string" ? sp.month : undefined) ?? startOfMonth(today());
   const groups = await studentGroups(user.studentId);
   const subjects = [...new Map(groups.map((g) => [g.subject.id, g.subject])).values()];
   const all = await db.attendance.findMany({
@@ -33,6 +38,12 @@ export default async function StudentAttendancePage({ searchParams }: PageProps<
     orderBy: [{ lesson: { date: "desc" } }, { lesson: { startTime: "desc" } }],
     select: { id: true, status: true, lesson: { select: { date: true, startTime: true, topic: true, group: { select: { name: true } } } } },
   });
+  const monthMarks = new Map<string, AttendanceStatus[]>();
+  for (const a of all) {
+    if (a.lesson.date < month || a.lesson.date >= startOfNextMonth(month)) continue;
+    const key = toDateOnly(a.lesson.date);
+    monthMarks.set(key, [...(monthMarks.get(key) ?? []), a.status]);
+  }
   const term = searchTerm(query.q);
   const marks = term ? all.filter((a) => searchTerm(`${a.lesson.topic} ${a.lesson.group.name}`).includes(term)) : all;
   const info = paginate(marks.length, query.page, 15);
@@ -50,6 +61,14 @@ export default async function StudentAttendancePage({ searchParams }: PageProps<
           { name: "subjectId", value: query.subjectId, allLabel: ru.common.allSubjects, options: subjects.map((s) => ({ value: s.id, label: s.name })) },
         ]}
       />
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>{ru.calendar.title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AttendanceCalendar month={month} marks={monthMarks} pathname="/student/attendance" params={{ q: query.q, groupId: query.groupId, subjectId: query.subjectId }} />
+        </CardContent>
+      </Card>
       <Card className="mb-6" data-testid="attendance-summary">
         <CardHeader>
           <CardTitle>{ru.charts.attendanceTitle}</CardTitle>

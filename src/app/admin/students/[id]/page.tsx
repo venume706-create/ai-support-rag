@@ -5,10 +5,12 @@ import { RemoveMemberButton } from "@/components/admin/buttons";
 import { AdminProfileCard, AdminUserActions } from "@/components/admin/admin-user-panel";
 import { MembershipForm } from "@/components/admin/membership-form";
 import { PageHeader } from "@/components/common/page-header";
+import { StudentNotes } from "@/components/teacher/student-notes";
 import { StudentRatingSections } from "@/components/rating/student-sections";
 import { StudentOverview } from "@/components/common/student-overview";
 import { EmptyState } from "@/components/common/status-views";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDate } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { ADMIN_USER_SELECT, PERSON_SELECT, nickOf, realNameOf } from "@/lib/person";
@@ -40,6 +42,12 @@ export default async function StudentProfile({ params, searchParams }: PageProps
   if (!student) notFound();
   const memberIds = student.groups.map((g) => g.group.id);
   const freeGroups = await db.group.findMany({ where: { id: { notIn: memberIds } }, orderBy: { name: "asc" }, select: { id: true, name: true } });
+  const notes = await db.teacherNote.findMany({
+    where: { studentId: student.id },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: { id: true, text: true, createdAt: true, teacher: { select: { user: { select: PERSON_SELECT } } } },
+  });
   const hrefFor = (p: string) => (p === "all" ? `/admin/students/${id}` : `/admin/students/${id}?period=${p}`);
 
   return (
@@ -85,6 +93,13 @@ export default async function StudentProfile({ params, searchParams }: PageProps
       </div>
       <div className="mb-6">
         <StudentRatingSections studentId={student.id} view="staff" pathname={`/admin/students/${id}`} searchParams={sp} />
+      </div>
+      <div className="mb-6">
+        <StudentNotes
+          studentId={student.id}
+          readOnly
+          notes={notes.map((n) => ({ id: n.id, text: n.text, date: formatDate(n.createdAt), author: nickOf(n.teacher.user) }))}
+        />
       </div>
       <StudentOverview studentId={student.id} period={period} hrefFor={hrefFor} pathname={`/admin/students/${id}`} searchParams={sp} />
     </>

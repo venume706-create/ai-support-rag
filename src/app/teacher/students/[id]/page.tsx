@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { Avatar } from "@/components/common/avatar";
 import { PageHeader } from "@/components/common/page-header";
 import { StudentRatingSections } from "@/components/rating/student-sections";
+import { StudentNotes } from "@/components/teacher/student-notes";
 import { StudentOverview } from "@/components/common/student-overview";
 import { Card, CardContent } from "@/components/ui/card";
 import { requirePageUser } from "@/lib/access";
 import { tintClass } from "@/lib/appearance";
+import { formatDate } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { PERSON_SELECT, nickOf, realNameOf } from "@/lib/person";
@@ -32,6 +34,9 @@ export default async function TeacherStudentPage({ params, searchParams }: PageP
     },
   });
   if (!student) notFound();
+  const notes = user.teacherId
+    ? await db.teacherNote.findMany({ where: { studentId: student.id, teacherId: user.teacherId }, orderBy: { createdAt: "desc" }, select: { id: true, text: true, createdAt: true } })
+    : [];
   const hrefFor = (p: string) => (p === "all" ? `/teacher/students/${id}` : `/teacher/students/${id}?period=${p}`);
   const firstGroup = student.groups[0]?.group;
 
@@ -55,6 +60,9 @@ export default async function TeacherStudentPage({ params, searchParams }: PageP
       </Card>
       <div className="mb-6">
         <StudentRatingSections studentId={student.id} view="staff" pathname={`/teacher/students/${id}`} searchParams={sp} groupIds={myGroups} />
+      </div>
+      <div className="mb-6">
+        <StudentNotes studentId={student.id} notes={notes.map((n) => ({ id: n.id, text: n.text, date: formatDate(n.createdAt) }))} />
       </div>
       <StudentOverview studentId={student.id} groupIds={myGroups} period={period} hrefFor={hrefFor} pathname={`/teacher/students/${id}`} searchParams={sp} />
     </>

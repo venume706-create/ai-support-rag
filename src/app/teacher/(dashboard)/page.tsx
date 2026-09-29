@@ -4,6 +4,7 @@ import { BookOpen, Clock, DoorOpen } from "lucide-react";
 import { RatingBadge } from "@/components/common/badges";
 import { Gauge } from "@/components/common/gauge";
 import { PageHeader } from "@/components/common/page-header";
+import { AttentionList } from "@/components/teacher/attention-list";
 import { TeacherStats } from "@/components/rating/teacher-stats";
 import { BarList } from "@/components/rating/charts";
 import { TrendChart } from "@/components/rating/trend-chart";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePageUser } from "@/lib/access";
 import { formatDayMonth, today } from "@/lib/dates";
+import { getAttentionList } from "@/lib/attention-data";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { ensureLessons } from "@/lib/lessons";
@@ -52,7 +54,7 @@ export default async function TeacherDashboard({ searchParams }: PageProps<"/tea
     const r = await getStudentRatings(g.students.map((s) => s.studentId), { period, groupIds: [g.id] });
     groupRatings.set(g.id, calculateTeacherRating([...r.values()].map((x) => x.total)).rating);
   }
-  const [weekly, groupBars] = await Promise.all([getWeeklyAttendance(groupIds), getGroupRatings(groupIds)]);
+  const [weekly, groupBars, attention] = await Promise.all([getWeeklyAttendance(groupIds), getGroupRatings(groupIds), getAttentionList(groupIds)]);
   const hrefFor = (p: string) => (p === "all" ? "/teacher" : `/teacher?period=${p}`);
   const dow = now.getUTCDay() || 7;
 
@@ -119,6 +121,11 @@ export default async function TeacherDashboard({ searchParams }: PageProps<"/tea
           </CardContent>
         </Card>
       </div>
+      {groups.length > 0 && (
+        <div className="mb-6">
+          <AttentionList rows={attention} hrefFor={(id) => `/teacher/students/${id}`} />
+        </div>
+      )}
       {groups.length > 0 && (
         <div className="mb-6 grid gap-6 lg:grid-cols-2">
           <Card data-testid="attendance-trend">

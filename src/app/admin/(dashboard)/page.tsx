@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarCheck, GraduationCap, UserRound, UsersRound } from "lucide-react";
+import { BookOpen, CalendarCheck, GraduationCap, Star, UserMinus, UserRound, UsersRound } from "lucide-react";
 import { RatingBadge } from "@/components/common/badges";
 import { PageHeader } from "@/components/common/page-header";
 import { PersonName } from "@/components/common/person-name";
@@ -9,13 +9,19 @@ import { TrendChart } from "@/components/rating/trend-chart";
 import { PeriodSwitch } from "@/components/common/rating-card";
 import { StatCard } from "@/components/common/stat-card";
 import { EmptyState } from "@/components/common/status-views";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { HintTip } from "@/components/common/hint-tip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { addDays, startOfWeek, today } from "@/lib/dates";
 import { db } from "@/lib/db";
+import { calculateTeacherRating } from "@/lib/rating";
 import { ru } from "@/lib/i18n/ru";
 import { PERSON_SELECT } from "@/lib/person";
 import { getGroupRatings, getStudentRatings, getTeacherRatings, getWeeklyAttendance, monthAttendancePercent } from "@/lib/rating-data";
 import { parseListQuery } from "@/lib/validation";
+
+const WHEN = new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: process.env.APP_TIMEZONE || "Asia/Tashkent" });
 
 export const metadata: Metadata = { title: ru.admin.dashboardTitle };
 
@@ -30,6 +36,14 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
   ]);
   const [weekly, groupRatings] = await Promise.all([getWeeklyAttendance(), getGroupRatings()]);
   const ratings = await getStudentRatings(students.map((s) => s.id), { period });
+  const weekStart = startOfWeek(today());
+  const [lessonsWeek, groupsNoTeacher, studentsNoGroup, recent] = await Promise.all([
+    db.lesson.count({ where: { date: { gte: weekStart, lt: addDays(weekStart, 7) } } }),
+    db.group.count({ where: { teacherId: null } }),
+    db.student.count({ where: { groups: { none: {} } } }),
+    db.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, createdAt: true, actorLabel: true, action: true, targetLabel: true } }),
+  ]);
+  const avgRating = calculateTeacherRating([...ratings.values()].map((r) => r.total)).rating;
   const top = students
     .map((s) => ({ ...s, rating: ratings.get(s.id)!.total }))
     .filter((s) => s.rating !== null)
@@ -51,6 +65,12 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
           icon={<CalendarCheck className="size-5" />}
         />
       </div>
+      <div className="mb-6 grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4" data-testid="admin-key-numbers">
+        <StatCard label={ru.dash.lessonsWeek} value={lessonsWeek} icon={<BookOpen className="size-5" />} />
+        <StatCard label={ru.dash.avgRating} value={avgRating === null ? ru.common.dash : Math.round(avgRating)} icon={<Star className="size-5" />} />
+        <StatCard label={ru.dash.noTeacherGroups} value={groupsNoTeacher} icon={<UsersRound className="size-5" />} />
+        <StatCard label={ru.dash.noGroupStudents} value={studentsNoGroup} icon={<UserMinus className="size-5" />} />
+      </div>
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
         <Card data-testid="attendance-trend">
           <CardHeader>
@@ -70,6 +90,34 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
           </CardContent>
         </Card>
       </div>
+      <Card className="mb-6" data-testid="recent-actions">
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
+          <CardTitle className="flex items-center gap-1">
+            {ru.journal.latest}
+            <HintTip title={ru.journal.title}>{ru.journal.hint}</HintTip>
+          </CardTitle>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/journal">{ru.journal.all}</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {recent.length === 0 ? (
+            <EmptyState kind="board" text={ru.journal.empty} />
+          ) : (
+            <ul className="grid gap-2 text-sm">
+              {recent.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-dotted border-border pb-2 last:border-0">
+                  <span>
+                    <span className="font-bold">{r.actorLabel}</span> · {ru.journal.actions[r.action] ?? r.action}
+                    {r.targetLabel && <span className="text-muted-foreground"> · {r.targetLabel}</span>}
+                  </span>
+                  <span className="text-xs text-muted-foreground tabular-nums">{WHEN.format(r.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>

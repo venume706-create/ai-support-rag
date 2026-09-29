@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { addGrade, deleteGrade } from "@/app/actions/teacher";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ru } from "@/lib/i18n/ru";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +34,7 @@ export function GradeInput({
   const [grades, setGrades] = useState<LessonGrade[]>(initial);
   const [comment, setComment] = useState("");
   const [showComment, setShowComment] = useState(false);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   function add(value: number) {
@@ -49,8 +52,11 @@ export function GradeInput({
   function remove(id: string) {
     start(async () => {
       const result = await deleteGrade(id);
-      if (result.ok) setGrades((g) => g.filter((x) => x.id !== id));
-      else toast.error(result.error);
+      if (result.ok) {
+        setGrades((g) => g.filter((x) => x.id !== id));
+        setConfirmId(null);
+        toast.success(result.message);
+      } else toast.error(result.error);
     });
   }
 
@@ -65,7 +71,7 @@ export function GradeInput({
             {!disabled && (
               <button
                 type="button"
-                onClick={() => remove(g.id)}
+                onClick={() => setConfirmId(g.id)}
                 disabled={pending}
                 aria-label={ru.teacher.removeGrade(g.value)}
                 className="-ml-1 flex size-11 items-center justify-center rounded-full text-muted-foreground opacity-70 hover:bg-black/10 hover:opacity-100"
@@ -77,6 +83,22 @@ export function GradeInput({
         ))}
         {grades.length === 0 && <span className="text-muted-foreground">{ru.teacher.noGrades}</span>}
       </div>
+      <Dialog open={confirmId !== null} onOpenChange={(o) => !o && setConfirmId(null)}>
+        <DialogContent closeLabel={ru.common.close}>
+          <DialogHeader>
+            <DialogTitle>{ru.teacher.deleteGradeTitle}</DialogTitle>
+            <DialogDescription>{ru.teacher.deleteGradeText(studentName, grades.find((g) => g.id === confirmId)?.value ?? 0)}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">{ru.common.cancel}</Button>
+            </DialogClose>
+            <Button variant="destructive" disabled={pending} onClick={() => confirmId && remove(confirmId)} data-testid="confirm-action">
+              {ru.common.delete}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {!disabled && (
         <div className="flex flex-wrap items-center gap-1">
           {[5, 4, 3, 2, 1].map((v) => (

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { HomeworkBadge } from "@/components/common/badges";
+import Link from "next/link";
+import { HomeworkStateBadge } from "@/components/common/badges";
+import { HintTip } from "@/components/common/hint-tip";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { EmptyState } from "@/components/common/status-views";
 import { PageHeader } from "@/components/common/page-header";
@@ -7,8 +9,9 @@ import { Pagination } from "@/components/common/pagination";
 import { requirePageUser } from "@/lib/access";
 import { formatDate, today } from "@/lib/dates";
 import { db } from "@/lib/db";
+import { homeworkState } from "@/lib/homework-state";
 import { ru } from "@/lib/i18n/ru";
-import { paginate } from "@/lib/pagination";
+import { paginate, withParams } from "@/lib/pagination";
 import { studentGroups } from "@/lib/student-data";
 import { cn, searchTerm } from "@/lib/utils";
 import { parseListQuery } from "@/lib/validation";
@@ -35,10 +38,24 @@ export default async function StudentHomeworkPage({ searchParams }: PageProps<"/
     },
   });
   const term = searchTerm(query.q);
-  const homework = term ? all.filter((h) => searchTerm(`${h.title} ${h.description}`).includes(term)) : all;
+  const now = today();
+  const withState = all.map((h) => ({ ...h, ...homeworkState(h.dueDate, now, h.submissions[0]?.status) }));
+  const byText = term ? withState.filter((h) => searchTerm(`${h.title} ${h.description}`).includes(term)) : withState;
+  const homework = byText.filter((h) => {
+    if (query.hw === "done") return h.state === "done" || h.state === "partial";
+    if (query.hw === "overdue") return h.state === "overdue";
+    if (query.hw === "open") return h.state !== "done" && h.state !== "partial" && h.state !== "overdue";
+    return true;
+  });
   const info = paginate(homework.length, query.page, 9);
   const rows = homework.slice(info.skip, info.skip + info.take);
-  const now = today();
+  const filters = [
+    { value: "", label: ru.hw.filterAll },
+    { value: "open", label: ru.hw.filterOpen },
+    { value: "done", label: ru.hw.filterDone },
+    { value: "overdue", label: ru.hw.filterOverdue },
+  ] as const;
+  const baseParams = { q: query.q, groupId: query.groupId, subjectId: query.subjectId };
 
   return (
     <>
@@ -52,6 +69,19 @@ export default async function StudentHomeworkPage({ searchParams }: PageProps<"/
           { name: "subjectId", value: query.subjectId, allLabel: ru.common.allSubjects, options: subjects.map((s) => ({ value: s.id, label: s.name })) },
         ]}
       />
+      <nav aria-label={ru.hw.filterLabel} className="mb-4 flex flex-wrap items-center gap-2" data-testid="hw-filter">
+        {filters.map((f) => (
+          <Link
+            key={f.value}
+            href={withParams("/student/homework", baseParams, { hw: f.value || undefined })}
+            aria-current={query.hw === f.value ? "true" : undefined}
+            className="stamp stamp-blue stamp-button inline-flex min-h-11 items-center px-4 text-sm"
+          >
+            {f.label}
+          </Link>
+        ))}
+        <HintTip title={ru.student.homeworkTitle}>{ru.hw.hint}</HintTip>
+      </nav>
       <div className="cork rounded-lg p-5 sm:p-7" data-testid="homework-board">
         {rows.length === 0 ? (
           <div className="paper mx-auto max-w-md rounded-sm">
@@ -60,8 +90,7 @@ export default async function StudentHomeworkPage({ searchParams }: PageProps<"/
         ) : (
           <ul className="grid gap-8 pt-2 sm:grid-cols-2 xl:grid-cols-3">
             {rows.map((h, i) => {
-              const overdue = h.dueDate < now;
-              const status = h.submissions[0]?.status ?? (overdue ? "NOT_DONE" : "PENDING");
+              const overdue = h.state === "overdue";
               return (
                 <li
                   key={h.id}
@@ -73,11 +102,14 @@ export default async function StudentHomeworkPage({ searchParams }: PageProps<"/
                   <p className="text-xs font-bold text-muted-foreground uppercase">{h.group.name}</p>
                   <h3 className="mt-1 font-serif text-lg leading-tight font-bold">{h.title}</h3>
                   {h.description && <p className="mt-2 text-sm whitespace-pre-line">{h.description}</p>}
+                  {h.state !== "done" && h.state !== "partial" && (h.daysLeft !== 0) && (
+                    <p className="mt-2 text-xs text-muted-foreground">{h.daysLeft < 0 ? ru.hw.daysAgo(-h.daysLeft) : ru.hw.daysLeft(h.daysLeft)}</p>
+                  )}
                   <div className="mt-4 flex items-center justify-between gap-2">
                     <span className={cn("handwritten text-xl", overdue ? "text-ink-red" : "text-ink-blue")}>
                       {ru.student.dueUntil(formatDate(h.dueDate))}
                     </span>
-                    <HomeworkBadge status={status} />
+                    <HomeworkStateBadge state={h.state} />
                   </div>
                 </li>
               );
@@ -87,7 +119,7 @@ export default async function StudentHomeworkPage({ searchParams }: PageProps<"/
       </div>
       {info.total > 0 && (
         <div className="paper mt-4 rounded-md px-4 pb-3">
-          <Pagination info={info} pathname="/student/homework" params={{ q: query.q, groupId: query.groupId, subjectId: query.subjectId }} />
+          <Pagination info={info} pathname="/student/homework" params={{ ...baseParams, hw: query.hw }} />
         </div>
       )}
     </>

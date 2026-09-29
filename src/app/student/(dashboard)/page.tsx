@@ -4,6 +4,7 @@ import { Clock, DoorOpen } from "lucide-react";
 import { GradeBadge } from "@/components/common/badges";
 import { PageHeader } from "@/components/common/page-header";
 import { RatingCard } from "@/components/common/rating-card";
+import { TodayCard, type TodayData } from "@/components/student/today-card";
 import { StudentRatingSections } from "@/components/rating/student-sections";
 import { EmptyState } from "@/components/common/status-views";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { requirePageUser } from "@/lib/access";
 import { addDays, formatDate, formatDayMonth, formatWeekday, today } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
+import { homeworkState } from "@/lib/homework-state";
 import { ensureLessons } from "@/lib/lessons";
 import { getStudentRating } from "@/lib/rating-data";
 import { studentGroups } from "@/lib/student-data";
@@ -44,11 +46,50 @@ export default async function StudentDashboard({ searchParams }: PageProps<"/stu
     }),
     db.scheduleSlot.findMany({ where: { groupId: { in: groupIds } }, select: { groupId: true, dayOfWeek: true, startTime: true, room: true } }),
   ]);
+  const dow = now.getUTCDay() || 7;
+  const [todayLessons, dueHomework, weekGrades] = await Promise.all([
+    db.lesson.findMany({
+      where: { groupId: { in: groupIds }, date: now },
+      orderBy: { startTime: "asc" },
+      select: { id: true, startTime: true, endTime: true, topic: true, groupId: true },
+    }),
+    db.homework.findMany({
+      where: { groupId: { in: groupIds }, dueDate: { lte: addDays(now, 3) }, submissions: { none: { studentId, status: { in: ["DONE", "PARTIAL"] } } } },
+      orderBy: { dueDate: "asc" },
+      take: 20,
+      select: { id: true, title: true, dueDate: true, groupId: true, submissions: { where: { studentId }, select: { status: true } } },
+    }),
+    db.grade.findMany({
+      where: { studentId, date: { gte: addDays(now, -6) } },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      take: 6,
+      select: { id: true, date: true, value: true, comment: true, group: { select: { name: true } } },
+    }),
+  ]);
+  const todayData: TodayData = {
+    lessons: todayLessons.map((l) => ({
+      id: l.id,
+      group: groups.find((g) => g.id === l.groupId)?.name ?? "",
+      startTime: l.startTime,
+      endTime: l.endTime,
+      topic: l.topic,
+      room: slots.find((s) => s.groupId === l.groupId && s.dayOfWeek === dow && s.startTime === l.startTime)?.room || undefined,
+    })),
+    // Только то, что ещё не сдано: просроченные не старше двух недель, сегодняшние и ближайшие (до 3 дней)
+    homework: dueHomework
+      .filter((h) => h.dueDate >= addDays(now, -14))
+      .slice(0, 5)
+      .map((h) => ({ id: h.id, title: h.title, group: groups.find((g) => g.id === h.groupId)?.name ?? "", ...homeworkState(h.dueDate, now, h.submissions[0]?.status) })),
+    grades: weekGrades.map((g) => ({ id: g.id, value: g.value, group: g.group.name, date: g.date, comment: g.comment })),
+  };
   const hrefFor = (p: string) => (p === "all" ? "/student" : `/student?period=${p}`);
 
   return (
     <>
       <PageHeader title={ru.student.dashboardTitle} description={`${user.nick} · ${groups.map((g) => g.name).join(", ") || ru.student.noGroups}`} />
+      <div className="mb-6">
+        <TodayCard data={todayData} />
+      </div>
       <div className="mb-6">
         <RatingCard rating={rating} title={ru.student.myRating} period={period} hrefFor={hrefFor} />
       </div>

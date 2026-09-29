@@ -43,3 +43,14 @@ export function GradeBadge({ value }: { value: number }) {
 export function ActiveBadge({ active }: { active: boolean }) {
   return <Badge variant={active ? "success" : "outline"}>{active ? ru.common.active : ru.common.inactive}</Badge>;
 }
+
+const HW_STATE_VARIANT = { done: "success", partial: "warning", overdue: "danger", today: "warning", soon: "info", later: "outline" } as const;
+
+/** Состояние задания по отметке и сроку: «Просрочено», «Сдать сегодня», «Скоро срок»… */
+export function HomeworkStateBadge({ state }: { state: keyof typeof HW_STATE_VARIANT }) {
+  return (
+    <Badge variant={HW_STATE_VARIANT[state]} data-hw-state={state}>
+      {ru.hw[state]}
+    </Badge>
+  );
+}

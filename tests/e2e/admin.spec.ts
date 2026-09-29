@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { completeWizard, db, login, uid } from "./helpers";
+import { completeWizard, db, login, uid, logout } from "./helpers";
 
 test.describe("Администратор", () => {
   test("создаёт учителя, группу и ученика и видит их в списках", async ({ page }, info) => {
@@ -15,7 +15,7 @@ test.describe("Администратор", () => {
 
     await login(page, "admin", "admin123");
     await expect(page).toHaveURL(/\/admin$/);
-    await expect(page.getByTestId("stat-card")).toHaveCount(4);
+    await expect(page.getByTestId("stat-card")).toHaveCount(8);
 
     // Учитель
     await page.goto("/admin/teachers");
@@ -68,8 +68,7 @@ test.describe("Администратор", () => {
     expect(group.students.map((s) => s.student.user.login)).toContain(studentLogin);
 
     // Новый учитель входит с временным паролем и проходит мастер, после чего видит свою группу
-    await page.getByTestId("logout").filter({ visible: true }).first().click();
-    await expect(page).toHaveURL(/\/login/);
+    await logout(page);
     await login(page, teacherLogin, "secret123");
     await completeWizard(page, `Учитель_${teacherLogin.slice(-4)}`, "my-own-pass1");
     await expect(page.getByTestId("my-groups")).toContainText(groupName);

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { db, login } from "./helpers";
+import { db, login, logout } from "./helpers";
 
 test("пользователь меняет свой пароль и входит с новым", async ({ page }, info) => {
   const user = info.project.name === "mobile" ? "student27" : "student28";
@@ -25,8 +25,7 @@ test("пользователь меняет свой пароль и входи�
   await form.locator("button[type=submit]").click();
   await expect(page.getByText("Пароль изменён").first()).toBeVisible();
 
-  await page.getByTestId("logout").filter({ visible: true }).first().click();
-  await expect(page).toHaveURL(/\/login/);
+  await logout(page);
   await page.fill("#login", user);
   await page.fill("#password", "student123");
   await page.click("button[type=submit]");
