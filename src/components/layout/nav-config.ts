@@ -1,7 +1,7 @@
 import type { Role } from "@prisma/client";
 import { ru } from "@/lib/i18n/ru";
 
-export type NavIcon = "home" | "teachers" | "students" | "groups" | "schedule" | "grades" | "attendance" | "homework" | "journal";
+export type NavIcon = "home" | "teachers" | "students" | "groups" | "schedule" | "grades" | "attendance" | "homework" | "journal" | "security";
 
 export interface NavItem {
   href: string;
@@ -18,6 +18,7 @@ export const NAV: Record<Role, NavItem[]> = {
     { href: "/admin/groups", label: ru.nav.groups, icon: "groups" },
     { href: "/admin/schedule", label: ru.nav.schedule, icon: "schedule" },
     { href: "/admin/journal", label: ru.nav.journal, icon: "journal" },
+    { href: "/admin/security", label: ru.nav.security, icon: "security" },
   ],
   TEACHER: [
     { href: "/teacher", label: ru.nav.dashboard, icon: "home" },

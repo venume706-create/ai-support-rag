@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { HomeworkStateBadge } from "@/components/common/badges";
 import { HintTip } from "@/components/common/hint-tip";
+import { LinkTabs } from "@/components/common/link-tabs";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { EmptyState } from "@/components/common/status-views";
 import { PageHeader } from "@/components/common/page-header";
@@ -69,19 +69,16 @@ export default async function StudentHomeworkPage({ searchParams }: PageProps<"/
           { name: "subjectId", value: query.subjectId, allLabel: ru.common.allSubjects, options: subjects.map((s) => ({ value: s.id, label: s.name })) },
         ]}
       />
-      <nav aria-label={ru.hw.filterLabel} className="mb-4 flex flex-wrap items-center gap-2" data-testid="hw-filter">
-        {filters.map((f) => (
-          <Link
-            key={f.value}
-            href={withParams("/student/homework", baseParams, { hw: f.value || undefined })}
-            aria-current={query.hw === f.value ? "true" : undefined}
-            className="stamp stamp-blue stamp-button inline-flex min-h-11 items-center px-4 text-sm"
-          >
-            {f.label}
-          </Link>
-        ))}
-        <HintTip title={ru.student.homeworkTitle}>{ru.hw.hint}</HintTip>
-      </nav>
+      <div className="mb-4 flex flex-wrap items-center gap-1">
+        <LinkTabs
+          label={ru.hw.filterLabel}
+          testId="hw-filter"
+          items={filters.map((f) => ({ href: withParams("/student/homework", baseParams, { hw: f.value || undefined }), label: f.label, active: query.hw === f.value }))}
+        />
+        <HintTip title={ru.student.homeworkTitle} className="text-on-wood-muted hover:bg-black/20 hover:text-on-wood dark:hover:bg-black/20">
+          {ru.hw.hint}
+        </HintTip>
+      </div>
       <div className="cork rounded-lg p-5 sm:p-7" data-testid="homework-board">
         {rows.length === 0 ? (
           <div className="paper mx-auto max-w-md rounded-sm">

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, CalendarCheck, GraduationCap, Star, UserMinus, UserRound, UsersRound } from "lucide-react";
+import { BookOpen, CalendarCheck, GraduationCap, ShieldAlert, Star, UserMinus, UserRound, UsersRound } from "lucide-react";
 import { RatingBadge } from "@/components/common/badges";
 import { PageHeader } from "@/components/common/page-header";
 import { PersonName } from "@/components/common/person-name";
@@ -37,11 +37,12 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
   const [weekly, groupRatings] = await Promise.all([getWeeklyAttendance(), getGroupRatings()]);
   const ratings = await getStudentRatings(students.map((s) => s.id), { period });
   const weekStart = startOfWeek(today());
-  const [lessonsWeek, groupsNoTeacher, studentsNoGroup, recent] = await Promise.all([
+  const [lessonsWeek, groupsNoTeacher, studentsNoGroup, recent, openAlerts] = await Promise.all([
     db.lesson.count({ where: { date: { gte: weekStart, lt: addDays(weekStart, 7) } } }),
     db.group.count({ where: { teacherId: null } }),
     db.student.count({ where: { groups: { none: {} } } }),
     db.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, createdAt: true, actorLabel: true, action: true, targetLabel: true } }),
+    db.securityAlert.count({ where: { status: "OPEN" } }),
   ]);
   const avgRating = calculateTeacherRating([...ratings.values()].map((r) => r.total)).rating;
   const top = students
@@ -54,6 +55,17 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
   return (
     <>
       <PageHeader title={ru.admin.dashboardTitle} description={ru.app.tagline} actions={<PeriodSwitch period={period} hrefFor={hrefFor} />} />
+      {openAlerts > 0 && (
+        <Link
+          href="/admin/security"
+          data-testid="security-banner"
+          className="paper mb-6 flex min-h-11 flex-wrap items-center gap-3 rounded-md border-l-4 border-ink-red p-4 hover:-translate-y-0.5"
+        >
+          <ShieldAlert className="size-6 shrink-0 text-ink-red" />
+          <span className="font-bold">{ru.security.bannerOpen(openAlerts)}</span>
+          <span className="text-sm text-muted-foreground underline">{ru.security.bannerLink}</span>
+        </Link>
+      )}
       <div className="mb-6 grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <StatCard label={ru.admin.statsStudents} value={students.length} icon={<UserRound className="size-5" />} />
         <StatCard label={ru.admin.statsTeachers} value={teachers} icon={<GraduationCap className="size-5" />} />

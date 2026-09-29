@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { HintTip } from "@/components/common/hint-tip";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { PageHeader } from "@/components/common/page-header";
 import { Pagination } from "@/components/common/pagination";
@@ -42,7 +41,7 @@ export default async function AdminJournalPage({ searchParams }: PageProps<"/adm
       <PageHeader
         title={ru.journal.title}
         description={ru.journal.description}
-        actions={<HintTip title={ru.journal.title}>{ru.journal.hint}</HintTip>}
+        hint={ru.journal.hint}
       />
       <ListToolbar
         pathname="/admin/journal"

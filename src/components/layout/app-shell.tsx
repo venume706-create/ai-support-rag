@@ -6,6 +6,7 @@ import { PersonName } from "@/components/common/person-name";
 import { ru } from "@/lib/i18n/ru";
 import { ROLE_HOME } from "@/lib/roles";
 import { NAV } from "./nav-config";
+import { NotificationBell } from "./notification-bell";
 import { BottomNav, SidebarNav } from "./nav-links";
 import { ThemeToggle } from "./theme-toggle";
 import { LogoutButton } from "./user-menu";
@@ -46,6 +47,7 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
             </div>
           </div>
           <div className="grid text-on-wood-muted">
+            {user.role === "ADMIN" && <NotificationBell userId={user.id} variant="row" />}
             <Link
               href="/profile"
               className="flex h-10 items-center gap-3 rounded-md px-3 text-sm font-bold hover:bg-black/20 hover:text-on-wood"
@@ -65,6 +67,7 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
           <span className="truncate font-serif font-bold text-on-wood">{ru.app.name}</span>
         </Link>
         <div className="flex items-center text-on-wood">
+          {user.role === "ADMIN" && <NotificationBell userId={user.id} />}
           <ThemeToggle />
           <Link href="/profile" aria-label={ru.account.link} className="flex size-11 items-center justify-center rounded-md hover:bg-black/20" data-testid="account-link">
             <Avatar user={user} size="xs" />

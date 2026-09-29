@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { HintTip } from "@/components/common/hint-tip";
 
 export function PageHeader({
   title,
@@ -7,12 +8,15 @@ export function PageHeader({
   backHref,
   backLabel,
   actions,
+  hint,
 }: {
   title: string;
   description?: React.ReactNode;
   backHref?: string;
   backLabel?: string;
   actions?: React.ReactNode;
+  /** Кнопка «?» рядом с заголовком: простое объяснение страницы */
+  hint?: string;
 }) {
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -23,7 +27,14 @@ export function PageHeader({
             {backLabel}
           </Link>
         )}
-        <h1 className="font-serif text-2xl font-bold break-words text-on-wood [text-shadow:0_2px_3px_rgb(0_0_0/0.5)] md:text-3xl">{title}</h1>
+        <h1 className="flex items-center gap-1 font-serif text-2xl font-bold break-words text-on-wood [text-shadow:0_2px_3px_rgb(0_0_0/0.5)] md:text-3xl">
+          {title}
+          {hint && (
+            <HintTip title={title} className="text-on-wood-muted hover:bg-black/20 hover:text-on-wood dark:hover:bg-black/20">
+              {hint}
+            </HintTip>
+          )}
+        </h1>
         {description && <div className="mt-1 text-sm text-on-wood-muted">{description}</div>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
