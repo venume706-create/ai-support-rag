@@ -1,5 +1,7 @@
 import type { AttendanceStatus, HomeworkStatus } from "@prisma/client";
+import { addDays } from "@/lib/dates";
 import { db } from "@/lib/db";
+import { weeklyAttendanceSeries } from "@/lib/trends";
 import { PERSON_SELECT, type PersonLike } from "@/lib/person";
 import { startOfMonth, startOfNextMonth, today } from "@/lib/dates";
 import {
@@ -149,4 +151,36 @@ export async function monthAttendancePercent(groupIds?: string[]): Promise<numbe
   const counted = count("PRESENT") + count("LATE") + count("ABSENT");
   if (counted === 0) return null;
   return Math.round(((count("PRESENT") + count("LATE") * 0.5) / counted) * 1000) / 10;
+}
+
+/** Посещаемость по неделям за последние 8 недель (по всем группам или по указанным). */
+export async function getWeeklyAttendance(groupIds?: string[]) {
+  const now = today();
+  const rows = await db.attendance.findMany({
+    where: { lesson: { date: { gt: addDays(now, -56), lte: now }, groupId: groupIds ? { in: groupIds } : undefined } },
+    select: { status: true, lesson: { select: { date: true } } },
+  });
+  return weeklyAttendanceSeries(rows.map((r) => ({ date: r.lesson.date, status: r.status as AttendanceStatus })), now, 8);
+}
+
+export interface GroupRatingRow {
+  id: string;
+  name: string;
+  students: number;
+  rating: number | null;
+}
+
+/** Средний рейтинг учеников каждой группы (за всё время), лучшие сверху. */
+export async function getGroupRatings(groupIds?: string[]): Promise<GroupRatingRow[]> {
+  const groups = await db.group.findMany({
+    where: groupIds ? { id: { in: groupIds } } : undefined,
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, students: { select: { studentId: true } } },
+  });
+  const rows: GroupRatingRow[] = [];
+  for (const g of groups) {
+    const ratings = await getStudentRatings(g.students.map((s) => s.studentId), { period: "all", groupIds: [g.id] });
+    rows.push({ id: g.id, name: g.name, students: g.students.length, rating: calculateTeacherRating([...ratings.values()].map((r) => r.total)).rating });
+  }
+  return rows.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
 }

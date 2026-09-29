@@ -244,3 +244,31 @@ describe("рейтинг учителя: посещаемость и доля Д
     expect(calculateTeacherAggregates([])).toEqual({ attendancePercent: null, homeworkPercent: null });
   });
 });
+
+import { attendanceCounts, gradeCounts, weeklyAttendanceSeries } from "@/lib/trends";
+
+describe("графики: посещаемость по неделям, гистограмма оценок, кольцо посещаемости", () => {
+  it("процент по неделям: опоздание 0.5, «уваж.» не в счёт, пустая неделя — null", () => {
+    const marks: { date: Date; status: AttendanceMark }[] = [
+      { date: day(-2), status: "PRESENT" },
+      { date: day(-3), status: "ABSENT" },
+      { date: day(-4), status: "EXCUSED" },
+      { date: day(-9), status: "LATE" },
+      { date: day(-10), status: "PRESENT" },
+    ];
+    const s = weeklyAttendanceSeries(marks, TODAY, 3);
+    expect(s).toHaveLength(3);
+    expect(s[2].total).toBe(50); // сегодня: 1 из 2 (уваж. не считается)
+    expect(s[1].total).toBe(75); // неделей раньше: (0.5 + 1) / 2
+    expect(s[0].total).toBeNull();
+  });
+  it("граница недели: отметка ровно 7 дней назад относится к прошлой неделе", () => {
+    const s = weeklyAttendanceSeries([{ date: day(-7), status: "PRESENT" }], TODAY, 2);
+    expect(s[1].total).toBeNull();
+    expect(s[0].total).toBe(100);
+  });
+  it("gradeCounts и attendanceCounts", () => {
+    expect(gradeCounts([5, 5, 4, 3, 3, 3, 2, 1, 7, 0, 4.5])).toEqual({ 1: 1, 2: 1, 3: 3, 4: 1, 5: 2 });
+    expect(attendanceCounts(["PRESENT", "PRESENT", "LATE", "ABSENT", "EXCUSED"])).toEqual({ PRESENT: 2, LATE: 1, ABSENT: 1, EXCUSED: 1 });
+  });
+});

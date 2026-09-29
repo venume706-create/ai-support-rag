@@ -7,7 +7,7 @@ const H = 150;
 const PAD = { l: 30, r: 12, t: 14, b: 26 };
 
 /** График рейтинга за 8 недель на «миллиметровке»: чернильная линия, точки-кнопки, разрывы там, где данных ещё не было. */
-export function TrendChart({ series }: { series: SeriesPoint[] }) {
+export function TrendChart({ series, title = ru.insights.chartTitle }: { series: SeriesPoint[]; title?: string }) {
   const values = series.map((p) => p.total).filter((v): v is number => v !== null);
   if (values.length === 0) {
     return <p className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">{ru.insights.chartEmpty}</p>;
@@ -30,7 +30,7 @@ export function TrendChart({ series }: { series: SeriesPoint[] }) {
 
   return (
     <figure className="mx-auto w-full max-w-xl">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`${ru.insights.chartTitle}. ${summary}`} data-testid="trend-chart">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`${title}. ${summary}`} data-testid="trend-chart">
         <defs>
           <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="var(--ink-blue)" stopOpacity="0.28" />

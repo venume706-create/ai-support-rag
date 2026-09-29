@@ -5,6 +5,8 @@ import { RatingBadge } from "@/components/common/badges";
 import { Gauge } from "@/components/common/gauge";
 import { PageHeader } from "@/components/common/page-header";
 import { TeacherStats } from "@/components/rating/teacher-stats";
+import { BarList } from "@/components/rating/charts";
+import { TrendChart } from "@/components/rating/trend-chart";
 import { PeriodSwitch, ratingTextClass } from "@/components/common/rating-card";
 import { EmptyState } from "@/components/common/status-views";
 import { Button } from "@/components/ui/button";
@@ -15,7 +17,7 @@ import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { ensureLessons } from "@/lib/lessons";
 import { calculateTeacherRating } from "@/lib/rating";
-import { getStudentRatings, getTeacherRatings } from "@/lib/rating-data";
+import { getGroupRatings, getStudentRatings, getTeacherRatings, getWeeklyAttendance } from "@/lib/rating-data";
 import { cn } from "@/lib/utils";
 import { parseListQuery } from "@/lib/validation";
 
@@ -50,6 +52,7 @@ export default async function TeacherDashboard({ searchParams }: PageProps<"/tea
     const r = await getStudentRatings(g.students.map((s) => s.studentId), { period, groupIds: [g.id] });
     groupRatings.set(g.id, calculateTeacherRating([...r.values()].map((x) => x.total)).rating);
   }
+  const [weekly, groupBars] = await Promise.all([getWeeklyAttendance(groupIds), getGroupRatings(groupIds)]);
   const hrefFor = (p: string) => (p === "all" ? "/teacher" : `/teacher?period=${p}`);
   const dow = now.getUTCDay() || 7;
 
@@ -64,7 +67,7 @@ export default async function TeacherDashboard({ searchParams }: PageProps<"/tea
           </CardHeader>
           <CardContent>
             {lessons.length === 0 ? (
-              <EmptyState text={ru.empty.lessonsToday} />
+              <EmptyState kind="calendar" text={ru.empty.lessonsToday} />
             ) : (
               <ul className="grid gap-3" data-testid="today-lessons">
                 {lessons.map((l) => {
@@ -116,11 +119,32 @@ export default async function TeacherDashboard({ searchParams }: PageProps<"/tea
           </CardContent>
         </Card>
       </div>
+      {groups.length > 0 && (
+        <div className="mb-6 grid gap-6 lg:grid-cols-2">
+          <Card data-testid="attendance-trend">
+            <CardHeader>
+              <CardTitle>{ru.charts.attendanceTrendTitle}</CardTitle>
+              <CardDescription>{ru.charts.attendanceTrendHint}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TrendChart series={weekly} title={ru.charts.attendanceTrendTitle} />
+            </CardContent>
+          </Card>
+          <Card data-testid="group-ratings">
+            <CardHeader>
+              <CardTitle>{ru.charts.groupRatingsTitle}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <BarList items={groupBars.map((g) => ({ key: g.id, label: g.name, value: g.rating, hint: ru.teacher.studentsInGroup(g.students) }))} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
       <h2 className="mb-3 font-serif text-xl font-bold text-on-wood">{ru.teacher.myGroups}</h2>
       {groups.length === 0 ? (
         <Card>
           <CardContent>
-            <EmptyState text={ru.teacher.noGroups} />
+            <EmptyState kind="people" text={ru.teacher.noGroups} />
           </CardContent>
         </Card>
       ) : (

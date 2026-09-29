@@ -1,14 +1,16 @@
 import Link from "next/link";
-import { FileQuestion, Inbox, ShieldX } from "lucide-react";
+import { FileQuestion, ShieldX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ru } from "@/lib/i18n/ru";
+import { Illustration, type IllustrationKind } from "./illustrations";
 import { cn } from "@/lib/utils";
 
-export function EmptyState({ text, className, children }: { text: string; className?: string; children?: React.ReactNode }) {
+/** Пустой экран: иллюстрация, понятная фраза и (по желанию) кнопка «что делать». */
+export function EmptyState({ text, kind = "generic", className, children }: { text: string; kind?: IllustrationKind; className?: string; children?: React.ReactNode }) {
   return (
-    <div className={cn("flex flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed border-border px-6 py-10 text-center", className)} data-testid="empty-state">
-      <Inbox className="size-8 text-muted-foreground" />
-      <p className="font-hand text-2xl text-muted-foreground">{text}</p>
+    <div className={cn("flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border px-6 py-8 text-center", className)} data-testid="empty-state" data-kind={kind}>
+      <Illustration kind={kind} className="empty-float h-28 w-auto" />
+      <p className="handwritten text-2xl text-muted-foreground">{text}</p>
       {children}
     </div>
   );

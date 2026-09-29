@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { HomeworkBadge } from "@/components/common/badges";
 import { ListToolbar } from "@/components/common/list-toolbar";
+import { EmptyState } from "@/components/common/status-views";
 import { PageHeader } from "@/components/common/page-header";
 import { Pagination } from "@/components/common/pagination";
 import { requirePageUser } from "@/lib/access";
@@ -53,10 +54,8 @@ export default async function StudentHomeworkPage({ searchParams }: PageProps<"/
       />
       <div className="cork rounded-lg p-5 sm:p-7" data-testid="homework-board">
         {rows.length === 0 ? (
-          <div className="paper mx-auto max-w-sm rounded-sm p-6 text-center">
-            <p className="handwritten text-2xl text-muted-foreground">
-              {query.q || query.groupId || query.subjectId ? ru.empty.searchNothing : ru.empty.homework}
-            </p>
+          <div className="paper mx-auto max-w-md rounded-sm">
+            <EmptyState kind={query.q || query.groupId || query.subjectId ? "search" : "board"} className="border-0" text={query.q || query.groupId || query.subjectId ? ru.empty.searchNothing : ru.empty.homework} />
           </div>
         ) : (
           <ul className="grid gap-8 pt-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -86,9 +85,11 @@ export default async function StudentHomeworkPage({ searchParams }: PageProps<"/
           </ul>
         )}
       </div>
-      <div className="paper mt-4 rounded-md px-4 pb-3">
-        <Pagination info={info} pathname="/student/homework" params={{ q: query.q, groupId: query.groupId, subjectId: query.subjectId }} />
-      </div>
+      {info.total > 0 && (
+        <div className="paper mt-4 rounded-md px-4 pb-3">
+          <Pagination info={info} pathname="/student/homework" params={{ q: query.q, groupId: query.groupId, subjectId: query.subjectId }} />
+        </div>
+      )}
     </>
   );
 }

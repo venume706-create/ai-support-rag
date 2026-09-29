@@ -7,6 +7,10 @@ import { ActionError, requireSessionUser, runAction, type ActionResult } from "@
 import { parseDateOnly } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
+import { rankOf } from "@/lib/ranks";
+import { ratingAsOf } from "@/lib/rating-history";
+import { today } from "@/lib/dates";
+import { loadRatingRecords } from "@/lib/student-insights";
 import { nicknameStatus } from "@/lib/nickname";
 import { fullNameOf, nicknameKey, userSearchKey } from "@/lib/profile";
 import { initialPasswordSchema, nicknameOnlySchema, passwordChangeSchema, profileSchema } from "@/lib/validation";
@@ -114,6 +118,24 @@ export async function chooseInitialPassword(_prev: State, formData: FormData): P
       where: { id: user.id },
       data: { passwordHash: await bcrypt.hash(data.next, 10), mustChangePassword: false },
     });
+    return { ok: true };
+  });
+}
+
+/**
+ * Ученик увидел поздравление: награды помечаются просмотренными, текущий ранг запоминается,
+ * чтобы конфетти не повторялось при следующем заходе. Не перерисовывает страницу.
+ */
+export async function acknowledgeCelebrations(): Promise<ActionResult> {
+  return runAction(async () => {
+    const user = await requireSessionUser();
+    if (user.needsOnboarding || !user.studentId) return { ok: true };
+    const records = await loadRatingRecords(user.studentId);
+    const rank = rankOf(ratingAsOf(records, today(), { includeFutureMarked: true }).total);
+    await db.$transaction([
+      db.studentAchievement.updateMany({ where: { studentId: user.studentId, seen: false }, data: { seen: true } }),
+      db.student.update({ where: { id: user.studentId }, data: { seenRank: rank.index } }),
+    ]);
     return { ok: true };
   });
 }

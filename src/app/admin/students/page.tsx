@@ -84,7 +84,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
       <Card className="py-2">
         <CardContent className="px-2 sm:px-4">
           {students.length === 0 ? (
-            <EmptyState className="my-3" text={query.q || query.groupId || query.subjectId || query.status ? ru.empty.searchNothing : ru.empty.students} />
+            <EmptyState kind={query.q || query.groupId || query.subjectId || query.status ? "search" : "people"} className="my-3" text={query.q || query.groupId || query.subjectId || query.status ? ru.empty.searchNothing : ru.empty.students} />
           ) : (
             <Table data-testid="students-table">
               <TableHeader>

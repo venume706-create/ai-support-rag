@@ -65,7 +65,7 @@ export default async function StudentDashboard({ searchParams }: PageProps<"/stu
           </CardHeader>
           <CardContent>
             {upcoming.length === 0 ? (
-              <EmptyState text={ru.empty.upcoming} />
+              <EmptyState kind="calendar" text={ru.empty.upcoming} />
             ) : (
               <ul className="grid gap-3" data-testid="upcoming-lessons">
                 {upcoming.map((l) => {
@@ -107,7 +107,7 @@ export default async function StudentDashboard({ searchParams }: PageProps<"/stu
           </CardHeader>
           <CardContent>
             {grades.length === 0 ? (
-              <EmptyState text={ru.empty.grades} />
+              <EmptyState kind="star" text={ru.empty.grades} />
             ) : (
               <ul className="grid gap-2" data-testid="recent-grades">
                 {grades.map((g) => (

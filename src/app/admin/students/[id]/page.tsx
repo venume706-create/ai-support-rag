@@ -61,7 +61,7 @@ export default async function StudentProfile({ params, searchParams }: PageProps
           </CardHeader>
           <CardContent className="grid gap-4">
             {student.groups.length === 0 ? (
-              <EmptyState text={ru.empty.groups} />
+              <EmptyState kind="people" text={ru.empty.groups} />
             ) : (
               <ul className="grid gap-2">
                 {student.groups.map(({ group }) => (

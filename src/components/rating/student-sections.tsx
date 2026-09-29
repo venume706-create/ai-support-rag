@@ -5,7 +5,9 @@ import { ru } from "@/lib/i18n/ru";
 import { getGroupLeaderboard, getStudentInsights, syncAchievements } from "@/lib/student-insights";
 import { withParams } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
+import type { AchievementCode } from "@/lib/achievements";
 import { AchievementsShelf } from "./achievements-shelf";
+import { Celebration } from "./celebration";
 import { Leaderboard } from "./leaderboard";
 import { RatingInsights } from "./rating-insights";
 
@@ -33,6 +35,20 @@ export async function StudentRatingSections({
     getStudentInsights(studentId, groupIds),
     db.studentAchievement.findMany({ where: { studentId }, orderBy: { earnedAt: "asc" }, select: { code: true, earnedAt: true, seen: true } }),
   ]);
+
+  // Что нового с прошлого захода: награды, которые ученик ещё не видел, и повышение ранга
+  let celebration: React.ReactNode = null;
+  if (view === "student") {
+    const me = await db.student.findUnique({ where: { id: studentId }, select: { seenRank: true } });
+    const fresh = achievements.filter((a) => !a.seen).map((a) => a.code as AchievementCode);
+    const newRank = me?.seenRank != null && insights.rank.index > me.seenRank ? insights.rank.code : null;
+    if (fresh.length > 0 || newRank) {
+      celebration = <Celebration rank={newRank} achievements={fresh} />;
+    } else if (me && me.seenRank == null) {
+      // Первый заход: ранг запоминается молча, без поздравления
+      await db.student.update({ where: { id: studentId }, data: { seenRank: insights.rank.index } });
+    }
+  }
 
   let board: React.ReactNode = null;
   if (view === "student") {
@@ -78,6 +94,7 @@ export async function StudentRatingSections({
 
   return (
     <div className="grid gap-6">
+      {celebration}
       <RatingInsights insights={insights} view={view} />
       {board}
       <Card data-testid="achievements-card">

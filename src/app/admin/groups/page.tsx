@@ -73,7 +73,7 @@ export default async function GroupsPage({ searchParams }: PageProps<"/admin/gro
         <Card className="py-2">
           <CardContent className="px-2 sm:px-4">
             {rows.length === 0 ? (
-              <EmptyState className="my-3" text={query.q || query.subjectId || query.teacherId ? ru.empty.searchNothing : ru.empty.groups} />
+              <EmptyState kind={query.q || query.subjectId || query.teacherId ? "search" : "people"} className="my-3" text={query.q || query.subjectId || query.teacherId ? ru.empty.searchNothing : ru.empty.groups} />
             ) : (
               <Table data-testid="groups-table">
                 <TableHeader>

@@ -4,6 +4,8 @@ import { CalendarCheck, GraduationCap, UserRound, UsersRound } from "lucide-reac
 import { RatingBadge } from "@/components/common/badges";
 import { PageHeader } from "@/components/common/page-header";
 import { PersonName } from "@/components/common/person-name";
+import { BarList } from "@/components/rating/charts";
+import { TrendChart } from "@/components/rating/trend-chart";
 import { PeriodSwitch } from "@/components/common/rating-card";
 import { StatCard } from "@/components/common/stat-card";
 import { EmptyState } from "@/components/common/status-views";
@@ -12,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { PERSON_SELECT } from "@/lib/person";
-import { getStudentRatings, getTeacherRatings, monthAttendancePercent } from "@/lib/rating-data";
+import { getGroupRatings, getStudentRatings, getTeacherRatings, getWeeklyAttendance, monthAttendancePercent } from "@/lib/rating-data";
 import { parseListQuery } from "@/lib/validation";
 
 export const metadata: Metadata = { title: ru.admin.dashboardTitle };
@@ -26,6 +28,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
     monthAttendancePercent(),
     getTeacherRatings(period),
   ]);
+  const [weekly, groupRatings] = await Promise.all([getWeeklyAttendance(), getGroupRatings()]);
   const ratings = await getStudentRatings(students.map((s) => s.id), { period });
   const top = students
     .map((s) => ({ ...s, rating: ratings.get(s.id)!.total }))
@@ -48,6 +51,25 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
           icon={<CalendarCheck className="size-5" />}
         />
       </div>
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <Card data-testid="attendance-trend">
+          <CardHeader>
+            <CardTitle>{ru.charts.attendanceTrendTitle}</CardTitle>
+            <CardDescription>{ru.charts.attendanceTrendHint}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TrendChart series={weekly} title={ru.charts.attendanceTrendTitle} />
+          </CardContent>
+        </Card>
+        <Card data-testid="group-ratings">
+          <CardHeader>
+            <CardTitle>{ru.charts.groupRatingsTitle}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BarList items={groupRatings.map((g) => ({ key: g.id, label: g.name, value: g.rating, hint: ru.admin.studentsCount + ": " + g.students }))} />
+          </CardContent>
+        </Card>
+      </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -56,7 +78,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
           </CardHeader>
           <CardContent>
             {top.length === 0 ? (
-              <EmptyState text={ru.empty.ratings} />
+              <EmptyState kind="star" text={ru.empty.ratings} />
             ) : (
               <Table data-testid="top-students">
                 <TableHeader>
@@ -93,7 +115,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
           </CardHeader>
           <CardContent>
             {teacherRatings.length === 0 ? (
-              <EmptyState text={ru.empty.teachers} />
+              <EmptyState kind="people" text={ru.empty.teachers} />
             ) : (
               <Table data-testid="teacher-ratings">
                 <TableHeader>

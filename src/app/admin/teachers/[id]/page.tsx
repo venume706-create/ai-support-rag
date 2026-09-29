@@ -101,7 +101,7 @@ export default async function TeacherProfile({ params, searchParams }: PageProps
           </CardHeader>
           <CardContent>
             {teacher.groups.length === 0 ? (
-              <EmptyState text={ru.empty.groups} />
+              <EmptyState kind="people" text={ru.empty.groups} />
             ) : (
               <ul className="grid gap-2">
                 {teacher.groups.map((g) => (
@@ -133,7 +133,7 @@ export default async function TeacherProfile({ params, searchParams }: PageProps
               <ListToolbar pathname={`/admin/teachers/${id}`} q={q} hidden={period === "month" ? { period } : {}} />
             )}
             {studentPage.rows.length === 0 ? (
-              <EmptyState text={q ? ru.empty.searchNothing : ru.empty.students} />
+              <EmptyState kind={q ? "search" : "people"} text={q ? ru.empty.searchNothing : ru.empty.students} />
             ) : (
               <Table>
                 <TableHeader>

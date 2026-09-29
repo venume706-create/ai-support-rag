@@ -2,15 +2,16 @@
 
 import { useState, useTransition } from "react";
 import type { HomeworkStatus } from "@prisma/client";
+import { Check, Minus, X } from "lucide-react";
 import { toast } from "sonner";
 import { saveSubmission } from "@/app/actions/teacher";
 import { ru } from "@/lib/i18n/ru";
 import { cn } from "@/lib/utils";
 
-const OPTIONS: { value: HomeworkStatus; color: string; short: string }[] = [
-  { value: "DONE", color: "stamp-green", short: "✓" },
-  { value: "PARTIAL", color: "stamp-amber", short: "½" },
-  { value: "NOT_DONE", color: "stamp-red", short: "✗" },
+const OPTIONS: { value: HomeworkStatus; color: string; Icon: typeof Check }[] = [
+  { value: "DONE", color: "stamp-green", Icon: Check },
+  { value: "PARTIAL", color: "stamp-amber", Icon: Minus },
+  { value: "NOT_DONE", color: "stamp-red", Icon: X },
 ];
 
 /** Отметка выполнения ДЗ одним нажатием, с автосохранением. */
@@ -53,7 +54,7 @@ export function SubmissionStamps({
             title={ru.homeworkStatus[o.value]}
             className={cn("stamp stamp-button min-h-11 min-w-11 cursor-pointer px-1.5 text-base", o.color)}
           >
-            {o.short}
+            <o.Icon className="size-5" aria-hidden />
           </button>
         ))}
       </div>

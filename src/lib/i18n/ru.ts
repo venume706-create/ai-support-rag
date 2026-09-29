@@ -242,6 +242,15 @@ export const ru = {
       close: "Понятно",
     },
   },
+  charts: {
+    gradesTitle: "Мои оценки по достоинству",
+    gradesTotal: (n: number) => `Всего оценок: ${n}`,
+    attendanceTitle: "Посещаемость",
+    attendanceCenter: "посещаемость",
+    groupRatingsTitle: "Средний рейтинг по группам",
+    attendanceTrendTitle: "Посещаемость за 8 недель",
+    attendanceTrendHint: "Процент по неделям: пришёл — 1, опоздал — ½, не был — 0, уважительные пропуски не считаются",
+  },
   roles: {
     ADMIN: "Администратор",
     TEACHER: "Учитель",

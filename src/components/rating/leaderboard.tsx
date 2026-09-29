@@ -60,7 +60,7 @@ export function Leaderboard({
   viewerHidden?: boolean;
   profileHref?: string;
 }) {
-  if (rows.length === 0) return <EmptyState text={ru.insights.boardEmpty} />;
+  if (rows.length === 0) return <EmptyState kind="star" text={ru.insights.boardEmpty} />;
   const rest = rows.slice(3);
   return (
     <div className="grid gap-4" data-testid="leaderboard">

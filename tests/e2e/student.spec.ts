@@ -9,7 +9,7 @@ test.describe("Ученик", () => {
     await expect(card).toBeVisible();
     await expect(page.getByTestId("rating-gauge")).toBeVisible();
     await expect(card.getByRole("progressbar")).toHaveCount(3);
-    const total = await page.getByTestId("rating-total").textContent();
+    const total = await page.getByTestId("rating-total").getAttribute("data-value");
     expect(Number(total)).toBeGreaterThan(0);
 
     const me = await db.student.findFirstOrThrow({ where: { user: { login: "student1" } } });

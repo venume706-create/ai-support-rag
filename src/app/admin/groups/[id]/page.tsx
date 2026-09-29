@@ -107,7 +107,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
               <ListToolbar pathname={`/admin/groups/${id}`} q={q} hidden={period === "month" ? { period } : {}} />
             )}
             {members.rows.length === 0 ? (
-              <EmptyState text={q ? ru.empty.searchNothing : ru.empty.groupStudents} />
+              <EmptyState kind={q ? "search" : "people"} text={q ? ru.empty.searchNothing : ru.empty.groupStudents} />
             ) : (
               <Table data-testid="group-students">
                 <TableHeader>
@@ -153,7 +153,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
             </CardHeader>
             <CardContent>
               {group.slots.length === 0 ? (
-                <EmptyState text={ru.empty.schedule} />
+                <EmptyState kind="calendar" text={ru.empty.schedule} />
               ) : (
                 <ul className="grid gap-2" data-testid="group-slots">
                   {group.slots.map((s) => (

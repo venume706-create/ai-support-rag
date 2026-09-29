@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { PageHeader } from "@/components/common/page-header";
+import { GradeBars } from "@/components/rating/charts";
 import { Pagination } from "@/components/common/pagination";
 import { EmptyState } from "@/components/common/status-views";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { formatDate } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { paginate } from "@/lib/pagination";
+import { gradeCounts } from "@/lib/trends";
 import { studentGroups } from "@/lib/student-data";
 import { cn, searchTerm } from "@/lib/utils";
 import { parseListQuery } from "@/lib/validation";
@@ -52,11 +54,19 @@ export default async function StudentGradesPage({ searchParams }: PageProps<"/st
           { name: "subjectId", value: query.subjectId, allLabel: ru.common.allSubjects, options: subjects.map((s) => ({ value: s.id, label: s.name })) },
         ]}
       />
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>{ru.charts.gradesTitle}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <GradeBars counts={gradeCounts(all.map((g) => g.value))} />
+        </CardContent>
+      </Card>
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <Card className="py-2">
           <CardContent className="px-2 sm:px-4">
             {rows.length === 0 ? (
-              <EmptyState className="my-3" text={query.q || query.groupId || query.subjectId ? ru.empty.searchNothing : ru.empty.grades} />
+              <EmptyState kind={query.q || query.groupId || query.subjectId ? "search" : "star"} className="my-3" text={query.q || query.groupId || query.subjectId ? ru.empty.searchNothing : ru.empty.grades} />
             ) : (
               <ol className="ruled -mx-2 rounded-md sm:-mx-4" data-testid="student-grades">
                 {rows.map((g) => (
@@ -82,7 +92,7 @@ export default async function StudentGradesPage({ searchParams }: PageProps<"/st
           </CardHeader>
           <CardContent>
             {averages.length === 0 ? (
-              <EmptyState text={ru.student.noGroups} />
+              <EmptyState kind="people" text={ru.student.noGroups} />
             ) : (
               <ul className="grid gap-3">
                 {averages.map((g) => (

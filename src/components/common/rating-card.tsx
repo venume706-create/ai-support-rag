@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CountUp } from "@/components/common/count-up";
 import { Gauge } from "@/components/common/gauge";
 import { Progress } from "@/components/ui/progress";
 import { ru } from "@/lib/i18n/ru";
@@ -82,13 +83,18 @@ export function RatingCard({
       <CardContent className="grid gap-6 md:grid-cols-[280px_1fr] md:items-center">
         <div className="flex flex-col items-center justify-center">
           <Gauge value={rating.total} label={title} />
-          <span
-            className={cn("-mt-1 font-serif text-4xl font-bold tabular-nums", ratingTextClass(rating.total), rating.total === null && "text-xl")}
-            data-testid="rating-total"
-            data-rating-level={ratingLevel(rating.total)}
-          >
-            {rating.total === null ? ru.common.noData : rating.total.toFixed(1)}
-          </span>
+          {rating.total === null ? (
+            <span className={cn("-mt-1 font-serif text-xl font-bold", ratingTextClass(null))} data-testid="rating-total" data-rating-level="none">
+              {ru.common.noData}
+            </span>
+          ) : (
+            <CountUp
+              value={rating.total}
+              className={cn("-mt-1 font-serif text-4xl font-bold tabular-nums", ratingTextClass(rating.total))}
+              data-testid="rating-total"
+              data-rating-level={ratingLevel(rating.total)}
+            />
+          )}
           {rating.total !== null && <span className="text-sm text-muted-foreground">{ru.rating.outOf}</span>}
         </div>
         <div className="grid gap-4">

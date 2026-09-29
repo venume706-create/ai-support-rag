@@ -19,7 +19,9 @@ export function AchievementsShelf({ earned }: { earned: { code: string; earnedAt
             data-earned={got ? "true" : "false"}
             data-new={got && got.seen === false ? "true" : "false"}
           >
-            <AchievementMedal code={code} size={72} locked={!got} />
+            <span className={got ? (got.seen === false ? "medal-pop inline-flex" : "medal-shine inline-flex") : "inline-flex"}>
+              <AchievementMedal code={code} size={72} locked={!got} />
+            </span>
             <span className={got ? "text-sm leading-tight font-bold" : "text-sm leading-tight font-bold text-muted-foreground"}>{text.title}</span>
             <span className="text-xs leading-snug text-muted-foreground">{got ? formatDate(got.earnedAt) : text.text}</span>
           </li>

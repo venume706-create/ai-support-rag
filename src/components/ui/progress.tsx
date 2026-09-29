@@ -24,7 +24,7 @@ function Progress({
     >
       <div className="relative h-full w-full overflow-hidden rounded-full bg-[#1f160f] shadow-[inset_0_1px_2px_rgb(0_0_0/0.8)]">
         <div
-          className={cn("h-full rounded-full bg-primary shadow-[inset_0_1px_0_rgb(255_255_255/0.35)] transition-[width] duration-500", indicatorClassName)}
+          className={cn("bar-fill h-full rounded-full bg-primary shadow-[inset_0_1px_0_rgb(255_255_255/0.35)]", indicatorClassName)}
           style={{ width: `${clamped}%` }}
         />
         <div

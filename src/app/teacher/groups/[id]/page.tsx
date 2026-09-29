@@ -118,7 +118,7 @@ export default async function TeacherGroupPage({ params, searchParams }: PagePro
           </CardHeader>
           <CardContent>
             {group.slots.length === 0 ? (
-              <EmptyState text={ru.empty.schedule} />
+              <EmptyState kind="calendar" text={ru.empty.schedule} />
             ) : (
               <ul className="grid gap-2">
                 {group.slots.map((s) => (
@@ -156,7 +156,7 @@ async function JournalTab({
     orderBy: [{ date: "desc" }, { startTime: "desc" }],
     select: { id: true, date: true, startTime: true, endTime: true, topic: true },
   });
-  if (lessons.length === 0) return <EmptyState text={ru.teacher.noLessonsYet} />;
+  if (lessons.length === 0) return <EmptyState kind="notebook" text={ru.teacher.noLessonsYet} />;
   const past = lessons.filter((l) => l.date <= now);
   const current = lessons.find((l) => l.id === selected) ?? past.find((l) => l.date.getTime() === now.getTime()) ?? past[0] ?? lessons[lessons.length - 1];
   const isFuture = current.date > now;
@@ -213,7 +213,7 @@ async function JournalTab({
         <TopicForm key={current.id} lessonId={current.id} topic={current.topic} />
         {isFuture && <p className="stamp stamp-amber mt-3 w-full justify-start py-2 text-sm normal-case">{ru.teacher.futureLessonHint}</p>}
         {students.length === 0 ? (
-          <EmptyState className="mt-4" text={ru.empty.groupStudents} />
+          <EmptyState kind="people" className="mt-4" text={ru.empty.groupStudents} />
         ) : (
           <ol className="mt-4 grid" data-testid="journal-rows">
             {students.map((s, i) => (
@@ -291,7 +291,7 @@ async function StudentsTab({
           <ListToolbar pathname={base} q={q} hidden={{ tab: "students", ...(period === "month" ? { period } : {}) }} searchPlaceholder={ru.common.searchPlaceholder} />
         )}
         {students.length === 0 ? (
-          <EmptyState text={q ? ru.empty.searchNothing : ru.empty.groupStudents} />
+          <EmptyState kind={q ? "search" : "people"} text={q ? ru.empty.searchNothing : ru.empty.groupStudents} />
         ) : (
           <Table data-testid="teacher-group-students">
             <TableHeader>
@@ -350,8 +350,8 @@ async function HomeworkTab({ groupId, students }: { groupId: string; students: G
       </div>
       <div className="cork rounded-lg p-5 sm:p-7" data-testid="homework-board">
         {homework.length === 0 ? (
-          <div className="paper mx-auto max-w-sm rounded-sm p-6 text-center">
-            <p className="handwritten text-2xl text-muted-foreground">{ru.empty.homework}</p>
+          <div className="paper mx-auto max-w-md rounded-sm">
+            <EmptyState kind="board" className="border-0" text={ru.empty.homework} />
           </div>
         ) : (
           <ul className="grid gap-8 pt-2 sm:grid-cols-2 xl:grid-cols-3">

@@ -63,7 +63,7 @@ export function Gauge({ value, label }: { value: number | null; label: string })
           );
         })}
         {/* Стрелка */}
-        <g style={{ transform: `rotate(${angle}deg)`, transformOrigin: `${CX}px ${CY}px`, transition: "transform 700ms cubic-bezier(.3,1.4,.5,1)" }} opacity={value === null ? 0.35 : 1}>
+        <g className="needle" style={{ transform: `rotate(${angle}deg)`, transformOrigin: `${CX}px ${CY}px` }} opacity={value === null ? 0.35 : 1}>
           <polygon points={`${CX - 3},${CY} ${CX + 3},${CY} ${CX + 0.8},${CY - R + 6} ${CX - 0.8},${CY - R + 6}`} fill="#8b1a12" />
         </g>
         <circle cx={CX} cy={CY} r="8" fill="url(#gauge-cap)" stroke="#5e4214" strokeWidth="1" />

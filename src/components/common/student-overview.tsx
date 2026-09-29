@@ -91,7 +91,7 @@ export async function StudentOverview({
           </CardHeader>
           <CardContent>
             {grades.length === 0 ? (
-              <EmptyState text={ru.empty.grades} />
+              <EmptyState kind="star" text={ru.empty.grades} />
             ) : (
               <Table data-testid="grade-history">
                 <TableHeader>
@@ -128,7 +128,7 @@ export async function StudentOverview({
           </CardHeader>
           <CardContent>
             {attendance.length === 0 ? (
-              <EmptyState text={ru.empty.attendance} />
+              <EmptyState kind="calendar" text={ru.empty.attendance} />
             ) : (
               <Table data-testid="attendance-history">
                 <TableHeader>
@@ -163,7 +163,7 @@ export async function StudentOverview({
         </CardHeader>
         <CardContent>
           {homework.length === 0 ? (
-            <EmptyState text={ru.empty.homework} />
+            <EmptyState kind="board" text={ru.empty.homework} />
           ) : (
             <Table>
               <TableHeader>
