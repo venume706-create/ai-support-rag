@@ -4,6 +4,7 @@ import { BookOpen, Clock, DoorOpen } from "lucide-react";
 import { RatingBadge } from "@/components/common/badges";
 import { Gauge } from "@/components/common/gauge";
 import { PageHeader } from "@/components/common/page-header";
+import { TeacherStats } from "@/components/rating/teacher-stats";
 import { PeriodSwitch, ratingTextClass } from "@/components/common/rating-card";
 import { EmptyState } from "@/components/common/status-views";
 import { Button } from "@/components/ui/button";
@@ -109,6 +110,9 @@ export default async function TeacherDashboard({ searchParams }: PageProps<"/tea
             <span className={cn("-mt-1 font-serif text-4xl font-bold tabular-nums", ratingTextClass(ratingRow?.rating ?? null))}>
               {ratingRow?.rating == null ? ru.common.noData : ratingRow.rating.toFixed(1)}
             </span>
+            <div className="mt-4 w-full">
+              <TeacherStats attendancePercent={ratingRow?.attendancePercent ?? null} homeworkPercent={ratingRow?.homeworkPercent ?? null} />
+            </div>
           </CardContent>
         </Card>
       </div>

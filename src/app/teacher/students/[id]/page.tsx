@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Avatar } from "@/components/common/avatar";
 import { PageHeader } from "@/components/common/page-header";
+import { StudentRatingSections } from "@/components/rating/student-sections";
 import { StudentOverview } from "@/components/common/student-overview";
 import { Card, CardContent } from "@/components/ui/card";
 import { requirePageUser } from "@/lib/access";
@@ -52,6 +53,9 @@ export default async function TeacherStudentPage({ params, searchParams }: PageP
           </div>
         </CardContent>
       </Card>
+      <div className="mb-6">
+        <StudentRatingSections studentId={student.id} view="staff" pathname={`/teacher/students/${id}`} searchParams={sp} groupIds={myGroups} />
+      </div>
       <StudentOverview studentId={student.id} groupIds={myGroups} period={period} hrefFor={hrefFor} pathname={`/teacher/students/${id}`} searchParams={sp} />
     </>
   );

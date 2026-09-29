@@ -4,6 +4,7 @@ import { Clock, DoorOpen } from "lucide-react";
 import { GradeBadge } from "@/components/common/badges";
 import { PageHeader } from "@/components/common/page-header";
 import { RatingCard } from "@/components/common/rating-card";
+import { StudentRatingSections } from "@/components/rating/student-sections";
 import { EmptyState } from "@/components/common/status-views";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +22,8 @@ export const metadata: Metadata = { title: ru.student.dashboardTitle };
 export default async function StudentDashboard({ searchParams }: PageProps<"/student">) {
   const user = await requirePageUser("STUDENT");
   const studentId = user.studentId ?? "__none__";
-  const { period } = parseListQuery(await searchParams);
+  const sp = await searchParams;
+  const { period } = parseListQuery(sp);
   const groups = await studentGroups(user.studentId);
   const groupIds = groups.map((g) => g.id);
   const now = today();
@@ -49,6 +51,9 @@ export default async function StudentDashboard({ searchParams }: PageProps<"/stu
       <PageHeader title={ru.student.dashboardTitle} description={`${user.nick} · ${groups.map((g) => g.name).join(", ") || ru.student.noGroups}`} />
       <div className="mb-6">
         <RatingCard rating={rating} title={ru.student.myRating} period={period} hrefFor={hrefFor} />
+      </div>
+      <div className="mb-6">
+        <StudentRatingSections studentId={studentId} view="student" pathname="/student" searchParams={sp} />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

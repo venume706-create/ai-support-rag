@@ -13,6 +13,7 @@ import {
 import { parseDateOnly, today } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
+import { syncAchievements } from "@/lib/student-insights";
 import {
   attendanceBulkSchema,
   attendanceSchema,
@@ -59,6 +60,7 @@ export async function saveAttendance(input: { lessonId: string; studentId: strin
       update: { status: data.status },
       create: data,
     });
+    await syncAchievements(data.studentId);
     refresh(lesson.groupId);
     return { ok: true };
   });
@@ -79,6 +81,7 @@ export async function markAllAttendance(input: { lessonId: string; status: strin
         }),
       ),
     );
+    for (const m of members) await syncAchievements(m.studentId);
     refresh(lesson.groupId);
     return { ok: true, message: ru.common.saved, data: { count: members.length } };
   });
@@ -103,6 +106,7 @@ export async function addGrade(input: { lessonId: string; studentId: string; val
       },
       select: { id: true },
     });
+    await syncAchievements(data.studentId);
     refresh(lesson.groupId);
     return { ok: true, message: ru.teacher.gradeSaved, data: { id: grade.id } };
   });
@@ -189,6 +193,7 @@ export async function saveSubmission(input: { homeworkId: string; studentId: str
       update: { status: data.status },
       create: data,
     });
+    await syncAchievements(data.studentId);
     refresh(homework.groupId);
     return { ok: true };
   });

@@ -12,14 +12,16 @@ import { ListToolbar } from "@/components/common/list-toolbar";
 import { Pagination } from "@/components/common/pagination";
 import { PageHeader } from "@/components/common/page-header";
 import { PersonName } from "@/components/common/person-name";
+import { Leaderboard } from "@/components/rating/leaderboard";
 import { PeriodSwitch } from "@/components/common/rating-card";
 import { EmptyState } from "@/components/common/status-views";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { today } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { pageParam, searchAndPage } from "@/lib/pagination";
+import { getGroupLeaderboard } from "@/lib/student-insights";
 import { PERSON_SELECT, nickOf } from "@/lib/person";
 import { getStudentRatings } from "@/lib/rating-data";
 import { parseListQuery } from "@/lib/validation";
@@ -61,6 +63,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
   const members = searchAndPage(group.students, q, pageParam(sp.sp), (s) => `${s.student.user.nickname ?? ""} ${s.student.user.firstName} ${s.student.user.lastName} ${s.student.user.login}`);
   const ratings = await getStudentRatings(members.rows.map((s) => s.student.id), { period, groupIds: [id] });
   const hrefFor = (p: string) => (p === "all" ? `/admin/groups/${id}` : `/admin/groups/${id}?period=${p}`);
+  const board = await getGroupLeaderboard(id);
 
   return (
     <>
@@ -82,6 +85,15 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/ad
           </>
         }
       />
+      <Card className="mb-6" data-testid="board-card">
+        <CardHeader>
+          <CardTitle>{ru.insights.boardTitle}</CardTitle>
+          <CardDescription>{ru.insights.boardHint}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Leaderboard rows={board.rows} />
+        </CardContent>
+      </Card>
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <Card>
           <CardHeader className="gap-3 sm:flex sm:flex-row sm:items-center sm:justify-between">

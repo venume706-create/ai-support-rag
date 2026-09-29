@@ -110,7 +110,10 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
                         <Link href={`/admin/teachers/${t.teacherId}`} className="hover:underline">
                           <PersonName user={t.person} avatar="sm" />
                         </Link>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{ru.rating.studentsCounted(t.studentsCounted)}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {ru.rating.teacherAttendanceShort}: {t.attendancePercent === null ? ru.common.dash : ru.rating.percent(t.attendancePercent)} · {ru.rating.teacherHomeworkShort}:{" "}
+                          {t.homeworkPercent === null ? ru.common.dash : ru.rating.percent(t.homeworkPercent)}
+                        </p>
                       </TableCell>
                       <TableCell className="text-center tabular-nums">{t.groups}</TableCell>
                       <TableCell className="text-right">

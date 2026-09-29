@@ -5,6 +5,7 @@ import { RemoveMemberButton } from "@/components/admin/buttons";
 import { AdminProfileCard, AdminUserActions } from "@/components/admin/admin-user-panel";
 import { MembershipForm } from "@/components/admin/membership-form";
 import { PageHeader } from "@/components/common/page-header";
+import { StudentRatingSections } from "@/components/rating/student-sections";
 import { StudentOverview } from "@/components/common/student-overview";
 import { EmptyState } from "@/components/common/status-views";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,6 +82,9 @@ export default async function StudentProfile({ params, searchParams }: PageProps
             <MembershipForm fixed={{ studentId: student.id }} options={freeGroups} emptyText={ru.admin.noFreeGroups} />
           </CardContent>
         </Card>
+      </div>
+      <div className="mb-6">
+        <StudentRatingSections studentId={student.id} view="staff" pathname={`/admin/students/${id}`} searchParams={sp} />
       </div>
       <StudentOverview studentId={student.id} period={period} hrefFor={hrefFor} pathname={`/admin/students/${id}`} searchParams={sp} />
     </>

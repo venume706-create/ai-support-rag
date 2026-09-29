@@ -4,6 +4,7 @@ import { PERSON_SELECT, type PersonLike } from "@/lib/person";
 import { startOfMonth, startOfNextMonth, today } from "@/lib/dates";
 import {
   calculateStudentRating,
+  calculateTeacherAggregates,
   calculateTeacherRating,
   type RatingInput,
   type StudentRating,
@@ -98,6 +99,10 @@ export interface TeacherRatingRow {
   students: number;
   rating: number | null;
   studentsCounted: number;
+  /** Посещаемость всех учеников его групп, % (null — данных нет) */
+  attendancePercent: number | null;
+  /** Доля сданных ДЗ в его группах, % (null — данных нет) */
+  homeworkPercent: number | null;
 }
 
 /** Рейтинг учителей: средний рейтинг учеников, посчитанный по группам этого учителя. */
@@ -114,8 +119,9 @@ export async function getTeacherRatings(period: RatingPeriod, teacherIds?: strin
   for (const t of teachers) {
     const groupIds = t.groups.map((g) => g.id);
     const studentIds = [...new Set(t.groups.flatMap((g) => g.students.map((s) => s.studentId)))];
-    const ratings = await getStudentRatings(studentIds, { period, groupIds });
-    const { rating, studentsCounted } = calculateTeacherRating([...ratings.values()].map((r) => r.total));
+    const inputs = await loadRatingInputs(studentIds, { period, groupIds });
+    const { rating, studentsCounted } = calculateTeacherRating([...inputs.values()].map((i) => calculateStudentRating(i).total));
+    const { attendancePercent, homeworkPercent } = calculateTeacherAggregates([...inputs.values()]);
     rows.push({
       teacherId: t.id,
       person: t.user,
@@ -124,6 +130,8 @@ export async function getTeacherRatings(period: RatingPeriod, teacherIds?: strin
       students: studentIds.length,
       rating,
       studentsCounted,
+      attendancePercent,
+      homeworkPercent,
     });
   }
   return rows.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));

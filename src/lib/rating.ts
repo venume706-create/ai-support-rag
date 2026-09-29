@@ -120,3 +120,18 @@ export function ratingLevel(value: number | null): RatingLevel {
   if (value >= 50) return "medium";
   return "low";
 }
+
+/**
+ * Показатели групп учителя: посещаемость и доля сданных ДЗ (в процентах, 0–100).
+ * Считаются по всем отметкам всех учеников его групп сразу (не средним из средних),
+ * по тем же правилам, что и рейтинг ученика: опоздание = 0.5, «уваж.» не в счёт, частично = 0.5.
+ * null — данных нет.
+ */
+export function calculateTeacherAggregates(inputs: RatingInput[]): { attendancePercent: number | null; homeworkPercent: number | null } {
+  const a = attendanceRatio(inputs.flatMap((i) => i.attendance)).ratio;
+  const h = homeworkRatio(inputs.flatMap((i) => i.homework)).ratio;
+  return {
+    attendancePercent: a === null ? null : round1(a * 100),
+    homeworkPercent: h === null ? null : round1(h * 100),
+  };
+}

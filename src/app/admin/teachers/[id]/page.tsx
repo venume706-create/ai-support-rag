@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AdminProfileCard, AdminUserActions } from "@/components/admin/admin-user-panel";
 import { RatingBadge } from "@/components/common/badges";
 import { PersonName } from "@/components/common/person-name";
+import { TeacherStats } from "@/components/rating/teacher-stats";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { Pagination } from "@/components/common/pagination";
 import { Gauge } from "@/components/common/gauge";
@@ -88,7 +89,8 @@ export default async function TeacherProfile({ params, searchParams }: PageProps
             <span className={cn("-mt-1 font-serif text-4xl font-bold tabular-nums", ratingTextClass(ratingRow?.rating ?? null))}>
               {ratingRow?.rating == null ? ru.common.noData : ratingRow.rating.toFixed(1)}
             </span>
-            <span className="text-sm text-muted-foreground">{ru.rating.studentsCounted(ratingRow?.studentsCounted ?? 0)}</span>
+            <span className="mb-4 text-sm text-muted-foreground">{ru.rating.studentsCounted(ratingRow?.studentsCounted ?? 0)}</span>
+            <TeacherStats attendancePercent={ratingRow?.attendancePercent ?? null} homeworkPercent={ratingRow?.homeworkPercent ?? null} />
           </CardContent>
         </Card>
       </div>

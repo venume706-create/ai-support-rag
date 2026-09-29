@@ -540,3 +540,15 @@
   .dark .tint-rose { --paper: #3b2a2a; --paper-shade: #4a3535; }
   .dark .tint-lilac { --paper: #322a3d; --paper-shade: #3f3550; }
 }
+
+/* Линия графика «прорисовывается» при показе */
+@layer components {
+  .chart-line {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: chart-draw 900ms ease-out 150ms forwards;
+  }
+}
+@keyframes chart-draw {
+  to { stroke-dashoffset: 0; }
+}

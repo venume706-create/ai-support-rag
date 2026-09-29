@@ -5,6 +5,7 @@ import { CalendarClock, Pencil, Plus } from "lucide-react";
 import type { AttendanceStatus, HomeworkStatus } from "@prisma/client";
 import { DialogForm } from "@/components/admin/dialog-form";
 import { PersonName } from "@/components/common/person-name";
+import { Leaderboard } from "@/components/rating/leaderboard";
 import { ListToolbar } from "@/components/common/list-toolbar";
 import { Pagination } from "@/components/common/pagination";
 import { RatingBadge } from "@/components/common/badges";
@@ -26,6 +27,7 @@ import { addDays, formatDate, formatWeekday, toDateOnly, today } from "@/lib/dat
 import { db } from "@/lib/db";
 import { ru } from "@/lib/i18n/ru";
 import { ensureLessons } from "@/lib/lessons";
+import { getGroupLeaderboard } from "@/lib/student-insights";
 import { PERSON_SELECT, nickOf, realNameOf, type PersonLike } from "@/lib/person";
 import { pageParam, searchAndPage } from "@/lib/pagination";
 import { getStudentRatings } from "@/lib/rating-data";
@@ -265,9 +267,20 @@ async function StudentsTab({
   page: number;
 }) {
   const { info, rows: students } = searchAndPage(all, q, page, (s) => s.search);
+  const board = await getGroupLeaderboard(groupId);
   const ratings = await getStudentRatings(students.map((s) => s.id), { period, groupIds: [groupId] });
   const hrefFor = (p: string) => (p === "all" ? `${base}?tab=students` : `${base}?tab=students&period=${p}`);
   return (
+    <div className="grid gap-6">
+    <Card data-testid="board-card">
+      <CardHeader>
+        <CardTitle>{ru.insights.boardTitle}</CardTitle>
+        <CardDescription>{ru.insights.boardHint}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Leaderboard rows={board.rows} />
+      </CardContent>
+    </Card>
     <Card>
       <CardHeader className="gap-3 sm:flex sm:flex-row sm:items-center sm:justify-between">
         <CardTitle>{ru.teacher.studentsTitle}</CardTitle>
@@ -316,6 +329,7 @@ async function StudentsTab({
         <Pagination info={info} pathname={base} params={{ tab: "students", q, period: period === "month" ? period : undefined }} pageKey="sp" />
       </CardContent>
     </Card>
+    </div>
   );
 }
 

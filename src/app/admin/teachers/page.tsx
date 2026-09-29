@@ -41,7 +41,7 @@ export default async function TeachersPage({ searchParams }: PageProps<"/admin/t
   });
   const ratings = new Map((await getTeacherRatings(query.period, teachers.map((t) => t.id))).map((r) => [r.teacherId, r]));
   const rows = teachers
-    .map((t) => ({ ...t, rating: ratings.get(t.id)?.rating ?? null }))
+    .map((t) => ({ ...t, rating: ratings.get(t.id)?.rating ?? null, attendancePercent: ratings.get(t.id)?.attendancePercent ?? null, homeworkPercent: ratings.get(t.id)?.homeworkPercent ?? null }))
     .sort((a, b) =>
       query.sort === "name" ? nickOf(a.user).localeCompare(nickOf(b.user), "ru") : (b.rating ?? -1) - (a.rating ?? -1),
     );
@@ -94,6 +94,8 @@ export default async function TeachersPage({ searchParams }: PageProps<"/admin/t
                   <TableHead className="hidden md:table-cell">{ru.common.subjects}</TableHead>
                   <TableHead className="hidden sm:table-cell text-center">{ru.admin.groupsCount}</TableHead>
                   <TableHead className="hidden sm:table-cell">{ru.common.status}</TableHead>
+                  <TableHead className="hidden text-center lg:table-cell">{ru.rating.teacherAttendanceShort}</TableHead>
+                  <TableHead className="hidden text-center lg:table-cell">{ru.rating.teacherHomeworkShort}</TableHead>
                   <TableHead className="text-right">{ru.common.rating}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -114,6 +116,8 @@ export default async function TeachersPage({ searchParams }: PageProps<"/admin/t
                     <TableCell className="hidden sm:table-cell">
                       <ActiveBadge active={t.user.isActive} />
                     </TableCell>
+                    <TableCell className="hidden text-center tabular-nums lg:table-cell">{t.attendancePercent === null ? ru.common.dash : ru.rating.percent(t.attendancePercent)}</TableCell>
+                    <TableCell className="hidden text-center tabular-nums lg:table-cell">{t.homeworkPercent === null ? ru.common.dash : ru.rating.percent(t.homeworkPercent)}</TableCell>
                     <TableCell className="text-right">
                       <RatingBadge value={t.rating} />
                     </TableCell>
